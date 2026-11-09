@@ -352,13 +352,76 @@ at `+0x28`. State 3 calls acquisition helper `0x00649160` at
 | --- | --- |
 | `0x006491C1..0x006491E1` | Starts at bind count minus one and skips entries whose slot-5 resource pointer is already nonnull. |
 | `0x00649479..0x00649501` | On the admitted typed-cache-hit branch, retains the returned pointer and supplies it with the current index to `0x00648C40`. |
-| `0x006495A8`; `0x00649618..0x00649686` | The request/factory branch calls virtual slot 2 on the interface returned by `0x0060B370`, scene `+0x114` object's `+8` field. A nonnull returned EAX reaches `0x00648C40` with the current index. The concrete receiver and decoder remain unjoined here. |
+| `0x006495A8`; `0x00649618..0x00649686` | The request/factory branch calls virtual slot 2 on the interface returned by `0x0060B370`, scene `+0x114` object's `+8` field. A nonnull returned EAX reaches `0x00648C40` with the current index. The [decoder contract](#concrete-request-decoder-and-selected-rain-draw-records) identifies the ordinary receiver. |
 | `0x00648C40..0x00648C57` | Resolves the indexed entry and stores the supplied pointer at `+0x28`, which bind slot 5 later returns to the VFX binder. |
 
 The generic state-3 pointer-presence check still governs advancement to
 state 4. These instructions identify the selected dependency keys and a
 conditional route into entries 0/1; they do not observe successful acquisition,
 the selected block's historical bind vector, or actual nonnull pointer values.
+
+### Concrete request decoder and selected rain draw records
+
+With the ordinary RaptureWorld retained, the scene's +0x114 pointer supplies
+world+8 through 0x0060B370 at 0x006491A8. World constructor 0x0060C2C0
+stores the graph at +8 at 0x0060C3D0. Graph constructor 0x007CBE90
+installs the RaptureResourceSceneGraph table 0x00FE96FC at 0x007CBEDD.
+The request call at 0x006495A8 uses its +0x08 cell, 0x00FE9704 ->
+0x00A642F0. For the five selected types, the category 0x0F branch in
+0x00642B80 chooses graph+0x2C, the Res.BgEffect root.
+
+The decoder requires a nonnull backing view from [request+8]+4, nonnull
+bytes from its virtual +4 and nonzero length. Each of the five numeric
+dependencies above is a bare SEDB file with a root name matching its
+dependency alias and a header type of vins, leaf, veff, vmdl or vtex.
+The bare non-RES branch at 0x00A646D8 folds the type and looks it up
+through 0x00A3C800. Successful ordinary Rapture allocations and registrations replace the
+matching CDev factory entries through 0x00A448ED. The weather caller
+zeros context byte +0x14 at 0x0064953C. With those entries retained,
+all five factories return true from slot 5 at 0x00B73290. The call at 0x00A6477D therefore
+takes factory slot 3. Its selected Rapture targets for vins, leaf,
+veff, vmdl and vtex are 0x007C9FF0, 0x007CA080, 0x007C9F60,
+0x007CA110 and 0x007CA1A0. A nonnull decoder result follows the
+existing 0x00649686 -> 0x00648C57 entry-store route.
+
+The selected veff 0x898D0054 has a version-0x1D root at file 0xCE0.
+Unit 2 includes Position3DCameraBind:CoordRoot and GenerateTimeArea.
+The latter's parameter block at file 0x24D0 has a payload-relative
+child pointer at +0x0C that selects unit 1 at file 0x14BC. Unit 1
+control 9 is DrawResource at file 0xF60. The in-veff reference at file 0x23C0 names the selected
+0x898A0085 vmdl from the kind-1 parameter block. Unit 1 link row 5
+for control 9 names the unit's ColorRGBARoot and MatrixLinkEx nodes. The model's texture reference
+names the selected 0x89890052 vtex. Unit 3 separately carries
+ManyGenerateDrawRainFilter, with native descriptor 0x013130B8.
+
+The selected Vmdl has an endian-1 mxfv version-4, variant-0 model
+at file [276,5112). ModelBuffer ordinal 0 selects VertexBuffer 0
+and IndexBuffer 0. VertexDeclaration ordinal 0 selects VertexBuffer 0.
+The supplied vertex bytes at [1764,3784) hold 101 vertices at stride 20.
+The index bytes at [3812,4880) hold 534 u16 indices in 0 through 100,
+with raw primitive code 4.
+
+The selected VertexBuffer component and offset tables supply four
+tuples in (offset, component count, storage, semantic) order. They are
+(0,4,3,10), (8,4,8,13), (12,4,8,25) and (16,2,7,14).
+The [modern declaration converter](vfx-modern-model-geometry.md#common-declaration-interpretation)
+maps them to SHORT4 POSITION0, UBYTE4N NORMAL0, UBYTE4N COLOR0 and
+FLOAT16_2 TEXCOORD0. These are the first four tuples of the selected B0
+comparison. The two additional B0 elements are outside this declaration.
+This checks serialized input storage. Material state and shader input
+eligibility remain separate.
+
+These are conditional acquisition and authored control relationships.
+Actual bind entries, backend creation and dependency-manager resolution,
+camera and alpha inputs, first emission and draw remain unknown.
+
+Replay the instruction and table reads against the identified executable.
+The installed dependencies are the four-byte numeric keys in the group
+above, resolved through the same data directory rule as the weather DAT.
+Read the headers and root table with the Qix container method, then the
+unit, link and control arrays with the effect body method. Read the
+selected Vmdl's model libraries with the
+[modern model geometry dictionary](vfx-modern-model-geometry.md#selected-frame).
 
 ### Deferred VFX resource binding and clearing
 
@@ -432,7 +495,8 @@ The preserved artifacts establish the selected resource's typed rain
 reference, the conditional DrawEnv interpolation contract, the VFX context
 producer, the application load's null receiver and the generic default
 resource-query receiver, plus deferred binding into the retained VFX fields.
-They leave these specific joins unresolved:
+The ordinary graph decoder and the selected emitter-to-model reference are
+also identified. The remaining joins are listed below.
 
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
