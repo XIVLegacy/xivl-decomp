@@ -292,6 +292,76 @@ also records use of this selector by the quest item-presentation helper.
 Resource identity therefore does not distinguish soul-stone acquisition from
 job activation; the captured request and state context supply that distinction.
 
+### Paladin action resources
+
+The bank's typed `main` SCB at file `0x1DD08` has two ActionClips
+for ProxyActor ordinal 0. Their action IDs 1 and 2 select the typed
+RIDT/RIDI entries below. Both clips have bit 3 clear in record
+`+0x14`, selecting the indexed name and type path.
+
+| ActionClip | RIDT entry | Typed ACB in `j41pld` | ACB `Effect` entry |
+| --- | --- | --- | --- |
+| `0x1DF98` | `0x1E088`, type `acb` | `jobstn_pld` at `0x1D000` | `0x1D330` |
+| `0x1DFEC` | `0x1E098`, type `acb` | `jbstn41_2` at `0x1D3F8` | `0x1D728` |
+
+The two version-2 ACBs are 1,016 bytes each. Each declares one
+`EffectClip` in its legacy LightBlock, at `0x1D0E8` or `0x1D4E0`.
+Each clip starts at child tick 0 and stores `0x00340000` at record
+`+0x14`. Its ACB `Effect` entry names a distinct typed VINS.
+
+| VINS name and blob | VINS row | Leaf name and blob | VEFF name and blob |
+| --- | --- | --- | --- |
+| `3paKXxvleafinst` at `0x1C6E0` | `0x1C998` | `3CMObZjobstn_pl` at `0x1BD60` | `4s2ELzjob_stn41` at `0x10C00` |
+| `3leaFGvleafinst` at `0x1CB70` | `0x1CE28` | `2jwLo4jbstn41_2` at `0x1C220` | `2njgr7s_weapon` at `0x18670` |
+
+Each VINS row matches key `0x00340000` and passes row `+0x4C` value
+`0x00300000` to its named leaf. Each leaf then references its named
+VEFF. The typed names are unique in the bounded `j41pld` pack.
+These joins use the installed PWIB/RES declarations, SCB RIDT/RIDI
+tables, ACB directory and
+[Qix relocation and root records](../resource/vfx-qix-resource-container.md).
+
+### Paladin listener and creator ownership
+
+On the admitted ActionClip path, `0x00A18170` obtains the actor and the
+scheduler's ResourceReference. The selected clear flag uses table
+`0x01098604` slots 4 and 3 for the indexed type and name. The returned
+resource listener receives them at `0x00A18298`. A null result aborts.
+The fallback listener comes from the scheduler's retained
+RaptureClipListenerHolder. Holder slot 12 returns the
+RaptureCutResourceListener, whose selected handler is `0x00832F30`.
+That handler can search the actor's resources and the retained provider.
+The exact first typed ACB hit depends on those current receivers.
+A nonzero class-key operation payload takes a separate path.
+
+On deferred admission, `0x00A17F00` requires the ACB node's readiness
+call. `0x00A17720` reads its typed `Effect` entry and asks the
+parent ResourceReference provider for the VINS at `0x00A177C3`.
+A null VINS result can reach state 2 directly. A retained nonnull
+result requires both readiness bits in mask `0x0C00` on its resource
+object for that deferred state change.
+
+On admitted child scheduler construction, `0x00A1C8A0` reads the
+child ACB's own `Effect` entry. It uses the inherited ResourceReference
+provider to resolve the VINS. On success it installs CutLeaf at
+child scheduler `+0xC0`, retains the scheduler at CutLeaf `+0x14`,
+and stores the VINS at CutLeaf `+0x10` through `0x00B99D50`.
+Thus the shared numeric effect ID is scoped by the child's VINS.
+
+With the fallback CutEffectListener returned through holder slot 3,
+`0x00A168D0` dispatches the ID at `0x00A16944`.
+The `0x00A06500 -> 0x00B99E40 -> 0x00B97D30 -> 0x00BC0BA0` route
+uses that VINS and takes kind `0x40000` for the selected ID.
+Callsite `0x00BC0BF4` passes allow-build byte zero to `0x00BBFE30`,
+so this creation path requires a nonnull built cache entry. The
+separate VINS and leaf builders establish the row-to-VEFF relation.
+The static joins leave the first live ACB and VINS hits, actor
+attachment, timing and visible playback open.
+
+The native selection and readiness gates were checked by pinned PE
+disassembly and table-cell reads. The selected ACB, VINS, leaf and
+VEFF identities were recovered only from the named Paladin bank.
+
 ## Bank 48 scheduler, effect and sound
 
 The outer RES starts at file offset `0x10`. Its name table pairs entry 0
