@@ -203,6 +203,7 @@ exact basename as key. Check both hashes before reading element lines.
 | --- | ---: | --- | --- |
 | ConsoleIconTrayWidget.form | 11166 | 180b7d709e588ec86fccead327aec813d4baab5b41ead05d2610cf318e787a0d | efbf73d1ac6307ca4983e9eeaf3170ab507d48e012d4c797ae360119d49d5f3e |
 | ConsoleIconTrayWidget.tpl | 20238 | f3c362bb64d9e9b07dd60b2ba95e1b868640e43c82558b83c24d1fd32d3378f1 | 9f1f5a2c79c2d8b35ea0d0b510c5536bcb43464da236ce1f9dea665f01937386 |
+| ConsoleIconTrayWidget.sd.form | 2717 | 775d4b4f107d7b5a2f7dc087eeb407bae8e57d79c21c5291dcf8d9903149289d | 9508129e70a6e081b88246e9c3f6fed981217a34f6ca8e5504f479104a12faff |
 
 OBSERVED. Form line 6 merges that template dictionary. In the
 dictionary, eight direct IconControl IconDatas attributes use
@@ -215,6 +216,11 @@ Its IconControl_Icon is line 145. ToggleButton_WidgetLock (form line
 45) selects ControlTemplate_ToggleButton_Icon and declares StringValue2
 text 792. The separate TargetName Setters at dictionary lines 229 and
 232 are outside this direct attribute route.
+
+The standard form has 31 owners and 37 attached StringValue occurrences
+across the eight bindings and the two toggle style setters. Each value
+is the canonical decimal representation of a nonnegative scalar. The
+SD form has no StringValue declarations or reference to this dictionary.
 
 STATIC. LLVM disassembly and PE table reads establish the receiver.
 The [selected ControlTemplate construction](sqwt-template-initial-enabled-receiver.md)
@@ -246,6 +252,11 @@ the per-owner proxy for E at `0x0095EEA8`. The selected string
 getter `0x0095E690` reads proxy+`0x24`. The source and target
 descriptors are retained at Binding+`0x5C/+0x60`.
 
+IconControl construction reaches the dependency constructor at
+`0x009405EB` and the ordinary context append at `0x00912E9F`.
+On the admitted completion branch, the form calls the context merge
+and drain at `0x0096AC54..0x0096AC59` before completion listeners.
+The drain dispatches the queued receiver's current `+0x28` at `0x00910DC9`.
 An admitted activation from IconControl cell
 `0x01070FF4 -> 0x0092A060` reaches the mode-1 forward slot
 through `0x00912190 -> 0x00999350`. A later binding notification
@@ -258,16 +269,47 @@ icon and target descriptor through `0x00999A07 -> 0x00912850`.
 With the ordinary target write admitted past interception, the
 property-info call at `0x00912A55` selects the IconDatas ordinal-zero
 setter `0x0096A120`, using descriptor `0x0135B23C`. Its call at
-`0x0096A14B` uses the icon holder at `+0x2A4`. The native direct
-helper `0x0096A010` is a separate entry.
+`0x0096A14B` uses the icon holder at `+0x2A4` and callback
+`0x0096A040`. An admitted changed string can invoke that callback
+through `0x00953C36`. After primary `+0x18` and the ordinal-zero
+check at `0x0096A082`, it parses the retained text at `0x0096A0B9`
+and requests the normalized text at `0x0096A0DB`. The native
+direct helper `0x0096A010` is a separate entry.
+
+The IconDatas callback supplies a limit of five to the parser at
+`0x009170A0`, which reads positions using base-zero `strtol`. It grows
+the vector when needed with fill `-1` and formats
+every retained entry with `%d,` at `0x009171BF` and drops the final
+comma. The icon constructor initializes empty vector bounds at
+`0x0096A29E..0x0096A2AA`. A canonical stock scalar on that empty
+vector adds one entry and normalizes to the same text, including
+`0`. A scalar write preserves existing trailing entries.
+
+The installed ConsoleIconTrayWidget chunk is
+`n1635q/7vwrvy517vwqs9ln1635q.le.lpb` under `client/script`. Its
+18579-byte carrier has SHA-256
+`892ac23eb20269dc847572c7a9877f31fb7766137d76b32f1a7e6ca671bd2af5`
+and its decoded payload SHA-256 is
+`498b25c7365180cd1ecff32d099ebc3e38fae0c6b6cd9d1f6e3a0953a33e3a7e`.
+Authenticate it against the pinned [LPB coverage manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8d2aa874ed4609c54f6e0d7a3330dadedb94878b/manifests/retail_lua_coverage.json)
+and read it through EOF with that revision's LPB reader.
+Its `setIconLocal` at `root/proto21` PCs 0-4 writes
+`SqwtDesignData.StringValue0` on the named owner. The shared
+`setControlProperty` wrapper reaches `_setProperty` at `root/proto68`
+PC 5 of WidgetBaseClass common. On the admitted integer branch, form
+cell `0x00FA0BB0 -> 0x005425B0` formats `%d` at `0x005425F8`.
+The initializer calls update at `root/proto0` PC 176 and the quest-link
+writer at PC 180. These numeric writes supply canonical decimal text
+when their respective Lua and native branches admit them.
 
 The traced transfer can request text 127 for the Main Menu icon if
 its authored source text survives and the current endpoints and
 activation are admitted. The first actual attachment and write order,
 holder change, resulting icon and presentation remain UNKNOWN.
 The [styled Setter route](#consoleicontray-styled-togglebutton-setter)
-has separate source and target resolution. Empty or multiple icon
-semantics and the full Tray's initial behavior remain UNKNOWN.
+has separate source and target resolution. Actual interaction between
+the direct and styled writers and the full Tray's initial behavior
+remain UNKNOWN.
 
 ### ConsoleIconTray styled ToggleButton Setter
 
