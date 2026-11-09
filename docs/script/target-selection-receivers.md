@@ -40,12 +40,15 @@ cursor and valid vector index. The missing-argument and invalid-index paths call
 `0x006FD9CF` and `0x0075F10B`, respectively. The sentinel returns nil.
 Otherwise the getter admits the actor resolved at `0x006FDA2C` only when it is nonnull and actor-control
 byte `+0x5C` is nonzero (`0x006FDA48-0x006FDA50`). A missing actor or zero byte yields nil.
+The separate `_onTargetChanged` dispatcher packages the resolved actor without reading that byte
+between the lookup at `0x006FE9E0` and dispatch at `0x006FEACC`.
 
 ## Widget consumers
 
 `widget/desktopwidget` requires the connector at root PCs 3-5. Below, **connector** means
-`widget/desktopwidget_connector`. Its `_onTargetChanged` (`main/f52` PCs 0-3) forwards both arguments to
-`afterTargetChanged` on DesktopWidget. See the [static widget
+`widget/desktopwidget_connector`. The connector defines `_onTargetChanged`
+(`main/f52` PCs 0-3), which forwards both arguments to `afterTargetChanged` on
+DesktopWidget. See the [static widget
 indices](work-update-callbacks.md#desktop-dependency) and [work-driven repaint
 path](work-update-callbacks.md#parameter-dispatch).
 
@@ -81,15 +84,59 @@ battle extension `group/partygroup/partygroupbaseclass_battle` `initForBattle`, 
 declares the owner member, tags it as `leader` and binds 400001. Its `getPartyOwner`, `main/f2` PCs 0-3,
 reads that owner.
 
+## Peer binding and cursor admission
+
+The [record census](../actor/actor-instantiation-and-self-player.md#retail-records)
+identifies two nonself `0x00CC` records with class `Player` and path
+`/Chara/Player/Player_work`. Each submits one Boolean argument, true. In
+the deferred listener `0x00772C80`, the key comparison at
+`0x00772CFD-0x00772CFF` sends a nonself descriptor to `0x00772DC1`,
+skipping the MyPlayer prototype branch. The listener copies the class
+from descriptor `+0x58` at `0x00772CCA-0x00772CD2` and passes it to
+`0x007687F0` at `0x00772DF4` with the key, the value vector at descriptor
+`+0x100`, and the completion pointer from descriptor `+0x130`.
+[Deferred binding](../net/guildleve-initializer-route.md#vector-deferred-descriptor-and-request)
+
+The [native parent registration](native-class-registration-parents.md#parent-table)
+at `0x0078FFF4` reaches `0x00CDA610 -> 0x00CD91E0` for `Player` under
+`PlayerBaseClass`. On the new-prototype branch, registration clones the parent
+prototype at `0x00CD92CA` and links the parent at `0x00CD9309`. A new
+instance on the retained ordinary prototype path uses the same clone
+helper, `0x00CE2D50`, at `0x00CDCE4B`. The helper invokes slot 1 through
+`0x00CCC9B0`. For PlayerBase table `0x00FD5E04` the slot selects
+`0x00721290`, which allocates `0xF8` bytes and calls `0x006ED720`
+at `0x007212D0`. The constructor installs the PlayerBase table at
+`0x006ED753`. These are conditional prototype and instance creation paths.
+
+The packet binder `0x007687F0` passes the key, class and value vector to
+`0x0078BBB0` at `0x00768923` for instance creation and the `_onInit`
+request. After that call returns, `0x0076896E-0x007689BB` appends the SID
+and completion pointer to the waiting container's `+0x14` list.
+`0x007783E0 -> 0x00556670` copies them to node `+8` and `+0x0C`.
+The [conditional ready-byte writer](../actor/kick-gate-writer.md#conditional-writer)
+scans that list in state 10. It re-resolves the SID, checks registry
+byte `+0x7D`, and sets the resolved control's `+0x5C` at `0x00767028`
+before running the completion callback. For the same retained SID,
+control and registry context, this supplies the byte checked by
+`_getTargetCharacter` at `0x006FDA4C`.
+
+[Initialization completion](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion)
+can set registry `+0x7D` after normal return, a reported Lua error or
+checker-directed termination. Admission through this writer establishes
+that the ready-byte test passed. The actual completion path and whether
+the initializer reached its work declarations remain unresolved.
+
 ## Player work declarations
 
-The [record census](../actor/actor-instantiation-and-self-player.md#retail-records) identifies both
-sampled self and peer records as Player. The [native parent
-table](native-class-registration-parents.md#parent-table) records the chain Player, PlayerBaseClass,
-CharaBaseClass and ActorBaseClass. Use of the submitted MyPlayer prototype is inferred. The
-self-equality join assumes the [same registry context](../actor/actor-instantiation-and-self-player.md#self-player).
+The [native parent table](native-class-registration-parents.md#parent-table)
+continues from PlayerBaseClass through CharaBaseClass to ActorBaseClass.
+Use of the submitted MyPlayer prototype is inferred in the self case.
+The self-equality join assumes the [same registry context](../actor/actor-instantiation-and-self-player.md#self-player).
 
-`chara/player/player` `_onInit` (`main/f0` PCs 0-5) forwards its argument to the parent.
+The [script preload](lua-bootstrap-chunks.md#script-preload) includes
+`/Chara/Player/Player`. Its root requires `/Chara/Player/Player_work` at
+PCs 0-2 and installs `Player._onInit` at PCs 3-5. That initializer
+(`main/f0` PCs 0-3) forwards its argument to the parent.
 `chara/player/playerbaseclass` `_onInit` (`main/f18` PCs 0-4) supplies two true operands to
 CharaBaseClass for either player. The `chara/charabaseclass` root loads the parameter module, which loads
 the battle module (root PCs 0-2 in each). Its `_onInit` (`main/f21`) selects self at PCs 11-16. The first
@@ -164,8 +211,9 @@ indexing an absent array are separate outcomes.
 
 ## Open
 
-The writer and purpose of actor-control byte `+0x5C` remain open. The group lookup registered at
-`0x007554B9` reaches `0x00701140` through `0x00708410`. Solo group availability, live callback entry,
-work availability, party ownership, negotiation values and packet application remain unverified. The
+The group lookup registered at `0x007554B9` reaches `0x00701140`
+through `0x00708410`. Live actor binding, initializer completion, callback
+entry, work availability, solo group availability, party ownership,
+negotiation values and packet application remain unverified. The
 creation census supplies no current property value or packet and widget ordering
 for a particular PopulaceStandard selection.
