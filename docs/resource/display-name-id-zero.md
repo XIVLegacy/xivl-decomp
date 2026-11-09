@@ -272,6 +272,52 @@ row operand is also `E9 08`.
 The wrapper and code `32`, `2C` and `29` meanings are UNKNOWN. The exporter
 names `2D` and `2B` `head-all` and `head`.
 
+### English field selection and null row
+
+OBSERVED. The authenticated client English definitions `0x0B450082`
+(`xtx/_text_ui`) and `0x0B450000` (`xtx/displayName`) declare logical
+index 1 first. Both map it to physical ordinal 0. The text-ui definition
+has no `SHEET` default override. Its registered sheet starts with default
+byte `+0xB = 0xFF` at `0x00CB04FC`. The constructor writes the
+parsed logical index there only while that byte is `0xFF`
+(`0x00CB080B..0x00CB0811`). It separately maps the index to its
+physical ordinal at `0x00CB0808`. The later parameter parser at
+`0x00CAFA80` can override the default when its conditions are met.
+Definition IDs are in `xivl-client-data:manifests/sheet_inventory.csv`,
+rows `xtx/_text_ui` and `xtx/displayName`.
+
+OBSERVED. The numeric resolver supplies row 222 and selector `0xFF`
+through `0x0076FB10` and TextModule slot `+0x0C`. With a populated
+named sheet and ready row, the default arm at
+`0x00CA09BA..0x00CA09CC` calls sheet slot `+0x1C`, which reads
+sheet `+0xB` in `0x00CAF300`. With the matching English client
+definitions admitted and retained, that selects logical 1 of
+`xtx/_text_ui`. The published row's nonzero context branch explicitly
+requests logical 1 of `xtx/displayName`. The link from the supplied
+context to the decoder vector remains INFERRED. The nested request does not use that sheet's
+default column. The result still passes through the selected
+wrappers. Active language, loaded sheet instances, and row readiness
+remain runtime conditions.
+
+OBSERVED. If the nested row lookup returns null at `0x00CA0995`,
+the `0x28` handler rejects the result at `0x00CA0F4E`. For this
+expression the failure propagates through the nonzero `0x08` arm
+(`0x00C9F0A1`, `0x00C9F10F..0x00C9F11C`) and the `0x2D` wrapper
+(`0x00C9FDBE..0x00C9FE0D`). It does not select the condition's false
+arm. The outer formatter returns failure. The immediate attempt
+takes the pending path at `0x0076FE11`. A failed retry advances
+without completing or removing that node (`0x0077019F`,
+`0x00770221`). The selected attempt produces no new resolved-name
+write, empty-name success, or row-0 substitution.
+
+The checked cache miss can request a block before returning null
+(`0x00CAF6B0..0x00CAF754`). A null row can therefore represent
+unavailable data or data that has not loaded. Whether an individual
+request later resolves or is canceled remains UNKNOWN. Ghidra CLI
+listings and direct reads of the identified PE confirm these
+locators. The authenticated definition metadata uses the sheet
+decoder from `xivl-tools:tools/research/census_sheet_stack.py`.
+
 ## What the strip shows
 
 INFERRED from the observed chain. The sink copies the structure into the record
@@ -329,8 +375,7 @@ bursts of one `0xFFFFFFFF` followed by three `0` at one second in
 
 ## Open items
 
-- Which `xtx/displayName` column the English client reads. Selector `0xFF` uses
-  the default logical column of the sheet and that column was not read.
+- Which non-English definitions and default overrides the live client selects.
 - The meaning of the flag byte at payload `+0x24`.
 - What the client shows for a nonzero id with no `xtx/displayName` row.
 - The wrappers `2D` and `2B` and the codes `32`, `2C` and `29` in the row 222
@@ -372,5 +417,5 @@ shows that string. A custom string longer than 32 bytes does not fit. An id of
 `0` with no string does nothing, so it cannot clear an earlier name unless the
 flag byte is nonzero. A nonzero id replaces any string with the sheet name.
 
-These stay CALIBRATION: the language column, the flag byte meaning and the
-behavior for an id with no sheet row.
+Other locale and column choices, the flag byte meaning, and eventual
+presentation for an unavailable row remain unverified.
