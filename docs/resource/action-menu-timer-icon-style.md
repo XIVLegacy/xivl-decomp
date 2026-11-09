@@ -309,6 +309,32 @@ prepare Effect_ON and Loop_Anime before stopping a previously
 begun Effect_OFF. These conclusions require the stated guards
 and retained action objects.
 
+### Style collection flag
+
+FrameworkTemplate construction passes Style+`0x24` to the
+TriggerCollection constructor at `0x0099B3DF`. The flag at C+`0x20`
+is therefore Style+`0x44`. A ControlTemplate has its own collection
+through the base constructor call at `0x00936C0F`.
+
+For an admitted `.Triggers` property element, the markup path copies
+the native template owner from reader+`0x124` at `0x0094BE4D` to
+TriggersMarkupObject+`0x74` at `0x0094E9FA`. Its attribute slot
+`0x0106D9FC` selects `0x00946320`. Equality with the literal
+`IsExclisiveAnime` at `0x0106CAE0` admits the Boolean converter
+`0x00988F90`, which returns 1 for `True`. The store at
+`0x00946353` writes the result to the native owner's `+0x44`.
+The reader dispatches admitted attributes at `0x00947210` before
+child dispatch at `0x00947276`.
+
+The authenticated ActionMenu form selects `Style_ActionBarWindow`
+at line 13. The matching template resource's `Style.Triggers` at
+line 584 has no attributes. That text path supplies no write to
+replace the constructor's zero. The separate TriggersFactor slot
+`0x01083350` selects `0x00985930`, which writes at
+`0x009859AB` through the first argument's `+0x14` pointer.
+Whether that pointer can identify the Style read by the Window at
+`0x0092D0BE` remains unknown.
+
 First matching event, target cache contents, numeric capture,
 clock phase, overlapping writes, reentry, later C+`0x20` state
 and effective composition remain UNKNOWN.
