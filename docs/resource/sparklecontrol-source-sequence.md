@@ -231,6 +231,48 @@ records callbacks 0x0067C220/0x00680810 and package literal 0x00FC3390.
 Package-path use does not establish group_marker_data, MapMarkerParty or
 wire-record ownership.
 
+## Selected Aetheryte marker sprite
+
+The [marker resource crosswalk](https://github.com/XIVLegacy/xivl-client-data/blob/3fdca48f2ab6d61187b10a1e04f02326661270f7/derived/map_marker_resource_crosswalk.csv#L53-L54)
+joins Visible `ma00001` to the Aetheryte and AetheryteUnder rows.
+The authenticated MapMarker.tpl declarations at lines 84 and 91 use
+32 by 32 SparkleControls with `common/mapMarkerAetheryte.le.spk`
+and a OneWay `@SparkleSequence` binding.
+
+For the authenticated 472-byte SPK above, the section cell at
+`0x14` selects type-2 root `0x30`, which declares one track and six
+records. Its name table at `0x54` resolves `ma00001` from entry
+`0x7C` to record index 1. The native lookup passes this index at
+`0x008E3CD7` and the reader resolves record `0xC8` at
+`0x008E3635..0x008E363E`.
+
+The command at file `0xCC` sets the stop byte through
+`0x008E369D..0x008E36AF` and advances within the record. The
+mask-zero command at file `0xD8` still executes on that step. It
+selects track 0 and section 2, with unit scale and color and zero
+cross terms and translation. The retained stop prevents later
+root record evaluation through `0x008E3619..0x008E361C`.
+
+The section dispatch at `0x008E3318..0x008E337C` selects the
+direct type-1 section `0x154`. Its leaf at `0x158` has an identity
+transform and refers to the type-0 rectangle at `0x148`. The
+quad call at `0x008E1C57` supplies local destination and source
+`(0,0,32,32)`, with unit RGBA before parent modulation.
+
+The same-stem `common/mapMarkerAetheryte.win32.gtex` is 8224
+bytes, SHA-256
+`88ed526d70d3d05dd6603993e4dec63036c3c314ca74e47be54a9c0653397db0`.
+Its format index 4, 64 by 32 extent, depth 1 and single mip put the
+8192-byte surface at `[0x20,0x2020)`. The source rectangle selects
+its left half. The loader divides 1000 by the SPK rate 30 at
+`0x008E3249..0x008E3255`. The resulting 33 ms tick can sample
+and draw on the first admitted due frame at `0x008E3AB3` and
+`0x008E3C12`.
+
+These observations require the named texture lookup, admitted row
+binding, reader state and parent composition. Live row delivery,
+file-to-cache identity, placement, clipping and pixels remain unknown.
+
 ## ActionMenu completion package
 
 The [ActionMenu TimerIcon style](action-menu-timer-icon-style.md#observed-form-and-style-declarations)
