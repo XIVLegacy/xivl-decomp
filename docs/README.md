@@ -470,6 +470,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [StatusEffectWidget lifecycle](script/status-effect-widget-lifecycle.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Target selection receivers and player work](script/target-selection-receivers.md)
+- [Target caption text](script/target-caption-text.md)
 - [Player LogControl producers and English row availability](script/logcontrol-player-producer.md)
 - [WorldMaster message-pool text lookup](script/worldmaster-message-pool.md)
 - [SendLog sink chain](script/sendlog-sink-chain.md)
