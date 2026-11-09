@@ -4,8 +4,9 @@ This note records what the retail 1.23b `NamePlate` class and its callers fix
 about where a plate attaches, how the user offset enters, and which tests the
 class holds. It answers four layout questions: text size, vertical anchor,
 range and count, and overlap handling. Labels: STATIC means read from
-instructions or data at the cited addresses, INFERRED means a reading of static
-observations, UNKNOWN means not established.
+instructions or data at the cited addresses. MEASURED means decoded from
+identified installed carriers. INFERRED means a reading of static observations.
+UNKNOWN marks unresolved questions.
 
 ## Input and method
 
@@ -33,7 +34,7 @@ dword before it, at `0x00FCF988`, points to the complete object locator
 | Vertical anchor | The anchor is the model attachment point `EID_NAME`, or one of five state variants, selected by the state value | STATIC |
 | User offset entry | The value `name_plate_offset / 100.0` enters the `+0x158` lane of a record that the producer combines with camera-derived vectors. Its units, direction and sign are not established, and it is not shown to be a plain addition to the attachment height | STATIC (value and entry), INFERRED (lane role), UNKNOWN (units, direction, sign) |
 | Default offset | `name_plate_offset` defaults to 0 (`xivl-client-structs:docs/user-config-store-contract.md`, group 6 key 3) | STATIC |
-| Attachment height in yalms | Not recoverable from the executable. The point lives in model data | UNKNOWN |
+| Attachment height in yalms | Two installed c001 providers give different local coordinates. The selected live position depends on the provider, current pose and skeleton placement | MEASURED (local coordinates), UNKNOWN (live height) |
 | Range, count cap | No distance, depth or count test exists in the `NamePlate` methods | STATIC |
 | Overlap handling | No overlap, collision or stacking test exists in the `NamePlate` methods | STATIC |
 | Range, cap and overlap elsewhere | Not traced in the helpers the methods call | UNKNOWN |
@@ -78,12 +79,131 @@ record byte `+0x5A` bit `0x08`, and the cached-record publisher `0x0054E890`
 submits it as operation `0x1E` with length `0x10`. The `WindowActor` receiver
 of that operation is owned by
 [the anchor producer](window-actor-anchor-producer.md#construction-and-lifecycle),
-which resolves the selector against the actor's attachment helper, so the
-anchor is the model's own node. STATIC for the path. The point's position is
-not in the executable.
+which resolves the selector against the actor's attachment helper. That helper
+can select an eligible auxiliary actor, resolve the model path or take the
+fallback described below. STATIC for the path.
 
 Damage plates substitute the same `EID_NAME` default for an empty string
 ([damage-plate-numeric-presentation.md](../resource/damage-plate-numeric-presentation.md), kind 1 anchor).
+
+## EID_NAME model record and world position
+
+STATIC. The nameplate's ordinary CharaActor path can resolve a named
+ElementId record. The admitted model lookup reaches Drawable
+`+0x334`, its CharacterSkeletonNode. Drawable name lookup
+`0x008DD880` tries the node's ElementId provider at `+0x0C` first
+(`0x008DD8B7 -> 0x00A3EC50`). A hit returns the provider index
+tagged with `0x01000000` at `0x008DD8F6`. On a provider miss it
+tries the ordinary skeleton name lookup at `0x008DD8CE`, then the
+provider key `CDevDefault` at `0x008DD8EC` when that provider exists.
+The CharaActor helper tries its eligible auxiliary actors first
+(`0x00854FB2 -> 0x0065BD70 -> 0x00846E00`), so this model path
+requires the auxiliary search to miss.
+
+The factory registration at `0x00A3C732..0x00A3C75D` associates
+RES type `0x00656C62` with ElementIdResourceNodeFactory table
+`0x01099F8C`. The native ElementIdResourceNode initialization at
+`0x00A4686B..0x00A468A3` passes its backing payload to
+ElementIdBinaryParser `0x00A46E30` and retains the parser at
+node `+0x50`. For the selected `SEDBelb` version-3, endian-byte-zero shape,
+the count is a little-endian u16 at member `+0x30`. The fixed array
+starts at member `+0x40` with stride `0x20`. Record `+0x00`
+and `+0x04` are member-relative offsets to the NUL-terminated
+joint and attachment names respectively (`0x00A46D90`,
+`0x00A46DD0`). Slot 0 `0x00A46CF0` scans attachment names in
+ordinal order for exact equality. Record `+0x08..+0x13` is the
+local XYZ float32 triple (`0x00A46F90`). The separate rotation
+triples start immediately after the fixed array and have stride 12
+(`0x00A46F5E..0x00A46F6A`, `0x00A47000`). These reads apply no
+unit conversion to the translation.
+
+### Installed c001 example
+
+MEASURED. The selected files are under `client/chara/`. Validate
+PWIB framing and select the physical RES directory rows below, then
+read their type dwords from the containing view's RESOURCE_TYPE
+member using the [PWIB directory framing](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/gtex-pwib.md#directory-and-type-selection).
+Keep each nested view within its parent extent and check the fixed and
+rotation arrays and both name scans against the typed member's extent.
+Offsets are absolute in the named carrier. The two members have the
+same typed layout with one exact `EID_NAME` row each.
+
+| Carrier | Bytes | Carrier SHA-256 | Physical path | Member | Type cell | Payload range |
+| --- | ---: | --- | --- | --- | --- | --- |
+| `pc/c001/skl/0001` | 54672 | `d90a756fc1cba6f03bb8dc102b367feb905b5e57a00d209ff4fccddaa17cd031` | `[3,1,0]` | `F00\elementId` | `0xD2C0` | `[0x5B10,0x7D56)` |
+| `pc/cmn/0001` | 113264 | `3f71c608e46d616e78883acd262190366085ef2bc587b8ae48cc4538f573c929` | `[3]` | `template\elementid\template_pc` | `0x19C48` | `[0xD20,0x2AE7)` |
+
+The c001 model member has 139 records. Row 42 at file `0x6090`
+selects joint `n_root` and translation
+`(0, 2.119999885559082, 0)` in local coordinate units, with zero
+rotation components at `0x6EA8`. The common template has 121
+records. Row 42 at file `0x12A0` selects `n_root` and translation
+`(0, 1.850000023841858, 0)`, with zero rotation components at
+`0x1E78`. The c001 model's paired SKL member is physical path
+`[3,0]`. Its joint 0 is `n_root`, with parent `-1` and identity
+constructor-pose inputs. This pins the authored starting pose only.
+
+STATIC. The [appearance slots](appearance-resource-slots.md#bank-numbers)
+request `cmn/0001` as bank 0 and model `skl/0001` as bank 1.
+The [ordinary root pack](body-resource-inputs.md#packing-count-and-exact-model-call)
+passes retained roots in bank order. The ResourceFinder walks that
+array forward at `0x00C52532..0x00C52543` and appends accepted
+ElementId nodes to its `+0x64` vector at `0x00C52688..0x00C52697`,
+through metadata test `0x00C515F0` and append `0x00858140`.
+The ordinary merge loader visits this vector backwards
+(`0x00C50920..0x00C509DC`) and places each parser from
+`0x00A468F0` in the first free compositor slot. The search at
+`0x00C51C20` walks the contiguous provider slots forward and returns
+the first nonnegative match, adding the row counts of preceding
+providers. The compositor has 16 provider slots. Thus when both named providers are admitted into the
+compositor with valid backing, the c001 model's row takes precedence
+over the common row. An auxiliary actor or a later-collected provider
+can supply an earlier match. Actual retained roots and the live winner
+remain unresolved.
+
+### From joint space to the nameplate input
+
+STATIC. CharacterSkeletonNode construction retains the compositor
+at `+0x0C` and stores the signed-short remap allocation at `+0x14`
+(`0x00A3EAD0`, store and null check at `0x00A3EB34..0x00A3EB39`).
+When allocation succeeds, it looks up each provider row's joint name
+in the constructed skeleton at `0x00A3EB4A..0x00A3EB5F`, storing
+joint zero on a name miss. The tagged matrix path at
+`0x006693C9..0x006693DE` clears the tag. `0x00669340` checks the
+node, provider and index against the provider count before calling
+`0x00A3EC70`. The remap read at `0x00A3EC83..0x00A3EC86` requires
+the populated allocation. With an initialized skeleton and populated
+remap, this path performs three steps.
+
+1. The remap selects the current joint output at
+   `[skeleton+0x44] + 0xA0 * joint`. Call `0x00A3EC9F` composes
+   that output with the skeleton matrix at its first four rows.
+   The checked Drawable update paths `0x00C39B20` and `0x00C39B70`
+   supply these rows from Drawable `+0x30` through `0x007DD5B0` at
+   `0x00C39B46` and `0x00C39B96`.
+2. Provider slots `+0x10` and `+0x14` at `0x00A3ECB2` and
+   `0x00A3ECF7` supply the local translation and rotation. The
+   rotation builder at `0x00A3ED38` and fourth-row replacement at
+   `0x00A3ED6B` build the local matrix. Call `0x00A3ED70`
+   composes it with the first result.
+3. Scene actor method `0x007CCFF0` returns the resulting fourth
+   row at `0x007CD03B..0x007CD043`. This is the raw primary target
+   supplied to the [WindowActor producer](window-actor-anchor-producer.md#target-production).
+
+INFERRED from the row-vector multiplication at `0x0061D050`.
+The matrix product is `M_attachment * M_joint * M_skeleton`.
+The raw target is its translation row. For an admitted c001 model
+row with its authored identity root pose, a populated remap
+and an initialized skeleton matrix, the corresponding point is
+`(0, 2.119999885559082, 0, 1) * M_skeleton`. Live animation,
+actor placement and scale can affect it through the matrix inputs.
+A failed tagged matrix check returns the Drawable matrix through
+`0x00669357`. A negative attachment lookup instead takes actor
+slot `+0x88` at `0x007CD018`. The optional second-actor target,
+retention filters and configured offset follow the raw primary target.
+These observations establish the selected local coordinates and
+native transform path. They leave the live selected model, pose,
+filter and projected plate position unresolved.
 
 ## Offset setting
 
@@ -175,9 +295,9 @@ page. Whether the vertex shader scales the rectangle with depth is UNKNOWN.
 
 - The form attribute values are declared metadata of the extraction record and
   are not re-derived here.
-- Nothing here fixes the height of `EID_NAME` for any model, the effective unit
-  of `name_plate_offset` in screen space, the retail visible range, a count cap
-  or an overlap rule.
+- The selected local coordinates fix two installed model records. Live height,
+  the effective unit of `name_plate_offset` in screen space, retail visible
+  range, a count cap and an overlap rule remain unresolved.
 - A server cannot supply any of these values. They are client constants and
   model data.
 
