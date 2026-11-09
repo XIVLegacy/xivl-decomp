@@ -59,6 +59,72 @@ offset `+0x10` and layout ID at `+0x14`. Packet `0x00d9` resolves an animation
 through that binding. The helper at `0x00585320` copies four name bytes and
 then writes a terminator, matching `open` and `clos` exactly.
 
+## Layout 5142 binding 323 open leaf transforms
+
+The 88,960-byte DAT `0x89ED0003` contains the selected instance
+`isgrp_000323` at file offset `0xA7A0` (node 940). Its reference at
+`0xA7DC` selects `sgrp_bg_door_d1` at `0x6F10`. Direct child key 11
+at `0x80C0` carries alias `open` and points to timeline
+`time_bg_door_d1_open` at `0xD9E4`. The timeline declares the
+3,136-byte SCB at `0xE740` with the hash above. The LYB declaration
+walker in `xivl-tools:tools/research/census_layout.py`, SCB reader
+`tools/scb_clip_scheduler.py` and MTB views in `tools/verify_cut_camera.py`
+establish the selected records.
+
+Four 0x24-byte `@CACT` records each have a unique member key at
+`+0x20` that matches a child key at `+0x1C` in the unit tree closure.
+The [serialized member-key getter](../actor/lay-scheduler-member-publication.md#serialized-lookup-key)
+supplies the key. [UnitTree child registration](limsa-fireworks-scheduler-bindings.md#unittree-child-key-table)
+requires the constructed actor and matching UnitInfo context. The four
+transform clips in the selected `@CBLK` at `0xE9E0` start at 0,
+have end 450000, rotation flags `0x28` at `+0x18` and curve extent
+45 at `+0x1C`. Their actor ordinals at `+0x03` and curve ordinals
+at `+0x1A` make these joins:
+
+| Clip file offset | Actor ordinal / member key | Child file offset / name | Curve ordinal / descriptor offset | Y angles at curve x = 0, 24, 45 (degrees) |
+| --- | --- | --- | --- | --- |
+| `0xEA20` | 3 / 8 | `0x8060` / `_ro` | 0 / `0xEB90` | 0, 64, 78 |
+| `0xEA60` | 2 / 7 | `0x8030` / `_ri` | 1 / `0xED50` | 0, 64, 78 |
+| `0xEA80` | 0 / 5 | `0x7FA0` / `_li` | 2 / `0xEF10` | 0, -64, -78 |
+| `0xEAA0` | 1 / 6 | `0x7FD0` / `_lo` | 3 / `0xF0D0` | 0, -64, -78 |
+
+The `@FCURVE` entry at `0xEB60` has its count and offset view at
+`0xEB80`. The four offsets select descriptors in 16-byte units from
+`0xEB90`. Descriptor `+0x10` gives a 406-byte body length. The
+bounded version `0x43` MTB starts at descriptor `+0x20`.
+`TransForm.ry` is a three-key type-2 fixed curve. Endpoint tangents
+are zero. Both middle tangents are 1.7333333492279053 on the right
+and -1.7333333492279053 on the left. The other translation and
+rotation lanes are zero and scale lanes are one. `MoveRatio.tx` is
+type-4 with pairs (0, 0) and (45, 1).
+
+Original PE section reads and LLVM 21.0.0 disassembly locate
+LayTransformClip table `0x010A14DC`, with COL `0x0118BA04` and type
+descriptor `0x012F35A0`. Its init `0x00A0ECA0` resolves the curve
+ordinal through `0x00A20090` at `0x00A0ED5A`. With the actor and
+operation context admitted, it looks up `TransForm.ry` and `MoveRatio.tx`
+at `0x00A0EEC0` and `0x00A0EF2D`, then retains them at clip
+`+0x4C` and `+0x60` (`0x00A0EEC5`, `0x00A0EF3B`). Update `0x00A0E6A0` tests for a
+context and clear flag `0x02`, then calls clip vtable slot `+0xA8`
+at `0x00A0E759`. That selects `0x00A0DC50`, which obtains local
+elapsed L via clip vtable slot `+0x24` at `0x00A0DC6F`. Cell
+`0x010A1500` selects `0x00A210A0`, which reads clip object `+0x28`.
+
+The coordinate helper evaluates MoveRatio at extent times L divided
+by the signed clip duration with minimum 1. It clamps the ratio to
+[0, 1] and multiplies by extent (`0x00A0DCAC..0x00A0DCE8`). For the
+selected records and L in [0, 450000], the ideal curve coordinate is
+L / 10000. At L = 0, 240000 and 450000 the ideal coordinates are the
+three key positions in the table. The `0x28` flags select only Y
+sampling for rotation. Update converts its degrees using the widened
+f32 pi constant at `0x00F62F48` and f64 180.0 at `0x00F62F40`,
+and calls context virtual `+0x3C` with the rotation at `0x00A0EC76`.
+
+This establishes the authored leaf curves and the conditional native
+sample and dispatch. Actual binding and operation-context identity,
+world and draw transforms, delivered samples, wall-clock duration
+and visible playback remain open.
+
 ## Docked-ship boundary
 
 Bindings `196/456` and `496/456` expose `spin`, `spot`, `_ex_show`,
