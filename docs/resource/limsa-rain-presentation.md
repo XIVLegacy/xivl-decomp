@@ -7,8 +7,9 @@ aliases through an initialization descriptor. These are conditional static
 contracts. The checked application Weather load supplies a null descriptor
 receiver and skips the alias submission. Deferred block binding can populate
 the two VFX resource fields through VFX slot 22. The later direct instance
-setup can then request the selected Qix effect group. Cached group population,
-effect creation and rendering remain open.
+setup can then request the selected Qix effect group. The installed group
+selects one rain child through the VINS, LEAF and VEFF records. Live cache
+population, effect creation and rendering remain open.
 
 The [weather transition finding](../net/weather-transition-runtime.md#limsa-rain-selection)
 owns the packet, region lookup and queue route to resource `0x29D90013`.
@@ -877,15 +878,113 @@ cells as little-endian dwords from their file-backed PE sections. Read
 the selected folder, instance and Qix key at the absolute DAT file
 offsets above.
 
+### Selected VINS group and effect child
+
+The two [rain dependency rows](#authored-drawenv-and-rain-definitions)
+select these installed files. The [selected VEFF](#selected-rain-camera-placement)
+is the end of the authored chain.
+
+| Resource | Installed DAT | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| VINS `0x898C0011` | `data/89/8C/00/11.DAT` | 1,632 | `580745b2418f669b91455a25042f8a57358b0c5d4bafafbbdc427c30bf3dab8b` |
+| LEAF `0x898B0002` | `data/89/8B/00/02.DAT` | 825 | `0931f617fc22650f27848fe048e29cf2cc2ace9cc6fcba39d227a967fa600f3c` |
+
+The [Qix container reader](../../tools/vfx_qix_resource.py) locates the
+roots and mode-2 relocation cells in these bare SEDB files. The payload
+base is file `0x30` in each file. The following table uses absolute
+file offsets and little-endian keys. Both named links match the complete
+16-byte identifiers, including padding.
+
+| Record | Selected fields |
+| --- | --- |
+| VINS v8 root `1ipGk6vleafinst` at `0x288` | Root `+0x38/+0x3C` select four singles at `0x318`, stride `0x50`. Root `+0x40/+0x44` select two groups at `0x5F0`, stride `0x34`. |
+| VINS group ordinal 0 at `0x5F0` | Key `0x00460000` at `0x614`. Pointer at `0x61C` selects the child-key array at `0x658`. Count at `0x620` is one. Its sole key is `0x00440002`. |
+| VINS single ordinal 2 at `0x3B8` | Key `0x00440002` at `0x3DC`. Identifier `2Dn7c7cam_rain` at `0x3E4`, LEAF tag `0x6C656166` at `0x3F4`, LEAF key `0x00400000` at `0x404`. |
+| LEAF v8 root `2Dn7c7cam_rain` at `0x1F0` | Root `+0x38/+0x3C` select one row at `0x278`, stride `0x54`. Its key `0x00400000` is at `0x29C`. Identifier `2UXnSGrain0001s` at `0x2A4` and VEFF tag `0x76656666` at `0x2B4` identify the VEFF v`0x1D` root at file `0xCE0`. |
+
+The LEAF bulk walk `0x00BC9ED0` uses the row identifier and VEFF
+tag through `0x00BC8C30` at `0x00BC9EF6`. With a resolved VEFF
+backend and nonnull parent at its `+0x84`, `0x00BC9BB0` can build
+the LEAF value for insertion into the LEAF backend's `+0xA0` cache at
+`0x00BC9D2A`. VINS single builder `0x00BBFB10` requires key class
+`0x00040000` under mask `0x000F0000`. It uses the LEAF identifier
+and tag through `0x00BBEE50` at `0x00BBFBCA`, then queries the
+LEAF key with creation argument zero at `0x00BBFBF0` through
+`0x00BC9DA0`. A nonnull LEAF value admits single construction for
+insertion into VINS `+0xC4` at `0x00BBFCF9`.
+
+Both nonnull insertion paths require their respective backend
+`+0x64` bit 7 clear and bit 1 set, and `+0x66` bit 0 set. Each
+requires a nonnull construction result and zero at global
+`0x0136B604`, checked at `0x00BC9CAE` for the LEAF value and
+`0x00BBFC7A` for the VINS single.
+
+Both typed name lookups use cache-only mode 1 of `0x00BBD220`.
+The dependency walk `0x00BC9340` enumerates the row identifiers.
+Only an empty named entry `+0x14` at `0x00BBC3ED` takes the fill
+at `0x00BBC404..0x00BBC40F`. The fill queries slot 3 of the interface
+at backend `+0x40` and stores a nonnull result in that entry.
+With the constructed resource interface retained, `0x00B932B0`
+calls slot 4 on the reference receiver and forwards a returned
+node's `+0x54` at `0x00B932F8`. On the nonnull supplied-context
+Rapture branch,
+the VINS and LEAF factories store manager slot-3 returns in setup
+context `+4` at `0x007CA036/0x007CA0C6`. The constructed manager
+uses `0x008C7CE0` to return the RaptureBaseReferenceResource at
+manager `+0x18`. The store at `0x00B93CD6` retains the supplied
+receiver at node `+0x74`. The reference receiver table `0x00FE937C`
+selects slot 4 `0x007CA8E0`, which checks the retained node vector
+by tag and identifier before the graph fallbacks.
+
+On VINS table `0x010C2794`, slots 26 and 27 select
+`0x00BC1910/0x00BC1880`. After backing refresh and cache setup at
+`0x00BBF910`, both call the single walk `0x00BBFF00` before the
+group walk `0x00BC0630`. That walk requires version 8 or later and a nonnull
+group array. Its builder `0x00BBFF40` checks the group key class and
+VINS `+0x66` bit 0. For the selected positive child count, it first
+looks up each single with creation argument zero at `0x00BC0010`.
+Nonnull child results admit group construction using the first
+child's context. After a nonnull group return, `0x00BC00CA`
+requires global `0x0136B60C` to be zero. The child-array allocation
+path at `0x00BDF4C8..0x00BDF512` uses that status to report a null
+array.
+
+The second lookup at `0x00BC014B..0x00BC0158` also uses creation
+argument zero. It passes the result directly to the capacity-checked
+append `0x00BDF220` without retesting for null. The caller ignores
+the append result before the insertion at `0x00BC0171`, which uses
+the full key and group pointer in the VINS `+0xC8` cache searched
+at `0x00BC05BD`. Separate named notification paths can attempt
+creation with argument one at `0x00BC1533` for a VINS single,
+`0x00BC097A` for an affected group and `0x00BCA7CE` for a LEAF value.
+
+With the [constructed EffectFactory](ambient-garlean-fleet.md#constructed-resources-parent-context-and-effect-factory)
+retained, mode 2 reaches group builder `0x00B9E3C0`. The child
+path at `0x00B9E497..0x00B9E4A2` dereferences the retained child
+pointer and requires a true slot-2 readiness result. Slot 5 at
+`0x00B9E4C3` then gets the VEFF-derived Data::Effect through the
+VINS single's saved LEAF parent. VINS slot 5 `0x00BDF8A0` forwards to LEAF slot 5
+`0x0061FEE0`, which reads the pointer retained at parent `+0x3C`.
+The current Data::Effect `+0x38` byte at `0x00B9E4C5`
+selects the nonzero route to `0x00B9D5E0` or the zero route to
+`0x00B9C4B0`. The append at `0x00B9E4E7` requires a nonnull
+child product. An allocated group can have zero children.
+
+Replay the native VAs and PE table cells with the same LLVM method as
+the group request above. The authored group key and dependency matches
+establish the selected inputs to these guarded routes. Actual dependency
+retention and cache fill before the spawn lookup remain unobserved.
+
 ## Remaining boundary
 
 The preserved artifacts establish the selected resource's typed rain
 reference, the conditional DrawEnv interpolation contract, the VFX context
 producer, the application load's null receiver and the generic default
 resource-query receiver. Deferred binding and placement provide the
-conditional Qix group request. The ordinary graph decoder, selected
-emitter-to-model reference, shader input profile and texture dependency
-leave current draw inputs unresolved.
+conditional Qix group request. The installed group selects one child and
+the native loader has a conditional population route. The ordinary graph
+decoder, selected emitter-to-model reference, shader input profile and
+texture dependency leave current draw inputs unresolved.
 
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
@@ -895,10 +994,11 @@ leave current draw inputs unresolved.
   unobserved.
   A separate nonnull initializer receiver and its concrete query interface
   remain unjoined to Weather; the generic default listener does not prove that join.
-- Live selection and completion of the rain folder and instance, cached VINS
-  group population, and the result of the group lookup at `0x00BC05BD`.
-- Successful Qix group construction and child membership in the Qix context
-  list, update delivery, emission and draw submission.
+- Live selection and completion of the rain folder and instance, retention of
+  the named dependencies, cached VINS group population before the lookup at
+  `0x00BC05BD`, and the lookup result.
+- Successful Qix group and child construction, child membership in the Qix
+  context list, update delivery, emission and draw submission.
 
 Neither authored names nor the arithmetic above establish visible rain,
 camera following, particle density, opacity, a common fade duration, or GPU
