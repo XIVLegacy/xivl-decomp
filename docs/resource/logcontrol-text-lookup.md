@@ -84,18 +84,95 @@ byte +4 against 1. This rule selects no cache mode or numeric R and promises
 no synchronous completion.
 
 OBSERVED. The 0xFF branch at 0x00CA09BA..0x00CA09CC calls sheet slot +0x1C.
-Target 0x00CAF300 returns the byte at ExcelSheet +0x0B, populated or overridden
-from metadata. Thus the log call uses the selected sheet's configured default
-logical column L. Its numeric value is unknown. Type helper 0x00CAF330 maps L
-through the byte array pointed to by sheet +0x14, then indexes the type array
-pointed to by sheet +0x10. Parser 0x00CAF390 assigns str code 10. Jump-table
-index 9 at 0x00CA0DF8 sends that type to 0x00CA09EC.
+Target 0x00CAF300 returns the byte at ExcelSheet +0x0B. Thus the log
+call uses logical column L from the selected sheet's
+[default configuration](#default-column-configuration).
+Type helper 0x00CAF330 maps L through the byte array pointed to by sheet
++0x14, then indexes the type array pointed to by sheet +0x10. Parser
+0x00CAF390 assigns str code 10. Jump-table index 9 at 0x00CA0DF8 sends that
+type to 0x00CA09EC.
 
 OBSERVED. The str branch obtains row data, calls 0x00C9A480 to locate the
 four-byte cell using the row-data descriptor's column mapping, and reads its
 UTF-8 object pointer. It forwards that object with P and O to TextModule slot
 +8, then releases the row wrapper. Missing sheet or row returns zero.
 Unsupported type returns -1. No bounds guard for malformed metadata is inferred.
+
+## Default column configuration
+
+OBSERVED. LLVM objdump 21.0.0 and original PE table reads establish the
+constructor and lookup branches below. ExcelSheet constructor
+`0x00CB04B0` initializes `+0x0B` to `0xFF` at `0x00CB04FC`.
+It parses decimal `column_max` and `column_count` into bytes `+0x09`
+and `+0x0A` at `0x00CB0597/0x00CB05B3`. It fills the
+`column_max`-byte logical map at `+0x14` with `0xFF` at `0x00CB0664`
+and allocates the `column_count`-byte type array at `+0x10`.
+
+For each admitted `index` child, the loop parses its text in base 10 at
+`0x00CB07FD`. At `0x00CB0808` it stores the zero-based physical ordinal
+at the parsed logical index in the map. At `0x00CB080B..0x00CB0811`
+it also stores the index's low byte as the default while `+0x0B`
+still equals `0xFF`. The first declaration with a non-sentinel low
+byte therefore seeds the default. The separate `type` loop at
+`0x00CB075E..0x00CB0766` stores types in physical declaration order.
+The selected row-data constructor retains the sheet at row-data `+0x0C`
+at `0x00C9A82C`. The string cell accessor at `0x00C9A480` uses its map
+to address row storage at `+0x08` plus four times the physical ordinal.
+The index store and these lookup instructions have no separate logical
+bounds or mapped-ordinal check. A valid lookup requires an in-range mapped
+logical index and a physical ordinal below `column_count`.
+
+OBSERVED. Registration reads `param` at `0x00C986B3`. The constructor
+passes it to `0x00CAFA80` at `0x00CB08F2`. The parser splits the text
+on the bracket characters at `0x00CAFAF0`. It splits each resulting
+token on `|` at `0x00CAFBA8` and passes exactly two-token pairs to the
+sheet `+0x20` map insertion at `0x00CAFC67`. It looks up `SHEET` at
+`0x00CAFD6D` and splits the returned text on `;` at `0x00CAFD70`.
+For the form `[SHEET|DEF;N]`, the second split gives `DEF` and `N`.
+The first token must equal `DEF` byte for byte at `0x00CAFDD0`.
+On the admitted two-or-more-token branch the parser converts the
+second token in base 10 at `0x00CAFE0C` and stores its low byte at
+`0x00CAFE14`. This store neither checks that the result is mapped
+nor reserves the `0xFF` byte. This branch describes valid decimal
+metadata. It supplies no validation rule for malformed text or indexes.
+
+The [WorldMaster constructor boundary](../script/logcontrol-player-producer.md#native-default-and-execution-boundary)
+records the initialized absent-attribute and missing-`SHEET` wrappers,
+the empty-map condition and intervening callback paths. With absent
+`param` and the normally initialized empty map at override entry,
+both splits are empty and the override preserves the entry default.
+
+### Installed SendLog owner definitions
+
+OBSERVED. The three resource IDs follow the
+[SendLog owner joins](../script/sendlog-sink-chain.md#sl-05-text-owner).
+Decode their installed definition DATs with `decode_document` from
+[xivl-tools at fd4c97d](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/tools/research/census_sheet_stack.py).
+The decoded hashes below identify the complete XML documents. The
+inverse document transform reproduced all three carriers.
+
+| Named owner sheet | Definition | Carrier bytes | Carrier SHA-256 | Decoded bytes | Decoded SHA-256 |
+| --- | --- | ---: | --- | ---: | --- |
+| worldMaster | 0x03A20027 | 3489 | a33911281966c41711fc272fdbf070ab03cae717d47ce0a45a0b72acc0e74917 | 3488 | 2c69a2399cfaed999f90600777314355a552538ba6b7e0cd69f218e4de8f538f |
+| harvestJudge | 0x03A2051C | 1694 | aa7b3743a1a524323904229b65a659d9283c087d7f7478ccf5a611cee922b94a | 1693 | 4e23a1c7ef79f377e4a3cce40844498cb95435777c9a6025019d65bacc8f949e |
+| populaceGuildlevePublisher | 0x03A20153 | 1764 | 87f34d9e79d5b0e85fe9294964d2b91a3f78add112438583caa26cfe74077f80 | 1763 | 0f5ee10da200f441978d1abf16460536e55ceb03bbaf05ea2068e6ea791a3f24 |
+
+Each named definition has one client-mode entry for each language shown,
+with one physical `str` column and absent `param`. The table gives the
+sole declared logical index L. Each entry has `column_count=1` and
+`column_max=L+1`, and maps L to physical ordinal zero.
+
+| Named owner sheet | ja | en | de | fr | chs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| worldMaster | 0 | 1 | 2 | 3 | 5 |
+| harvestJudge | 0 | 1 | 2 | 3 | 4 |
+| populaceGuildlevePublisher | 0 | 1 | 2 | 3 | 4 |
+
+INFERRED. With matching English metadata admitted and the constructor's
+seed and map retained through lookup, all three sheets select logical
+1 and physical ordinal zero for the default request. This is the installed
+configuration. Actual language, owner key, selected sheet, final native
+default, row readiness and row text remain UNKNOWN.
 
 ## Conditional plain output
 
