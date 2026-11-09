@@ -645,12 +645,107 @@ bounded DXT5 levels. The table and source bases are `0x18` and
 `0x60` relative to the GTEX header. The last level ends at the file
 boundary.
 
-The selected material and CTAB supply no `textureMatrix0` value.
-The named material parameter `latitudeParam` has no serialized
-payload. CTAB defaults and other serialized material components leave
-the current values, overrides and successful uploads unresolved.
-Current WVP, fog and lighting, sampler filtering and address modes,
-material state, backend creation and draw remain open.
+The named Vmdl material parameter `latitudeParam` has no serialized
+payload. Current WVP, fog and lighting, material state, backend creation
+and draw remain open.
+
+#### DrawResource texture matrix
+
+The selected Vmdl material and VS CTAB supply no `textureMatrix0`
+payload. The [predefined material table](vfx-drawresource-and-shaders.md#engine-material-constants)
+has that name at ordinal 15, VA `0x01308880`, with size 64.
+The admitted count-zero initialization at `0x00C13C20` can seed its
+value with identity under the [source and copy conditions](vfx-model-material-values.md#value-area-construction-reset-and-predefined-conditions).
+The selected DrawResource also supplies a writer for the same name.
+
+In the selected veff, the kind-1 record at file `0x23B8` selects a
+single material element at `0x24A0`. The element's ten parameter
+pointers start at file `0x23E0`. The type-`0x0A` record at `0x2450`
+has key `0x0050` and pivot XY `(0.5, 0.5)` at `+0x10`.
+The key field selects hint index `(key >> 4) & 0xFF = 5` in
+`0x00E3A930`. The root's 11-entry hint table starts at file `0x217C`.
+Row 5 at `0x221C` names `textureMatrix0` and gives size 64.
+The build at `0x00BD4453 -> 0x00BE8070 -> 0x00BE7E90` resolves the
+hint name to a material metadata ordinal. `0x00BD3DDB` retains the
+resolved table at Data::Effect `+0x58`.
+
+Kind 1 bypasses the kind-8 flipbook callback setup at
+`0x00D87241`. In the admitted type-`0x0A` branch without an override
+callback, `0x00D863AA` calls `0x00D83990`. That helper resolves
+three signed selector pairs through `0x00E3A0A0` and passes their
+values with the pivot to `0x00D82A70`.
+
+| Parameter offset | Selector | Selected unit 1 graph | Input to the matrix |
+| --- | --- | --- | --- |
+| `+0x18` | `(-1, 0)` | B0 binding 0 at graph file `0x15EC`, `RandomPolynomialFloat32X2` | XY translation |
+| `+0x1C` | `(4, 0)` | A4 binding 0 at graph file `0x15D4`, `StandardPolynomialFloat32` | Rotation, authored constant zero |
+| `+0x20` | `(3, 1)` | A3 binding 1 at graph file `0x15C8`, `StandardPolynomialFloat32X2` | XY scale, four polynomial segments |
+
+`0x00D82A70` starts from identity, applies negative pivot translation,
+then conditionally multiplies scale, rotation and sampled translation
+on the right, and applies positive pivot translation on the right.
+The helpers skip the scale, rotation or sampled translation product
+for ordered inputs `(1,1)`, `0` or `(0,0)`, respectively.
+After a successful matrix build, the call at `0x00D863C3` supplies
+the key and matrix to `0x00E3A930`. Its hint lookup feeds the
+64-byte store at `0x00BBB990`. With the selected effect and matching
+metadata retained, that store targets the named `textureMatrix0` value.
+
+The native material builder `0x00C13E50` puts predefined metadata
+ordinals 0 through 20 in the list at material `+0x40`. The shader
+builder walks that list at `0x00C114D0`. With the expected metadata
+retained, size-kind 5 asks for the vertex handle by name at
+`0x00C1163C`. A successful lookup
+stores the value-block byte and matrix flag in the record at
+`0x00C117AD..0x00C117BE`. The selected VS CTAB maps the name to four
+Float4 registers starting at `c187`. The matrix branch
+`0x00C10E70 -> 0x00C1D3E1 -> 0x00B956A0` requests the four current
+blocks through the live handle. The selected UV calculation reads
+`c187.xy`, `c188.xy` and `c190.xy`.
+
+The authored selectors establish the graph inputs. Current random and
+time-dependent values, callback and shared-store ordering, valid
+reflection handles and successful upload remain conditions.
+
+#### Sampler state
+
+The selected material element has a type-`0x07` record at file
+`0x2408`. Key `0x4000` selects sampler ordinal 0 through
+`0x00E3A280 -> 0x00E3AC80`. The ordinary pixel sampler record uses
+that ordinal and stage 0 when the selected reflection lookup succeeds.
+
+The seed helper `0x00BBBA00`, called at `0x00C13B7D`, initializes
+24 rows of stride 12 at `0x0136E748`. It writes bias `-1.0` at
+`+0`, address codes `0/0` at `+4/+5`, byte `2` at `+6`, filter
+gate `1` at `+7`, and filter codes `2/2/2` at `+8/+9/+0xA`.
+
+The selected type-`0x07` branch uses parameter `+0x1E/+0x1F` as
+address codes `0/0` and `+0x1D` as row byte `+6` with value 2.
+Calls at `0x00D862E1` and `0x00D862F3` write those fields.
+Parameter `+0x18` bit 4 is clear. The call at `0x00D86300` therefore
+clears the row's filter gate, and the branch skips the filter and bias
+writer at `0x00D86325`. The ordinary stage-0 consumer at
+`0x00C1D55E..0x00C1D661` reads the current ordinal-0 row. With the
+selected writes retained, the gate-clear branch supplies three zero
+filter codes and zero local bias.
+
+For this stage, `0x00C1D620 -> 0x00C0F2E0` can suppress the address
+request on equality with its two cached codes. With Core table
+`0x010B590C` retained, a changed pair goes through slot `+0x60`,
+`0x00B9FF60 -> 0x00418300 -> 0x0041CC60`.
+Address code 0 maps to value 1 in the PE table at `0x00F59750`.
+The lower path requests state parameters 1, 2 and 3 with value 1,
+using code 0 for parameter 3.
+
+The filter request at `0x00C1D661` uses Core `+0x78`,
+`0x00B9FF90 -> 0x004186E0 -> 0x0041CD00`. That body consults current
+filter and bias policy dwords at `0x01329884/0x01329888`. Its
+filter3-zero tail at `0x0041CE1B..0x0041CE59` requests zero for
+parameters 9, 8 and 7. Both lower paths call `0x004236A0`, where
+value equality can suppress backend dispatch. See the
+[sampler state cache and backend dispatch](sqwt-icon-control-textures.md#observed-size-dependent-numeric-sampler-requests).
+The selected row can be changed by later writers. Live policy,
+cache contents, backend state and actual filtering remain unknown.
 
 ### Deferred VFX resource binding and clearing
 
