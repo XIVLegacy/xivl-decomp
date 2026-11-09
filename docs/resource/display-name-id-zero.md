@@ -27,8 +27,8 @@ Observed against FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
 `2012.09.19.0001`, 15996808 bytes, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`, image base
 `0x00400000`. All locators are VAs. Ghidra CLI navigated the code and Capstone
-5.0.7 listings of the identified PE checked every cited instruction and data
-word. Decompiler output is navigation only. OBSERVED marks instructions, data
+5.0.7 listings of the identified PE checked the packet and text paths.
+Decompiler output is navigation only. OBSERVED marks instructions, data
 and decoded assets. INFERRED marks an interpretation of observed code. UNKNOWN
 marks what was not traced. `tools/verify_display_name_id_zero.py` re-checks the
 listings, tables, caller sets, the row 222 cells and the capture census below,
@@ -159,6 +159,43 @@ INFERRED. The custom branch ends by calling the object at core work `+0xE4`
 through `0x006C3E40` (`0x006FB1AC`), and the resolved-name callback ends with
 the same call (`0x006FB3DA..0x006FB3E1`). The object is a display-name sink,
 possibly the nameplate, and its type was not traced.
+
+### Numeric request context and completion
+
+OBSERVED. The numeric actor request at `0x0076FFF0` captures a 32-bit key
+from the selected wrapper at `+0x70` through `0x00CC73B0` and
+`0x00CC7030`. It samples the requested ID from the actor's name record,
+maps `-1` to zero, and calls `0x0076FD80` with the ID, key address,
+follow-up value and a null optional listener
+(`0x0077001C..0x0077006C`). The queued branch retains ID, copied key,
+optional listener and follow-up byte at node offsets `+0x08`, `+0x0C`,
+`+0x10` and `+0x14` (`0x0076FE88..0x0076FEAF`,
+`0x007784FA..0x00778508`, `0x006CE8EC..0x006CE8F9`). The node stores
+no separate actor or name-record pointer in this payload.
+
+OBSERVED. Immediate completion at `0x0076FE2B` and queued completion at
+`0x007701E0` reach `0x00758F30`. Its actor branch skips the write when
+the saved key equals the current rejection dword at `0x0130C778` or
+`0x00CC7A50` returns null (`0x00758FEE..0x00759002`). Both selected
+registry paths compare the full requested dword
+(`0x00CEB9C0`, comparison at `0x00CEBA43`). The recovered object is cast
+from LuaControl to CharaBase through `0x009DA6CC` at `0x00759013`.
+The cast result becomes the setter receiver without an explicit
+post-cast null check (`0x00759018..0x00759027`). The reached setter
+requires a valid cast result.
+
+OBSERVED. The requested ID is read at `0x00758F93` for the separate
+optional listener path. The actor setter `0x006FB280` receives the
+resolver, resolved string and follow-up value. It writes the current
+record's string and ready byte without comparing its ID to the requested
+ID. Its later current-ID read occurs after those stores and requires a
+nonzero follow-up byte (`0x006FB2AE..0x006FB2DB`, `0x006FB336..0x006FB344`).
+
+UNKNOWN. The current key lookup does not establish that a pending request
+retains the original actor instance. Key issuance, reuse, removal,
+request cancellation and live ordering are outside these checked paths.
+Ghidra CLI instruction listings and reads of the identified PE's
+file-backed sections confirm these locators.
 
 ## Consumers of the structure
 
