@@ -78,6 +78,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Player nameplate icons](actor/player-nameplate-icons.md)
 - [Retainer presentation contract](actor/retainer-presentation.md)
 - [Retainer market ward and district selection](actor/retainer-ward-districts.md)
+- [Current area master and the area list](actor/current-area-master-list.md)
 - [Rivenroad command and presentation contract](actor/rivenroad-presentation.md)
 - [Rivenroad MotionClip names and resource entries](actor/rivenroad-motion-records.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
@@ -119,6 +120,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [JobQuestCompleteTriple receiver](event/job-quest-triple-receiver.md)
 - [KickClientOrderEvent receiver](event/kick-order-event-receiver.md)
 - [Notice target staging and widget lifetime](event/notice-widget-lifetime.md)
+- [Order receiver submission and retry queue](event/order-receiver-retry-queue.md)
 - [NpcSay window chain](event/npcsay-window-chain.md)
 - [Push-event condition receivers](event/push-condition-receivers.md)
 - [Quest dispatch](event/quest-dispatch.md)
@@ -154,6 +156,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Zone value-2 record construction](net/zone-value-two-record.md)
 - [Zone outbound opcode header binding](net/zone-outbound-header.md)
 - [Map serverbound 0x0003 emitter](net/map-0003-emitter.md)
+- [Sent chat lines in the local log](net/chat-sent-line-local-log.md) -
+  Display type and sender cell of the line stored for a sent say, shout, emote, tell and group line.
 - [Battle target select, decide and lock senders](net/target-lock-decide-senders.md)
 - [Target command handler](net/target-command-handler.md) -
   Key bindings, gates and sender branches of the TargetElement command handler.
