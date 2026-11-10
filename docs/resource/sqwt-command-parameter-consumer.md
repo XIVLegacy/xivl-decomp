@@ -730,6 +730,40 @@ The conditional group and gesture path leaves active profile,
 substituted values, actual desktop visitation, and eventual command
 recipient UNKNOWN.
 
+### Desktop reissue and ActionMenu subscriber
+
+STATIC. The exact keyboard command names are
+`UILuaCommands.ActionBarSlotNext` and `UILuaCommands.ActionBarSlotPrev`.
+The authenticated Desktop connector and ActionMenu LPBs each request
+priority 5 root subscriptions for both names. Desktop connector
+`main/f62` requires `work.mode > 1` and `_widget` for the alias path.
+The two comparisons at labels 507 and 510 converge at label 512.
+That branch calls `getStaticWidget(7)` and sends the incoming command
+name unchanged with no value.
+
+Connector `main/f520` reads the same `work.widget` map that the
+creator at `main/f518` populates. Its
+[ActionMenu creation request](sqwt-keyframe-target-binding.md#actionmenu-creation-and-registration)
+uses slot 7. Common `main/f52/f53` passes the instance name and
+command to `_sendStoryboardCommand` with nil optional slots.
+The WithNone processor at `0x00543700` constructs kind-0 parameters.
+After successful name lookup, cast and command registry lookup,
+`0x00538B4A` issues the command at the explicit ActionMenu root.
+The cast-failure invocation at `0x00538B60` has a null target.
+
+ActionMenu `main/f1` joins each alias with the corresponding
+`PushSlotNext` or `PushSlotPrev` at labels 64 and 83. The branch
+returns if `isShow()` is literal false or `slotMoving` is truthy.
+Otherwise it requests the corresponding slot change. The installed
+PadBindings keep their distinct PushSlot command names.
+`xivl-client-scripts:docs/action-menu-page-controls.md`.
+
+The carrier and chunk identities match the published script
+manifests. SQEX source replay, Lua 5.1 instruction replay and
+file-backed x86-32 decoding checked these joins. Current focus,
+initial route ordering, exactly-once delivery and visible motion
+remain open.
+
 ### Button-sourced MoveFocus
 
 STATIC. The [key configuration](../net/target-command-handler.md#key-bindings)
