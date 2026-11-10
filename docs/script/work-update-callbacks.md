@@ -62,7 +62,7 @@ runs in this order.
 | PCs | Step |
 |---|---|
 | 2 to 9 | `worldMaster:_getMyPlayer():getDepictionJudge():judgeNameplate(self)`, before any test of the arguments |
-| 10 to 26 | For slot `_init`, or struct `charaWork` with slot `property`, the two `isPropertyEnabled` tests (arguments 1 and 5) that feed `_setNameplateVisible` |
+| 10 to 26 | For slot `_init`, or struct `charaWork` with slot `property`, the two `isPropertyEnabled` tests (arguments 1 and 5) that feed `_setNameplateVisible` ([argument and query body](chara-nameplate-visibility.md#request-in-_onupdatework)) |
 | 27 to 32 | For slot `_init`, `processUpdateInitWork(struct)` and a return |
 | 33 to 41 | For struct `charaWork` with slot `commandAcquired`, `processUpdateCommandAcquired` with both indices and a return |
 | 42 to 50 | Every other update: `desktopWidget:processCharacterParameterUpdated(self, struct, slot, index1, index2)` through `getglobal desktopWidget` at PC 42, then `self` at PC 43, the call at PC 49 and the return |

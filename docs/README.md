@@ -498,9 +498,11 @@ Each finding records its evidence and the limits of what it establishes.
 - [Judge sheet globals](script/sheet-globals.md)
 - [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
 - [Work update callback consumers](script/work-update-callbacks.md)
+- [CharaBaseClass nameplate visibility requests](script/chara-nameplate-visibility.md)
 - [Native tag member handling](script/work-tag-handling.md)
 - [Work-callback readiness gate](script/work-callback-readiness-gate.md)
 - [DesktopWidget user config reads](script/desktop-user-config-reads.md)
+- [Main menu command route](script/main-menu-command-route.md)
 
 ## Type notes
 
