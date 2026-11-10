@@ -1631,3 +1631,59 @@ group byte 1 without masking. The calls and record writes do not by themselves
 name an enable flag, qualify the player collision group or collision matrix,
 or prove solver participation. No native execution or target-process
 observation was used for this trace.
+
+### Camera mesh admission
+
+The placed Attribute path requires the instance slot-50 gate,
+category `0x0B`, a retained resource and successful manipulator
+acquisition. The child descriptor bit-2 write supplies the
+instance setup gate. The placed property's enable byte is separate.
+
+Slot 52 builds a type-9 descriptor with optional word zero at
+`0x00AA84F1/0x00AA84F9`. The type-9 acquisition uses the first
+nonzero child link of an admitted type-1 PHB record. A selected
+child whose descriptor refuses ends that acquisition. An admitted
+raw type-10 descriptor can produce native mesh type 8. The mesh
+constructor initializes flags `0x18`, group 0 and shape word 0.
+At `0x00AFB37F..0x00AFB393` attachment copies the body's
+`+0x66` bit `0x1000` to shape flag `0x10`. A fresh body
+starts with word `0x3400`. Slot 52 continues setup without
+checking the shape-add Boolean at `0x00AA8512`.
+
+After slot 52, `0x00AA841A` reads the property byte through
+`0x00800900`, and `0x00AA8422` forwards it through
+`0x00A799B0 -> 0x00AFB0F0`. The property constructor
+sets complete-object `+0x14` to 1 at `0x00A96545`.
+The interface is complete object `+4`, so the getter reads
+the same byte at interface `+0x10`. A nonzero value enables
+body bit `0x1000` and shape flag `0x10`. Zero clears them.
+Property slot 18 at `0x00A963C0` writes the byte and
+forwards it when a manipulator is retained. It can also supply
+the value before setup.
+
+Property slot 29 at `0x00AA842C -> 0x00A961B0` retains the
+new manipulator and adds its reference. The setup releases its
+temporary reference through slot 43 at `0x00AA8438`.
+For a successfully added mesh and retained native body, the
+unmodified enable value leaves flags `0x18`, group
+`u8(data+0x28) & 31` and shape word 0. A zero enable value
+leaves flags `0x08`. The opposite slot-24 argument can set
+flag `0x01`. Slot 22 at `0x00A79A10` can set or clear
+flag `0x02`. Those writes are outside the checked setup.
+
+The [camera line and radius queries](../actor/camera-transform-inputs.md#camera-query-filters-and-mesh-hits)
+require clear shape bits `0x03`, set bit `0x10` and group
+1, 2 or 16. Type 8 bypasses the outer shape-word comparison.
+The comparator at `0x0103DA28` is mask 1, expected value 0
+and relation 0. Its aggregate TBD check at `0x00B0E7E0`
+cannot reject expected zero. The leaf still rejects an odd
+triangle word at `0x00B0C707..0x00B0C752` or
+`0x00B0D956..0x00B0D9B1`. Shape flag `0x20` can orient
+the returned normal and is outside the admission mask.
+
+Reproduce the property and retention join at
+`0x00AA83FC..0x00AA8440`, `0x00A963C0..0x00A963EA`
+and `0x00A9653E..0x00A96549` on the identified PE.
+Live provider participation depends on the retained placed
+instance, current property and shape state, resource completion
+and scene ownership.
