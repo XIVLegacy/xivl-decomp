@@ -306,12 +306,14 @@ offer its work to the retained draw context at `0x00C58375`.
 The environment record path at `0x00C40360..0x00C403A3` uses
 slot zero for both named records. A null slot takes the separate
 fallback at `0x00C403D6`. Both `reflectMap` and `lightDiffuseMap`
-pass encoded bind argument zero. The records and the separately
-named CTAB registers establish an offer through both records.
-Distinct device bindings, the live query result, selected pool
-entry and rendered output remain open. These joins use LLVM
+serialize stage zero. The
+[selected equipment sampler mappings](chara-engine-samplers-and-light-inputs.md#selected-equipment-sampler-stages-v)
+give stages 0 and 1 for the ordinary compatible equipment programs.
+The direct path can rewrite the serialized stage on a program change.
+Its internal no-override programs use a different map. The live
+query result, selected program and pool entry, effective device
+bindings and rendered output remain open. These joins use LLVM
 x86-32 decoding and direct reads of the original PE.
-[Character sampler records](chara-engine-samplers-and-light-inputs.md).
 
 ## Conditional VFX alias consumer
 

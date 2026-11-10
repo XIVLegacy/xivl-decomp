@@ -175,8 +175,67 @@ Result: a null DrawEnv binds nothing, an empty slot binds the default object,
 and both engine samplers bind slot 0 of the draw's DrawEnv. `reflectMap` and
 `lightDiffuseMap` therefore read the same cube resource. Their different
 sampling (reflected view vector at `reflectMapLod`, normal at
-`lightDiffuseMapLod`) is the whole difference. This replaces the sampler name
-reading in the colour-flow page.
+`lightDiffuseMapLod`) uses the same resource.
+
+## Selected equipment sampler stages (V)
+
+The installed `client/chara/pc/c001/equ/e216/pch_mdl/0001` has
+35280 bytes and SHA-256
+`dd5e2f98859bcee333f2a74e5ab9a4ed76fb6847f781c4ba7d7519c951ed02f4`.
+Its PRAM body at file offset `0x35D0` has five samplers. Both
+`mtc001e216pc_a_000.fpo` and `mtc001e216pc_a_001.fpo` reflect
+the same two cube names in their pixel program constant tables.
+The serialized stage and the reflected register are separate inputs.
+
+| Ordinal and name | Record offset | Kind, flags | Serialized stage, DrawEnv slot | State key | Reflected stage in both programs |
+|---|---|---|---|---|---|
+| 0 `reflectMap` | `0x3BEA` | 2, `0xA0` | 0, 0 | `0xCF67CD28` | 0 |
+| 1 `lightDiffuseMap` | `0x3C5A` | 2, `0xA0` | 0, 0 | `0x952C03D1` | 1 |
+
+The two pixel bytecodes begin at `0x0DC0` and `0x2460`.
+For the first program, the named constant table entries are at
+`0x1018` and `0x0F50`. For the second they are at `0x26B8`
+and `0x25F0`. Each entry uses register set 3 and count 1.
+Pixel program creation passes the same bytecode to reflection
+at `0x00419603` and creation at `0x00419612`. The reflection
+reader stores the name hash and register index at
+`0x0041A0FA/0x0041A102`.
+
+The ordinary table builder `0x00C3E872 -> 0x00C3DDB0`
+starts each ordinal at stage `0x0F`. For kind 2 it looks up
+the PRAM name in the program's reflection at `0x00C3DE87`
+and stores a resolved stage at `0x00C3DF2A`. The apply path
+selects the mapping whose identity equals draw context
+`+0xBB8`. With context `+0x776` clear, the record reads
+its DrawEnv slot at `0x00C3EF2F` and updates the retained
+parameter by ordinal. `0x00C5B28E` reads the mapped stage
+and `0x00C5B35C` offers the retained handle at that stage.
+Given one of the two equipment programs, an available slot-zero
+cube and no replacement, both offers use that cube at stages 0
+and 1. The parameter path can substitute the handle before
+the offer.
+
+With context `+0x776` set, the separate direct path can
+refresh the mutable record stage on a program-handle mismatch.
+`0x00C40D73` stores the stage found by PRAM state key in
+the selected global pixel object's map. That map receives
+its reflected stage and hashed PRAM name at
+`0x00C57144/0x00C57146`. A miss can try the separate name
+lookup at `0x00C40D8E`. The binder rereads record
+`+0x0C` and the distinct slot byte `+0x0D`.
+This route uses the equipment map only if a compatible
+program supplies it. Without the override at context
+`+0xBA8`, the enabled path uses internal programs at
+`0x010F80E0` and `0x010F8290`. Each reflects only
+`projectedMap` at stage 0 and was built with null PRAM.
+
+`0x00418410` can substitute a zero texture under the
+global texture mask, preserving the stage. The wrapper
+at `0x0041BEFC` forwards it to the backend at
+`0x004231C7`. All three backend paths preserve it at
+task `+4`, through the device call at `0x00435796`.
+The selected live draw, actual masks, effective texture,
+queue execution and device result remain unknown.
 
 ## Where the cube comes from (V unless marked)
 
