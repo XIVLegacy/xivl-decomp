@@ -3,9 +3,10 @@
 The native behind `_getCurrentAreaMaster` returns the first control of one
 linked list. An area control joins the tail of that list while its instance is
 being created, and leaves it through one virtual slot. The clientbound
-`0x0007` handler trims the list instead of emptying it. This page records the
-list, its writers, the order they produce, and the one shipped caller whose
-menu depends on the answer.
+`0x0007` handler trims the list instead of emptying it. Its element loops and
+the `0x00CB` arm both pass over a key that belongs to a listed area. This page
+records the list, its writers, the order they produce, the routes that remove
+one area, and the one shipped caller whose menu depends on the answer.
 
 The native itself is owned by
 [Actor natives](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/fade-actor-group-native-contract.md#actor-natives).
@@ -33,7 +34,8 @@ instruction listing of ghidra-cli 0.2.2 (`ghidra disasm`) on Ghidra 12.1.4 at
 the cited address, with one exception. Ghidra holds no instructions at
 `0x00CC8070`, so that routine was decoded from the file bytes with Capstone
 5.0.7 in 32-bit x86 mode. Decompiler output was used only to find addresses.
-Vtable cells and RTTI names were read from the file-backed PE sections. Caller
+Vtable cells, jump table cells and RTTI names were read from the file-backed
+PE sections. Caller
 sets come from a scan of the first section for `E8` and `E9` rel32 operands
 that resolve to the target, and from a scan of all sections for the target as
 a dword. Those scans do not see computed calls.
@@ -64,6 +66,11 @@ second direct child of the chunk root in listing order. No client code ran.
 | Slot 3 runs inside instance creation. On the route through `0x00CC7800` and `0x0078BBB0` that is before the initializer callback and before `_onInit` is queued | STATIC | [When slot 3 runs](#when-slot-3-runs) |
 | Slot 29 of both classes removes the receiver from the list | STATIC | [Removal](#removal) |
 | The `0x0007` handler keeps a lone entry and marks it for removal at the next insertion, or removes entries from the front until one is left | STATIC | [Trim on 0x0007](#trim-on-0x0007) |
+| The ID guard `0x00575750` accepts a key that equals the registry key of any listed area control. The `0x0007` element loop and the `0x00CB` arm both leave an accepted key alone | STATIC, INFERRED for the key identity | [Listed areas and the ID guard](#listed-areas-and-the-id-guard) |
+| The `0x0007` arm deletes the general map elements whose key the guard refuses, that have no staged pair, and whose key is outside the `0xC0000000` class. It deletes no element of a listed area, so the trim sees every listed area | STATIC for the loops, INFERRED for the key identity and for the count the trim sees | [Elements deleted before the trim](#elements-deleted-before-the-trim) |
+| `LuaActorImpl` slot 5 is reached through the wrapper `0x00574A60`, called from the `CharaElement` destructor and from the `0x00CD` case of `0x004D8860`. That routine is slot 9 of `RaptureElement` and of 24 derived element classes | STATIC for the wrapper and its callers, INFERRED for the installed implementation | [Single area removal](#single-area-removal) |
+| A `0x00CB` for the key of a listed area does not unlink it | STATIC, INFERRED for the key identity | [Single area removal](#single-area-removal) |
+| With two areas listed, a `0x0007` unlinks the older one and keeps the newer one with the evict byte clear | INFERRED from the rows above | [Which area is current](#which-area-is-current) |
 | The native returns the oldest area still listed, not the newest | INFERRED from the rows above | [Which area is current](#which-area-is-current) |
 | `MarketEntrance.eventPushChoiceAreaOrQuest` calls the native on `self` only when its second place argument is nonzero, and calls a method on the result with no nil test | OBSERVED | [Shipped caller](#shipped-caller) |
 
@@ -202,7 +209,9 @@ and then `0x00CC7370` on the context with its receiver
 (`0x006E165D..0x006E1660`). `0x00764580` returns at once when byte M `+0xBB` is
 zero (`0x00764586..0x0076458D`). Otherwise it walks from the first node, compares
 node `+0x08` with the control (`0x007645AE`) and passes the matching node to
-`0x0077B780` (`0x007645C1..0x007645CA`). That routine links the neighbours to
+`0x0077B780` (`0x007645C1..0x007645CA`). The walk ends after that call
+(`0x007645CF`), so one call removes at most the first node that holds the
+control. That routine links the neighbours to
 each other (`0x0077B7AF..0x0077B7C0`), releases the node through `0x0044D350`
 (`0x0077B7C3`) and adds -1 to M `+0x08` (`0x0077B7CB`). STATIC. What
 `0x00CC7370` does to the instance is NOT TRACED here.
@@ -217,11 +226,59 @@ The call-site scan finds four callers of `0x006DBE10`.
 | `0x007634A4` | `0x00763480`, slot 5 of the `LuaActorImpl` vtable `0x00FDFB2C` (cell `0x00FDFB40`) | The control at implementation `+0x08` |
 
 STATIC. `0x00763480` first passes that control to `0x006E11B0` on the object at
-Y `+0x0C` (`0x0076348D..0x0076349B`). The caller of `LuaActorImpl` slot 5, and
-so the packet or teardown step that removes one area through it, is
-NOT TRACED. The `_delete` native calls slot `0x70`, not slot `0x74`, as
+Y `+0x0C` (`0x0076348D..0x0076349B`), with no null test of that dword. The
+callers of `LuaActorImpl` slot 5 are owned by
+[Single area removal](#single-area-removal). The `_delete` native calls slot
+`0x70`, not slot `0x74`, as
 [Actor natives](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/fade-actor-group-native-contract.md#actor-natives)
 records.
+
+## Listed areas and the ID guard
+
+The return conditions of the predicate `0x00575750` are owned by
+[ID acceptance guard](../net/id-acceptance-guard.md#direct-conditions). This
+section adds its callers and the meaning of its list condition.
+
+The guard calls `0x00762DE0` on `[P+4]` `+0x18` with the context that
+`0x00CC9500` builds from `[P]` (`0x0057578A..0x00575791`) and a cell that
+`0x00CC9320` builds from the tested ID (`0x005757D7..0x005757F4`). P is the
+guard's receiver. That routine loads the sentinel from its receiver `+0x04`
+(`0x00762E0B`) and walks from the first node to the sentinel
+(`0x00762E0E..0x00762E22`, `0x00762E70`). For each node it passes the control
+at node `+0x08` to `0x00CC73B0` on the context (`0x00762E2E..0x00762E39`) and
+compares the dword that call fills with the tested ID
+(`0x00762E46..0x00762E4A`). The first equal node returns 1 (`0x00762E7C`). The
+end of the walk returns 0 (`0x00762E80`). It reads neither the count at
+`+0x08` nor the bytes `+0xBB` and `+0xBC`. STATIC.
+
+`0x00CC73B0` resolves the registry entry of the control through `0x00CD7A30`
+and copies the dword at entry `+0x70` through `0x00CC7030`
+(`0x00CC73B5..0x00CC73CD`, `0x00CC7031..0x00CC703F`). STATIC.
+[Refusal reply](../script/delegate-command-producer.md#refusal-reply) records
+the same pair and holds that this dword is the key of the actor as INFERRED.
+
+The receiver expression `[P+4]` `+0x18` is the one that `0x00575F60` gives the
+trim. With `[P+4]` as Y, the walked list is M. So the guard accepts an ID that
+equals the registry key of any area control in the list. INFERRED from the
+shared receiver expression and the key identity above.
+
+The call-site scan finds two callers of the guard and one caller of
+`0x00762DE0`, the guard itself at `0x005757F4`.
+
+| Call | Arm | On an accepted key |
+| --- | --- | --- |
+| `0x004DC93C` | `0x0007`, once for each general map node | Advance to the next node (`0x004DC941..0x004DC94E`) |
+| `0x004DCCFC` | `0x00CB`, on the sub-event source key | Branch to the common exit `0x004DD3A9` (`0x004DCD01..0x004DCD03`) |
+
+STATIC. Both sites load `ECX` from `EBX`, the dispatcher receiver `+0x510`.
+The `0x00CB` arm is owned by
+[Character removal](../net/target-lock-decide-senders.md#character-removal).
+
+The other accepted keys are the constants `0x5FF80001` and `0x5FF80002`, the
+dword at `+0x1783C` of the object that `[[P+4]]` names, and the dword at
+`+0x12C` of the control at `[P+4]` `+0x0C` when that dword differs from the
+dword at `0x0130C778`. The guard page records the instructions. With `[P+4]`
+as Y, the last control is the self player control. INFERRED.
 
 ## Trim on 0x0007
 
@@ -264,15 +321,177 @@ the holder that `0x00CC7510` returns. So `[P+4]` is INFERRED to be Y, and the
 trimmed list to be the list the native reads. The dword at Y `+0x0C` is then
 the self player control that the same section records.
 
-Which elements the two loops of the `0x0007` arm remove before the trim, and
-whether an area element is among them, is NOT TRACED. The count that the trim
-sees during a retail zone change is therefore not established.
+The zero test at `0x00575F87..0x00575F8F` reads Y `+0x0C`. The call-site scan
+finds one caller of the setter `0x00758E40`, at `0x006E3482` in the `MyPlayer`
+slot 3 that
+[Conditional holder and current-player publication joins](../input/chara-selection-producers.md#conditional-holder-and-current-player-publication-joins)
+records. The setter stores zero at receiver `+0x0C` only for a zero first
+argument (`0x00758E40..0x00758E48`), and that site passes its own receiver
+(`0x006E3481`). Slot 29 of the `MyPlayer` vtable `0x00FD785C`, cell
+`0x00FD78D0`, is `0x006DBEA0`, which only calls `0x00CC7370`
+(`0x006DBEA1..0x006DBEA5`). STATIC. No cited routine clears Y `+0x0C` after a
+self player control was stored there. Stores to that dword that do not go
+through `0x00758E40` were not enumerated.
+
+### Elements deleted before the trim
+
+G is the dispatcher receiver, `EDI` in the arm. The general map is the
+container at G `+0x17804` that `0x004D9910` searches. A node holds the key at
+`+0x0C` and the element pointer at `+0x10` (`0x0071B74C..0x0071B74F`). Q is
+the staged pair range at G `+0x17810`, owned by
+[Shared staging and erase](../net/low-opcode-pair-staging.md#shared-staging-and-erase).
+
+The first loop visits every node of the general map
+(`0x004DC8F5..0x004DC92A`). The steps for one node run in this order.
+
+| Step | Effect | Addresses |
+| --- | --- | --- |
+| 1 | Call the guard `0x00575750` with the key. An accepted key ends the visit | `0x004DC930..0x004DC94E` |
+| 2 | Search Q from its begin for the first pair whose dword equals the key | `0x004DC950..0x004DC9BF` |
+| 3 | On a hit with a nonzero element pointer and a nonzero dword at element `+0x80`, pass the staged byte at pair `+0x04` to `0x005752B0` on that dword | `0x004DC9C1..0x004DCA1B` |
+| 4 | Compare the search position with the end of Q through `0x007E9730`. A hit ends the visit | `0x004DCA20..0x004DCA38` |
+| 5 | A key whose top three bits equal `0xC0000000` ends the visit | `0x004DCA3A..0x004DCA51` |
+| 6 | When the element equals the dword at G `+0x17838`, call `0x004D9980` on G with `0xC0000000` and `0x004B7340` on G `+0x928` | `0x004DCA53..0x004DCA7D` |
+| 7 | Call `0x005761D0` on `EBX` with the key | `0x004DCA82..0x004DCA8E` |
+| 8 | Append the element pointer to a local vector through `0x00813050` | `0x004DCA93..0x004DCA9C` |
+
+STATIC. `0x00944D70` returns the inequality of two iterator positions
+(`0x00944D87..0x00944D93`) and `0x007E9730` their equality
+(`0x007E9747..0x007E9753`). The forward in step 3 is the one that
+[Consumed field and forwarding](../net/shadow-flag-state.md#consumed-field-and-forwarding)
+records for `0x017B`. What `0x005761D0` does through `0x006CAFC0` is
+NOT TRACED.
+
+The second loop walks the local vector and calls slot 0 of each nonzero
+element with the argument 1 (`0x004DCAC0..0x004DCB0C`, call at
+`0x004DCAFB..0x004DCB01`). The arm then destroys the vector
+(`0x004DCB19..0x004DCB1D`), erases Q through `0x0081EB90`
+(`0x004DCB22..0x004DCB28`) and calls `0x00575F60` (`0x004DCB2D..0x004DCB2F`).
+STATIC.
+
+So the arm deletes exactly the elements that pass steps 1, 4 and 5. An
+element whose key equals the key of a listed area control stops at step 1. It
+is not deleted and its control is not released through
+[Single area removal](#single-area-removal). The same holds for the two
+constant keys, the key at `+0x1783C` and the self player key. STATIC for the
+loops, INFERRED for the key identity that
+[Listed areas and the ID guard](#listed-areas-and-the-id-guard) states.
+
+The count that the trim reads is then the count the list held when the arm
+was entered. INFERRED. The callees of steps 6 and 7 and of the deleted
+elements' destructors were not followed to their ends.
+
+The element of an area that left the list earlier is no longer accepted at
+step 1 for that reason. Whether an area actor has an element in the general
+map, and which element class the `0x00CA` arm builds for it through
+`0x004D90C0`, is NOT TRACED.
+
+## Single area removal
+
+The wrapper `0x00574A60` returns at once for the keys `0x5FF80001` and
+`0x5FF80002` in its stack argument (`0x00574A60..0x00574A70`). Otherwise it
+loads the object at the first dword of its receiver, and when that object is
+nonzero it calls the dword at vtable `+0x14` of the object with no argument
+(`0x00574A72..0x00574A7D`). That is slot 5. STATIC. The dword scan finds
+`0x00763480` only in cell `0x00FDFB40`, and the call-site scan finds no rel32
+caller of it, so it is reached through computed calls only. Computed calls of
+slot 5 outside this wrapper were not enumerated.
+
+The call-site scan finds two callers of `0x00574A60`.
+
+| Call | Routine | Receiver and argument | Reached from |
+| --- | --- | --- | --- |
+| `0x0058E8DC` | `0x0058E860`, the destructor that the `CharaElement` slot 0 `0x00590360` calls at `0x00590363` | The dword at element `+0x80` and the key that `0x004D6750` reads from element `+0x88` (`0x0058E8CC..0x0058E8DC`) | Slot 0 with the argument 1. Two computed calls of element slot 0 are cited here, in the `0x00CB` arm at `0x004DCD45` and in the second loop of the `0x0007` arm at `0x004DCB01` |
+| `0x004D8921` | The case at `0x004D890C` of `0x004D8860` | The dword at element `+0x80`, when nonzero, and the dword at element `+0x88` (`0x004D890C..0x004D8921`) | Opcode `0x00CD`. Byte cell `0x004D8C25` holds 1 and target cell `0x004D8BC4` holds `0x004D890C` |
+
+STATIC. The dword at element `+0x80` is the handle L of
+[Selected actor-implementation handle and slot23](../input/chara-selection-producers.md#selected-actor-implementation-handle-and-slot23),
+whose first dword is the installed implementation. That the implementation of
+an area actor is a `LuaActorImpl` whose `+0x08` is the area control is
+INFERRED. Under it, each row runs `0x00763480`, and so slot 29 of the control,
+which unlinks the control from the list.
+
+The two slot 0 calls cited here sit behind the guard. A `0x00CB` whose key
+equals the key of a listed area control leaves at `0x004DCD03` before the
+element lookup at `0x004DCD0F`. It deletes no element and does not reach
+slot 5. Through these two call sites the first row therefore removes no listed
+area. STATIC for the branch, INFERRED for the key identity.
+
+Both sites are computed calls (`0x004DCD3D..0x004DCD45`,
+`0x004DCAFB..0x004DCB01`). The scans find `0x00590360` in cell `0x00FA7C50`
+and as the target of one rel32 jump, at `0x0058FC53` in the adjustor thunk
+`0x0058FC50`, which subtracts 8 from `ECX` first. The thunk is held in cell
+`0x00FA7B2C` and has no rel32 caller. So the `CharaElement` slot 0 is reached
+through computed calls only. STATIC. Computed calls of element slot 0 outside
+the `0x0007` and `0x00CB` arms were not enumerated. Such a call on the element
+of a listed area would reach `0x0058E8DC` with no guard.
+
+The second row has no guard call. The receive dispatcher sends `0x00CD` to the
+shared lookup at `0x004DCFFF`, as
+[Receive dispatcher ranges](../net/receive-dispatch-ranges.md) records, which
+calls the dword at vtable `+0x24` of the element that `0x004D9910` finds
+(`0x004DD005..0x004DD01A`). That is slot 9. The switch of `0x004D8860` is
+entered unless its preliminary test at `0x004D8863..0x004D8889` returns first,
+as
+[Native 0x0137 SyncMemory route](../net/actorimpl-receiver-dispatch.md#native-0x0137-syncmemory-route)
+records. The case does not delete the element. STATIC.
+
+The call-site scan finds two rel32 callers of `0x004D8860`, at `0x0058D678`
+and `0x0059CFD5`. The dword scan finds it in 25 `.rdata` cells. Each cell is
+slot 9 of a vtable whose RTTI locator has the offset 0.
+
+| Slot 9 cell | Class of the vtable |
+| --- | --- |
+| `0x00F9115C` | `.?AVRaptureElement@Main@Application@@`, vtable `0x00F91138` |
+| `0x00FA0B54` | `.?AVDaemonElement@Element@Main@Application@@` |
+| `0x00FA0D4C` | `.?AVRelativeElement@Element@Main@Application@@` |
+| `0x00FA1034` | `.?AVXamlElement@Element@Main@Application@@` |
+| `0x00FA1224` | `.?AVFormElement@Element@Main@Application@@` |
+| `0x00FA42D4` | `.?AVClientWorkElement@System@Element@Main@Application@@` |
+| `0x00FA4434` | `.?AVCustomControlElement@System@Element@Main@Application@@` |
+| `0x00FA4664` | `.?AVBootupElement@System@Element@Main@Application@@` |
+| `0x00FA47C4` | `.?AVCameraElement@System@Element@Main@Application@@` |
+| `0x00FA4934` | `.?AVCommonResourceElement@System@Element@Main@Application@@` |
+| `0x00FA4ACC` | `.?AVGameManagerElement@System@Element@Main@Application@@` |
+| `0x00FA4C2C` | `.?AVScreenshotManagerElement@System@Element@Main@Application@@` |
+| `0x00FA4DDC` | `.?AVCutManagerElement@System@Element@Main@Application@@` |
+| `0x00FA4F3C` | `.?AVMainElement@System@Element@Main@Application@@` |
+| `0x00FA50E8` | `.?AVTargetElement@System@Element@Main@Application@@` |
+| `0x00FA9AFC` | `.?AVLuaDebugLog@LuaDebug@Window@Element@Main@Application@@` |
+| `0x00FC202C` | `.?AVSqwtElement@Window@Element@Main@Application@@` |
+| `0x00FC21EC` | `.?AVWidgetElement@Window@Element@Main@Application@@` |
+| `0x00FC43F4` | `.?AVEffectElement@Effect@Element@Main@Application@@` |
+| `0x00FC455C` | `.?AVEffectDebugElement@Effect@Element@Main@Application@@` |
+| `0x00FC5A8C` | `.?AVDebugWindow@Debug@Window@Element@Main@Application@@` |
+| `0x00FC6104` | `.?AVLuaDebugOut@LuaDebug@Window@Element@Main@Application@@` |
+| `0x00FC66B4` | `.?AVLuaDebugSelect@LuaDebug@Window@Element@Main@Application@@` |
+| `0x00FC6BE4` | `.?AVLightElement@Light@Element@Main@Application@@` |
+| `0x00FC70F4` | `.?AVDebugInfoElement@Debug@Element@Main@Application@@` |
+
+STATIC. For an element of any of these classes the lookup at `0x004DCFFF`
+enters `0x004D8860` directly, and the `0x00CD` case needs only the preliminary
+test. The `CharaElement` vtable `0x00FA7C50` is one class that overrides the
+slot. Its cell `0x00FA7C74` holds `0x0058CCA0`. For that routine and a nonzero
+result of `0x004D8830`, byte cell `0x0058D8A2` holds 22 and target cell
+`0x0058D7E0` holds `0x0058D675`, the call of `0x004D8860` at `0x0058D678`.
+STATIC. The routine around the other rel32 caller `0x0059CFD5` was not read,
+and other classes that override slot 9 were not enumerated.
+[`xivl-opcodes:opcodes.json`](https://github.com/XIVLegacy/xivl-opcodes/blob/main/opcodes.json)
+holds the clientbound map row for `0x00CD` under the placeholder name
+`_0x00CD` with no capture. Whether a retail server sends it for an area actor
+is NOT TRACED.
+
+The routes that unlink a listed area are therefore the trim, the eviction at
+the next insertion, and a `0x00CD` for its element. INFERRED from the rows
+above, with the computed callers of slot 5, of slot 29 and of element slot 0
+not enumerated.
 
 ## Which area is current
 
 These sequences follow from the STATIC rules above for one M. They are
-INFERRED, because no client code ran and the untraced removal route through
-`LuaActorImpl` slot 5 can change the list between steps.
+INFERRED, because no client code ran. A `0x00CB` between two steps does not
+change the list, by [Single area removal](#single-area-removal). A `0x00CD`
+for an area element between two steps would.
 
 | Sequence | List afterwards | `_getCurrentAreaMaster` |
 | --- | --- | --- |
@@ -288,6 +507,14 @@ A second area that is created while an earlier one is still listed does not
 become the current area. It becomes current when the earlier entry leaves the
 list. A lone area survives a `0x0007` and stays current until the next area
 control is created.
+
+The two-area row holds whatever the element loops do, because
+[Elements deleted before the trim](#elements-deleted-before-the-trim) shows
+that they release no listed area. With areas A and B listed, the trim reads
+the count 2, clears byte M `+0xBC`, calls slot 29 on A and stops at the count
+1. B stays listed with the evict byte clear. The next area C is appended
+behind B, and the native returns B until B leaves the list. The next
+`0x0007`, with B and C listed, removes B and makes C current.
 
 ## Shipped caller
 
@@ -320,9 +547,16 @@ ahead of a `PrivateAreaMasterBranch` area in the list, the class test at PCs
 
 ## Not traced
 
-- The caller of `LuaActorImpl` slot 5 `0x00763480`, and so the step that
-  removes a single area control when its actor is removed.
-- Which elements the `0x0007` arm deletes before it calls `0x00575F60`.
+- Computed calls of `LuaActorImpl` slot 5 outside the wrapper `0x00574A60`.
+- Computed calls of element slot 0 outside the `0x0007` and `0x00CB` arms.
+- The routine around the rel32 caller `0x0059CFD5` of `0x004D8860`, and
+  element classes other than `CharaElement` that override slot 9.
+- Whether a retail server sends `0x00CD` for an area actor.
+- Whether an area actor has an element in the general map, and its class.
+- The effect of `0x005761D0` and `0x006CAFC0` on a deleted key.
+- Stores to Y `+0x0C` outside the setter `0x00758E40`.
+- A count read at `0x007645E3` during a retail zone change. No client code
+  ran.
 - Writers of the bytes M `+0xBB` and M `+0xBC` outside the cited routines.
 - The Lua classes that are bound to the `AreaBase` and `PrivateAreaBase`
   control classes.
@@ -347,9 +581,20 @@ ahead of a `PrivateAreaMasterBranch` area in the list, the class test at PCs
 5. List `0x00764580`, `0x0077B780`, `0x007645E0`, `0x00763480` and
    `0x00575F60` from entry to return.
 6. List the `0x0007` arm from `0x004DC8DC` to `0x004DCB34` and check that
-   every branch target lies inside it.
-7. Read the vtable cells `0x00FD63E0`, `0x00FD6448`, `0x00FD6548`,
-   `0x00FD65B0` and `0x00FDFB40`, and the RTTI names before `0x00FD63D4`,
-   `0x00FD653C` and `0x00FDFB2C`.
-8. Unwrap the LPB above, check both hashes, list it, and read `main/f1` PCs
-   8-47.
+   every branch target lies inside it. Compare the eight steps of the first
+   loop and the slot 0 call of the second.
+7. List `0x00575750`, `0x00762DE0`, `0x00CC73B0`, `0x00CC7030`,
+   `0x00944D70` and `0x007E9730` from entry to return, and the `0x00CB` arm
+   from `0x004DCCF6` to `0x004DCD47`.
+8. List `0x00574A60` from entry to return, `0x0058E860` at
+   `0x0058E8CC..0x0058E8DC`, `0x004D8860` from entry to `0x004D8928`,
+   `0x0058CCA0` at `0x0058CCE5..0x0058CD4E`, `0x0058FC50..0x0058FC53`,
+   `0x004DCFFF..0x004DD01A`, `0x00758E40`, `0x006DBEA0` and
+   `0x006E3440` at `0x006E3476..0x006E3482`.
+9. Read the vtable cells `0x00FD63E0`, `0x00FD6448`, `0x00FD6548`,
+   `0x00FD65B0`, `0x00FD78D0`, `0x00FDFB40`, `0x00FA7C50`, `0x00FA7C74`,
+   `0x00FA7B2C` and the 25 slot 9 cells from `0x00F9115C`, the jump table cells
+   `0x004D8C25`, `0x004D8BC4`, `0x0058D8A2` and `0x0058D7E0`, and the RTTI
+   names before `0x00FD63D4`, `0x00FD653C` and `0x00FDFB2C`.
+10. Unwrap the LPB above, check both hashes, list it, and read `main/f1` PCs
+    8-47.

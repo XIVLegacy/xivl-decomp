@@ -470,6 +470,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Materia command callback boundary](script/materia-command-dispatch.md)
 - [Lua reflective call alias](script/lua-call-function-bridge.md)
 - [Lua bootstrap chunks and standard library globals](script/lua-bootstrap-chunks.md)
+- [Plain type with no value and the startCutScene scan](script/plain-type-arity-cutscene-scan.md)
 - [Widget work members](script/widget-work-members.md)
 - [StatusEffectWidget lifecycle](script/status-effect-widget-lifecycle.md)
 - [DesktopWidget](script/desktop-widget.md)
@@ -498,6 +499,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lua class registry](script/lua-class-registry.md)
 - [Native class registration parents](script/native-class-registration-parents.md)
 - [Group control name selection](script/group-control-name-selection.md)
+- [Group invitation relation and confirm answer](script/group-invitation-relation.md) -
+  relation group 50001 work fields, the prompt chain and the 24303 answer.
 - [Script class definition and repeat definition](script/define-class-repeat-definition.md)
 - [Judge sheet globals](script/sheet-globals.md)
 - [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
