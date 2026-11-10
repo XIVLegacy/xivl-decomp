@@ -510,6 +510,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Work-callback readiness gate](script/work-callback-readiness-gate.md)
 - [DesktopWidget user config reads](script/desktop-user-config-reads.md)
 - [Main menu command route](script/main-menu-command-route.md)
+- [Timed inform widgets](script/timed-inform-widgets.md)
 
 ## Type notes
 
