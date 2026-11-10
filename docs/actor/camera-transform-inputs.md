@@ -213,6 +213,54 @@ The [camera update](camera-input-chain.md#update-pipeline-and-command-receiver)
 owns the input and `dt` producer. The live target vector, selected
 world query shape, elapsed unit and character visibility remain UNKNOWN.
 
+## Key-4 endpoint queries and smoothing
+
+Key 4's vtable `0x00FF110C` selects `0x007F7260`. When
+both retained objects pass the null checks at `0x007F72A3`
+and `0x007F72AB`, the worker calls `0x007F66F0` at
+`0x007F7336` with its context, the CameraActor and float delta.
+The constructor can select key 0 or key 4, subject to the
+[initial context predicates](camera-input-chain.md#initial-state).
+
+Let `E` be the candidate eye, `F` the context vector at
+`+0x30`, and `O` the separately calculated focus candidate
+that the helper stores to context `+0x80`.
+
+1. The line call at `0x007F6CA9` uses `E` and
+   `E + (0, -r, 0)`, with binary32 `r = 0.20000000298023224`.
+   A hit replaces `E` by the returned point minus that offset
+   and stores `(E-O).y` at context `+0x9C`.
+2. The line call at `0x007F6CF7` uses `F` and current `E`.
+   A hit replaces `E` with its returned point. The helper rounds
+   `d = length_xyz(E-F)` to binary32 before comparing it with
+   the binary64 threshold `0.5000000074505806`.
+3. Ordered `d` above that threshold reaches the radius helper
+   `0x006141E0` at `0x007F6DB0` with radius `r` and segment
+   `F` to `F + normalize_xyz(E-F) * (d-r)`. The subtraction
+   uses the binary64 representation of `r` before narrowing
+   the segment scale. On success, `0x007F6DBD..0x007F6E3D`
+   stores `F + normalize_xyz(E-F) * length_xyz(H+r*N-F)`
+   at context `+0x60` for the returned point `H` and normal
+   `N`. It stores the resulting eye's Y difference from `O`
+   at `+0x9C`. A miss or bypass stores the current `E` at
+   `+0x60`.
+
+The caller moves retained vectors `+0x50` and `+0x70` toward
+`+0x60` and `+0x80` at `0x007F733B..0x007F73DF`. For finite
+delta the factor is binary32 `dt * 0.5` capped at 1. The caller
+stores the retained eye and focus to CameraActor `+0x330` and
+`+0x340` before the separate outer interpolation. The
+[ordinary projection refresh](camera-input-chain.md#lens)
+uses its fixed near and far inputs after context update.
+
+Reproduce on the identified image by checking
+`0x007F7325..0x007F733B`, `0x007F6C3F..0x007F6E91` and
+`0x007F733B..0x007F73F9` with x86-32 disassembly. Read
+the binary32 radius at `0x00FF0714` and binary64 operands
+at `0x00FC3368` and `0x00FF12D0`. These calls and operands
+are STATIC. Live context, query eligibility, selected geometry
+and device projection remain UNKNOWN.
+
 ## Camera query filters and mesh hits
 
 The camera line worker `0x00610D60` and radius worker
