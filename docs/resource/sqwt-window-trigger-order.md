@@ -369,10 +369,53 @@ within each prototype.
 | WidgetBaseClass common | n1635q89r57y9rr_7vxxvw.le.lpb | 32996 | c549f746370366f9827570ee22201516e07a05d91829ca643a2e2ec0c73bcf3c | 7c45426b1a9f168557d84e420c5767c6fdea4abf90b976b276546af4e6a5de5f |
 | DesktopWidget connector | 65rzqvun1635q_7vww57qvs.le.lpb | 213487 | 0f8ca1585bb97c40d36cbf120dd3f6fa6351927c4530e3fad76a71582af95425 | 685a0a6dda2d4ae6fe06a9c684e57efd7e819938e145cb1a4a65df56555bd621 |
 
+The connector's boot prototype requests slot 7 with a false visibility
+argument at `root/proto142` PCs 63 through 69. The boot call at
+`root/proto0` PCs 318/319 reaches `root/proto143`, which calls
+`updateActionMenuWidget(true, getConfigFlag(1), true)` at PCs 0
+through 6. The config helper tests for the exact number 1 and reads
+Lua group and key (1,1). The native conversion at `0x006FDE8F` and
+`0x006FDEC5` yields (0,0). The constructor registers that record as
+`nohide_action`, min 0, max 1, default 0, at `0x004C480C`.
+The constructor default leaves the show arm unselected. A read of 1
+can select show with no subtarget. The third argument suppresses
+this update's cursor-status and explicit focus requests. The
+[config override order](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/user-config-store-contract.md)
+is separate from the constructor default.
+
+Standard `key_config` row 12 requests Enter -> MoveFocus with
+parameter flag 1, value 9 and repeat false. Rows 10 and 11 also
+bind Enter. The [binding walker](../net/target-command-handler.md)
+supplies a null target and source event for row 12 and copies the
+integer at `0x0092917C..0x00929187`. Delivery to TargetElement
+still requires the input, focus and prior binding gates. The
+TargetElement entry `0x00FA50A0 -> 0x00565E10` checks the handled
+byte, current cursor and enable byte. With a retained target, the
+MoveFocus(9) match at `0x0056607D..0x00566092` calls
+`0x00562C60` at `0x0056609B`. The
+[decided-target bridge](../net/target-lock-decide-senders.md)
+resolves the target identity at `0x006FEC0E` and submits
+`_onTargetDecided` at `0x006FED1A`. An admitted native cursor
+index 0 becomes Lua argument 1. The admitted mode-0 same-target
+mouse arm can call the same decide function at `0x00565F87`.
+
+Connector `root/proto60` rejects exact true from
+`isTutorialLock(3)`. Lua cursor 1 and a nonnil actor equal to
+the player select the sound call at PCs 123/124 and
+`updateActionMenuWidget(false, true)` at PCs 125 through 128.
+This self-target branch has no Active Mode prerequisite.
+
 The Desktop connector's `root/proto168` obtains static slot 7 at PC 2
 and, when the computed show flag equals true at PCs 31/32, calls
 its `show` at PC 34 with only the receiver. An exact true third
 explicit argument exits the show branch at PCs 35/36 after that call.
+The computed flag requires exact true argument 2 and exact false
+from the subtarget helper at PCs 16 through 25. With argument 3
+omitted, PC 30 first calls `root/proto27` to set the decided flag.
+That setter writes the flag at PC 1 before optional Active Mode
+auto-lock. `root/proto28` is its getter. After show returns, PC 43
+can request explicit focus if the decided flag is still true.
+
 With ordinary inherited dispatch, WidgetBaseClass common `root/proto40` checks
 `forceHideFlag` and `isShow` before any show request. An exact true
 result at PCs 13/14 returns before the request. Its `isShow` at
@@ -383,6 +426,14 @@ this branch can leave the initial anchor value false without a
 new show request. The inherited work path requests Anime=Show
 at PC 37 when its first explicit argument is unequal to false
 at PCs 27/28. The selected no-extra-argument call supplies nil there.
+
+The common property wrapper's nil-leading native name selects
+`0x0075B810 -> 0x005355A0 -> 0x005354D0`. FormElement's Anime
+rewrite still requires a resolved part, precedence, the form's
+`+0x9C` gate and a changed Execute string. The command must pass
+registry admission and PreviewExecuted must survive unhandled at
+`0x00928099..0x009280AA`. The ordinary non-log Window command at
+`0x00926403` calls `0x00925AA0(1,1,1)`.
 
 On the [admitted native show path](sqwt-anime-property.md#show-and-hide-routines),
 `0x00925B17` requests Visibility 2. The comparison at
@@ -396,7 +447,14 @@ E+`0x240` at `0x00926202` for its recursive show request. A retained
 attached Window bypasses that request. Visibility, IsVisible and the
 Shown descriptor `0x013573B0` at `0x00925B4E` are distinct from a
 matching IsAnchorWithin property notification. The show bookkeeping
-and its conditional focus request still apply.
+and its conditional focus request still apply, before the connector's
+separate PC 43 request. The second argument to `0x00925AA0` forces
+Shown submission even on equal visibility. At `0x00925B85` the
+routine submits the owner-sourced event with descriptor id `0x47`.
+If Style and the shared stop byte admit the selected ControlTemplate
+pass, the template's Shown trigger stops Closing, stops Hiding and
+starts Shown, in that order. The [template declaration](action-menu-timer-icon-style.md)
+targets RenderTransformOrigin, VisualOpacity and SqwtTopOffset.
 
 On a separate non-show branch of the Desktop connector
 `root/proto168`, when `getConfigFlag(1)` does not equal false,
@@ -424,9 +482,11 @@ the Visibility 2 request at `0x0091B54E`. Its primary `+0x7C` cell
 separate global gate object's path. A delivered event can refresh the
 Window holder through the existing route above.
 
-The first effective root getter results, native focus and recipient
-identities, first matching ActionMenu event and first Effect_OFF
-action capture remain UNKNOWN.
+This is a conditional route for the retained slot-7 instance. The
+active key profile, physical delivery, callback completion, first
+effective root getter results, native focus and recipient identities,
+first matching ActionMenu event, storyboard effects and first
+Effect_OFF action capture remain UNKNOWN.
 
 ## Property Trigger and shared event flags
 
