@@ -357,6 +357,45 @@ The 0.2 downward eye segment hit no exported triangles.
 These measurements use the supplied offline pose and exported mesh
 geometry. Live camera endpoints and native contacts remain UNKNOWN.
 
+### Region 105 adjacent placed meshes
+
+Layout `0x03E70001` is 2028000 bytes with SHA-256
+`85b5f27689ac1cb3f750b4c72c976a171b32557b1732c2a0b6936ea2e160ca9c`.
+Its LYB payload starts at file `0x5730`. Both selected nodes
+use Attribute class `0x0FDD` and have group byte 1.
+
+| Attribute file offset | Group byte offset | Zero-based bhp row and file offset | PHB |
+| --- | --- | --- | --- |
+| `0x17437C` | `0x1743A4` | 214 at `0x1B00` | `0x72E30018` |
+| `0x174B0C` | `0x174B34` | 215 at `0x1B20` | `0x72E30017` |
+
+The UnitTree at file `0x4EC10` refers to the two Attributes
+through child records `0x52850` and `0x52880`, IDs 2 and 3.
+The 19 matching declared parents supply flag byte `0x05` on
+both child descriptors. For example, parent file `0x86060`
+supplies descriptors at `0x13ED10` and `0x13ED1C`.
+Bit 2 supplies the instance setup gate. Current property enable
+and retention remain separate conditions under
+[placed mesh admission](../resource/attribute-resource-and-scene-binding.md#camera-mesh-admission).
+
+Both PHBs contain version `0x120` with one enabled type-1
+outer record at file `0x4C`. Its sole child link at `0x7C`
+selects the type-10 descriptor at `0x90`. Shape field
+`+0x28` points to the GBD at file `0xC0`. This is hull
+0 of the [collision export](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/zone-geometry.md)
+for both resources.
+
+| PHB | Bytes | SHA-256 | Triangle array | Raw surface |
+| --- | ---: | --- | --- | --- |
+| `0x72E30018` | 160848 | `c9b1f1be3a4c20c0d004c6f84a2d485f1da88171e6b16a421ab314421aaf5aba` | `0x17FC0..0x1F780`, 3832 triangles | 0 |
+| `0x72E30017` | 9424 | `c12bcb3340e3d7b213ad5e28149ee79db39a22fe6a1e529d70c99a160bafd307` | `0x0DC0..0x1570`, 246 triangles | 5 |
+
+The bounded leaf references cover both complete triangle
+arrays. Given an active mesh and admitted camera query, group
+1 passes the group mask. The type-8 leaf test admits surface
+0 and rejects surface 5. Active parent, property state,
+candidate leaf overlap and actual contact remain UNKNOWN.
+
 ## One-layer helper evidence
 
 The vector helpers expose the remaining dynamic object inputs. In
