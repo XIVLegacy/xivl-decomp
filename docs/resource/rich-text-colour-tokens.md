@@ -120,7 +120,11 @@ two-instruction forms of RT-01 in the other page and dispatch through that vtabl
 The vtable cells are at `0x0110C014` plus the thunk offset. For `0x13` the thunk
 `0x00B241D0` jumps through `+0x20`, the cell `0x0110C034`, which holds
 `FUN_00CC1970`. For `0x14` the thunk `0x00B24210` jumps through `+0x24`, the cell
-`0x0110C038`, which holds `FUN_00CC1A80`. STATIC.
+`0x0110C038`, which holds `FUN_00CC1A80`. For `0x16` the thunk `0x00570840`
+jumps through `+0x2C`, the cell `0x0110C040`, which holds `FUN_00CC0DF0`.
+STATIC. The `0x16` handler body is not traced. The codes `0x18` to `0x1B`
+that the base constructor registers are in
+[LogControl line format](logcontrol-line-format.md#code-0x19-and-the-neighbouring-state-codes).
 
 `FUN_00CC1970` and `FUN_00CC1A80` share steps 1 and 2 below and differ in what
 they store. The `0x13` state is four floats at processor `+0x78`, of which the

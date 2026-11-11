@@ -2,7 +2,7 @@
 
 This page records how a stored chat line becomes a line of a LogControl: which categories a control admits, which text row formats the line, and which strings that row receives. The stored line, the module and the document reader are in [LogControl and pool feed static contract](logcontrol-pool-feed.md). The Map `0x0003` store is in `XIVLegacy/xivl-opcodes:data/s2c_0003_wire_layout.json`. The text formatter that several steps below call is in [LogControl ordinary text lookup](logcontrol-text-lookup.md). The SendLog records are in [SendLog sink chain](../script/sendlog-sink-chain.md).
 
-[Copied controls](#copied-controls) records how the `0x10` and `0x1A` tokens that the formatter leaves in a line are laid out and drawn.
+[Copied controls](#copied-controls) records how the `0x10`, `0x19` and `0x1A` tokens that the formatter leaves in a line are laid out and drawn.
 
 This page does not establish the colour a category draws in, the wrap rule, the scroll bar behaviour, the hanging indent, the string-to-vector parse of the `Categories` property, the user configuration default of the filter data, or any rendered line.
 
@@ -48,6 +48,12 @@ All addresses are VA. Executable size and SHA-256 were checked first. Every nati
 | `[0x00B241B0,0x00B241B5)` code `0x1A` thunk | 5 | `226cd978c48a410430ca76a02a2c93be5bc97dccfd5b05358faf07fb66d956cf` |
 | `[0x00CC0C40,0x00CC0D08)` newline routine | 200 | `a4f65f2580add8b8082f4dbfd07da347fb7b7cb9d1926612b9465ed4592fa911` |
 | `[0x00CBFC90,0x00CBFCC6)` code `0x1A` handler | 54 | `299060d777f30f099a6c8aeb3b7907fe01d764a8d69b47d3ba448ef771a34ebe` |
+| `[0x00CBFDC0,0x00CBFDC5)` code `0x19` thunk | 5 | `99b17a6d8595935c2979a2eb79d7755c95188af5ea936d771caad4bd3b04d5b8` |
+| `[0x00CBFC50,0x00CBFC86)` code `0x19` handler | 54 | `fe8cfb474dbab9e64c2b5b43761d27873b26666e8ae954fe8538ed4b055c2294` |
+| `[0x00B24220,0x00B24225)` code `0x18` thunk | 5 | `4ffb2fbf34f9b92062ee1464df1f7bc3d70443c5856122d08dac6603ac71fb04` |
+| `[0x00CBFBD0,0x00CBFC0E)` code `0x18` handler | 62 | `19ecfca8650aabeadb224cc56d77af0d525f57a90b0e929ef1f3d6e20f0d59dd` |
+| `[0x00B241F0,0x00B241F5)` code `0x1B` thunk | 5 | `21edd959be2e1c8cbcc2106347aaef2f0f8ad414baf0da83e5ec02b31bc7a275` |
+| `[0x00CBFCD0,0x00CBFD06)` code `0x1B` handler | 54 | `07747d264d72e0b6d7846ec530ce1f1f133a5809425af200543947a39401e485` |
 | `[0x00CB2D50,0x00CB3250)` integer decoder, with its two jump tables from `0x00CB3218` | 1280 | `0797bedb028d975dd049f2511562f81205d6f085ad3459706eba35d2f1407faf` |
 | `[0x00CC0670,0x00CC0A0C)` tag emitter | 924 | `de72107df1e21db6b9ae110c0858b423f840c180c856f9c1ef1b356e1d3813db` |
 | `[0x00CAC330,0x00CAC6FE)` BitmapFont draw slot +0x0C | 974 | `082d3b2b49b69938c58ee589c55d83317c44b51a69b9a881da8aeb3b42eb6b32` |
@@ -68,6 +74,8 @@ All addresses are VA. Executable size and SHA-256 were checked first. Every nati
 | `[0x0110C0BC,0x0110C0FC)` `BitmapFont` vtable at `+0x10`, slots 0 to 15 | 64 | `46907fe1469f164848f288629767f9c9f3f3dc9c6581ab763cc24bff53f42959` |
 | `[0x0110C35C,0x0110C39C)` `OsFont` vtable at `+0x10`, slots 0 to 15 | 64 | `2f8a2edad92298f1af54c517da9221c7f06c2bd8f14a9d956ae9aab44a85ab7b` |
 | `[0x0110D95C,0x0110D99C)` `Font` vtable at `+0x10`, slots 0 to 15 | 64 | `078fe4cfb8804a0b31af09b17fc6ac6b5e6a5b170b6815bbe9b6da3b43fb0bff` |
+| Slot 16 of the `FontCodeStateDecoder`, `FontCodeModule`, `BitmapFont`, `OsFont` and `Font` vtables, `[0x0110BF3C,0x0110BF40)`, `[0x0110C054,0x0110C058)`, `[0x0110C0FC,0x0110C100)`, `[0x0110C39C,0x0110C3A0)`, `[0x0110D99C,0x0110D9A0)` | 4 each | `b0c97c36d42b8f9fe770838915313fa55e48a83afe0f134ca49b544b7fd13d24` each |
+| `[0x00FBF9D0,0x00FBF9D8)` code `0x18` scale double | 8 | `595700f5c0ba132c9ede02f9ad9a19cffe697fd8fd52890abb10fd78f47d9aa1` |
 | `[0x0110C168,0x0110C180)` `BitmapFont` draw vtable slots 0 to 5 | 24 | `0a824b694ed0119a0c85b4e939f0fe9474513708a0d7001bca4f649c99fa0e5d` |
 | `[0x0110C408,0x0110C420)` `OsFont` draw vtable slots 0 to 5 | 24 | `e559f647e599880e1189b925216e723aad5e3ed5687be076cc8e11b4fde5fe79` |
 | `[0x0110BEB4,0x0110BEB8)` BitmapFont slant float | 4 | `ba928cb768da7604c05d4529325bee0501d04e04d7fc900464d889a65d99433a` |
@@ -136,7 +144,7 @@ OBSERVED (private install). Rows 2400 to 2449 and 2600 to 2649 of `xtx/_text_ui`
 
 ## Copied controls
 
-The formatter copies a token whose TextModule vector entry is null whole to its output, and codes `0x10` and `0x1A` have null entries ([RT-01](rich-text-sheet-and-case-handlers.md#rt-01-handler-vector)). The text LF-03 receives therefore still holds `02 10 01 03` and `02 1A 02 <v> 03` byte for byte, and the builder appends `"\n"` after them. STATIC through RT-01. The font code processor interprets both codes when the line is laid out.
+The formatter copies a token whose TextModule vector entry is null whole to its output, and codes `0x10`, `0x19` and `0x1A` have null entries ([RT-01](rich-text-sheet-and-case-handlers.md#rt-01-handler-vector)). The text LF-03 receives therefore still holds `02 10 01 03`, `02 19 02 <v> 03` and `02 1A 02 <v> 03` byte for byte, and the builder appends `"\n"` after them. STATIC through RT-01. The font code processor interprets the three codes when the line is laid out.
 
 ### Entry and rows
 
@@ -176,6 +184,25 @@ The flag word passes from P `+0` into the processor and back to P after every fi
 
 The tag emitter `0x00CC0670` compares the flag word with its previous copy at `+0x1EC` (`0x00CC06AE..0x00CC06BF`). It writes `</i>` (`0x0110DBB4`) when bit 4 clears and `</b>` (`0x0110DBBC`) when bit 1 clears (`0x00CC06C4`, `0x00CC0704`), and `<b>` (`0x0110DC18`) and `<i>` (`0x0110DC1C`) when bit 1 or bit 4 sets (`0x00CC0943`, `0x00CC0982`). STATIC. Bit 4 is italic and bit 1 is bold, INFERRED from those tag names.
 
+### Code 0x19 and the neighbouring state codes
+
+The FontCodeStateDecoder constructor `0x00CBFD10` stores four thunks into the vector at `+8`. Each store follows a guard that the vector holds more entries than the code (`CMP EAX, code` then `JA`). Each thunk is `MOV EAX, [ECX]` then `JMP [EAX + offset]`, and the cell at that offset holds the same handler in `.?AVFontCodeStateDecoder@Text@Component@@` `0x0110BEFC` and in the four vtables named for code `0x10`. STATIC.
+
+| Code | Guard | Store | Vector offset | Thunk | Jump offset | Handler |
+| --- | --- | --- | --- | --- | --- | --- |
+| `0x18` | `0x00CBFD34` | `0x00CBFD41` | `+0x60` | `0x00B24220` | `+0x34` | `0x00CBFBD0` |
+| `0x19` | `0x00CBFD57` | `0x00CBFD64` | `+0x64` | `0x00CBFDC0` | `+0x38` | `0x00CBFC50` |
+| `0x1A` | `0x00CBFD7A` | `0x00CBFD87` | `+0x68` | `0x00B241B0` | `+0x3C` | `0x00CBFC90` |
+| `0x1B` | `0x00CBFD9D` | `0x00CBFDAA` | `+0x6C` | `0x00B241F0` | `+0x40` | `0x00CBFCD0` |
+
+For code `0x19` the cells are `0x0110BF34`, `0x0110C04C`, `0x0110C0F4`, `0x0110C394` and `0x0110D994`. Between its base call at `0x00CC14D9` and its return at `0x00CC177C` the FontCodeModule constructor stores only the nine thunks of [CT-03](rich-text-colour-tokens.md#ct-03-processor-handlers), at vector offsets `+0x40` to `+0x5C` and `+0x78`, so it inherits all four entries. The base constructor also clears the flag word `+0x28` (`0x00CBFD1E`). STATIC.
+
+`0x00CBFC50` has the shape of the `0x1A` handler with mask 1. It decodes one integer with `0x00CB2D50` mode 1 (`0x00CBFC66`). A zero decoded width leaves the flags unchanged (`0x00CBFC6B..0x00CBFC6D`). Otherwise a nonzero value ORs 1 into the flag word `+0x28` (`0x00CBFC76`) and a zero value ANDs it with `~1` (`0x00CBFC7E`). It ends with `RET 0x10`. STATIC. By the operand rule of code `0x1A`, `02 19 02 02 03` sets bit 1 and `02 19 02 01 03` clears it. The tag emitter writes `<b>` and `</b>` for bit 1, so code `0x19` is the bold control. INFERRED from those tag names. The TextModule vector has no `0x19` entry, so the token reaches the processor unchanged ([RT-01](rich-text-sheet-and-case-handlers.md#rt-01-handler-vector)).
+
+`0x00CBFCD0` has the same shape with mask 2: it ORs 2 at `0x00CBFCF6` and ANDs with `~2` at `0x00CBFCFE`. STATIC. The tag emitter `[0x00CC0670,0x00CC0A0C)` tests the flag word only for bits 1 and 4, so it writes no tag for bit 2. The pen advance of [Italic drawing](#italic-drawing) adds 1 when flag 2 or flag 1 is set, so codes `0x19` and `0x1B` both reach that branch. STATIC through that read.
+
+`0x00CBFBD0` decodes the same way (`0x00CBFBE6`). On a nonzero width it converts the value to a float, multiplies it by the double at `0x00FBF9D0`, and stores the float result at processor `+0x2C` (`0x00CBFBEF..0x00CBFC05`). The double is `0x3F847AE140000000`, the float 0.01 widened to double. STATIC. Code `0x18` also has a TextModule entry (RT-01), so the formatter does not copy it whole. The consumer of processor `+0x2C` is not traced here.
+
 ### Italic drawing
 
 Four draw slots test flag 4: BitmapFont draw vtable `0x0110C168` slots +0x0C (`0x00CAC330`) and +0x14 (`0x00CAC700`), and OsFont draw vtable `0x0110C408` slots +0x0C (`0x00CAD710`) and +0x14 (`0x00CADB50`). Each tests the flag at `0x00CAC37A`, `0x00CAC74E`, `0x00CAD740` or `0x00CADB8F`, then uses the float at `0x0110BEB4` (BitmapFont) or `0x0110C314` (OsFont) as its slant, and 0.0 otherwise. Both floats are `0x3DA3D70A`, which is 0.08. The only code reads of either float are at `0x00CAC39C`, `0x00CAC75C`, `0x00CAD77C` and `0x00CADB9D`. STATIC.
@@ -197,7 +224,8 @@ The italic advance does not change in the draw. In `0x00CAC330` the slant local 
 - The character cap of the retry fit, which is the P `+0x4C` value that font slot +0x24 leaves at processor `+0xB8`.
 - The meaning of processor `+0x18C`, which the token and text paths set to 1.
 - The writer of the tag output at processor `+0x200` and the pass that runs with `+0x5C` zero.
-- Other modules that register the thunks `0x00B241C0` and `0x00B241B0`, and whether they treat `0x10` and `0x1A` the same way.
+- Other modules that register the thunks `0x00B241C0`, `0x00CBFDC0` and `0x00B241B0`, and whether they treat `0x10`, `0x19` and `0x1A` the same way.
+- How bold draws beyond the added advance of 1, and the role of bit 2 that code `0x1B` sets.
 - The rendered result. No row break or shear was observed in a running client.
 - The string-to-vector parse of `Categories`, the default filter data, and the category values a server sends.
 - The formatter's rejection conditions and its output for a sender or text holding a byte `0x02` (LF-03).
@@ -219,7 +247,7 @@ Verify the executable identity and PE32 base. Read the registrations at `0x00F0F
 | Row selection | `0x005928E0`, `0x00590830`, `0x00592760`, `0x004B58B0`, `0x00974220`, statics `0x0133C638`, `0x0133C63C`, `0x0135C2AC` |
 | Copied controls, entry and rows | `0x00592F30`, `0x00595A20`, `0x0098DAA0`, `0x0098D320`, `0x0098C3A0`, `0x00599170`, cell `0x01077CBC` |
 | Copied controls, line fitting | `0x00988710`, `0x00988480`, `0x00987FC0`, `0x0055B3E0`, `0x00557810`, `0x00CBFE30`, `0x00CC2190`, `0x00CC0A40`, cells `0x00FA2B64`, `0x0110C1C4` |
-| Copied controls, tokens | `0x00CC1C50`, `0x00CC14B0`, `0x00CBFD10`, `0x00B241C0`, `0x00B241B0`, `0x00CC0C40`, `0x00CBFC90`, `0x00CB2D50`, `0x00CC0670`, vtables `0x0110BEFC`, `0x0110C014`, `0x0110C0BC`, `0x0110C35C`, `0x0110D95C`, strings `0x0110DBB4`, `0x0110DBBC`, `0x0110DC18`, `0x0110DC1C`, `0x0110DC20` |
+| Copied controls, tokens | `0x00CC1C50`, `0x00CC14B0`, `0x00CBFD10`, `0x00B241C0`, `0x00B241B0`, `0x00CBFDC0`, `0x00B24220`, `0x00B241F0`, `0x00CC0C40`, `0x00CBFC90`, `0x00CBFC50`, `0x00CBFCD0`, `0x00CBFBD0`, `0x00CB2D50`, `0x00CC0670`, double `0x00FBF9D0`, vtables `0x0110BEFC`, `0x0110C014`, `0x0110C0BC`, `0x0110C35C`, `0x0110D95C`, strings `0x0110DBB4`, `0x0110DBBC`, `0x0110DC18`, `0x0110DC1C`, `0x0110DC20` |
 | Copied controls, drawing | `0x00CAC330`, `0x00CAC700`, `0x00CAD710`, `0x00CADB50`, `0x00CA59E0`, `0x00CA54D0`, `0x00CB9BB0`, tables `0x0110C168`, `0x0110C408`, floats `0x0110BEB4`, `0x0110C314` |
 
 For the copied controls, map each VA to a file offset through the section table, check each half-open range of the input tables against its SHA-256, and decode it with Capstone x86-32.

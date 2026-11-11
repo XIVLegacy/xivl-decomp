@@ -138,6 +138,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Package-5 item presentation boundary](net/loot-item-presentation.md)
 - [Confirmation work publication boundary](net/confirm-work-publication.md)
 - [Raise and warp offer timeout evidence](net/confirm-offer-timeout-evidence.md)
+- [Group header request c2s 0x0133](net/group-header-request.md) -
+  request references joined to `0x017C` headers, and the builder route.
 
 - [Armoire stored-item state](net/armoire-storage-state.md)
 - [Network u32 tree and RTTI census](net/channel-dispatch-tree.md)
@@ -342,6 +344,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Region weather resource rows](resource/region-weather-resource-rows.md)
 - [Region 103 layout census](resource/region-103-layout-census.md)
 - [Region 103 layout children census](resource/region-103-field-children-census.md)
+- [Private-area region layouts](resource/private-area-region-layouts.md) -
+  room translations and collision extents of regions 202, 204, 205 and 209.
 - [Weather layout resource shape](resource/weather-drawenv-resource-shape.md)
 - [Weather, sky and fog environment path](resource/weather-sky-fog-environment-path.md)
 - [Weather fog parameters and fog mix](resource/weather-fog-parameters.md)
