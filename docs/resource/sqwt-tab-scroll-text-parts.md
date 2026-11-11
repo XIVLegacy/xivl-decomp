@@ -283,6 +283,48 @@ slot 5 holds the object at `0x01361220` it is replaced by slot 1, and the same
 object in slot 6 is replaced by slot 3. INFERRED that the object means an
 absent Property row.
 
+### Style name fallback
+
+The style loader `0x00934210` chooses the style whose parts `0x00933E70`
+reads. The skin-part entry `0x0092A5F0` returns at once when its sheet field
+`+0x290` is null. Otherwise it passes `+0x290`, the `SqwtSkinDirect`
+string `+0x238` (null replaced by the empty string object `0x01266B10`), the
+`SqwtStyleControlName` string `+0x220`, the `SqwtStyle` string `+0x228` and a
+zeroed `0x54`-byte output to the loader (`0x0092A601..0x0092A65E`). STATIC.
+The constructor `0x0092F640` registers those cells at `0x0092F919`,
+`0x0092F934` and `0x0092F970` with the descriptors `0x01358838`,
+`0x01358958` and `0x013588C8`, which the initializers `0x00F220A0`,
+`0x00F220C0` and `0x00F22120` name from `0x0106A9E8`, `0x0106AA00` and
+`0x0106AA1C`. STATIC. The second caller, `0x008E2B54` in
+`0x008E2A50`, was not traced.
+
+A non-empty `SqwtSkinDirect` text skips the style search. With an empty one and
+a non-empty `SqwtStyleControlName`, the loader clears the output and works in
+this order. STATIC.
+
+1. `0x00934890` (`0x009343BD`) looks up the group in the sheet. A null result
+   returns false.
+2. A style name equal to `NULL` (`0x0106AF98`, a 5-byte `REPE CMPSB` at
+   `0x009343DB..0x009343EE`, so case sensitive) returns true with no style
+   selected.
+3. Any other non-empty name is looked up through `0x00934740`
+   (`0x00934406`). On a miss the loader tries `error` (`0x0106AFA0`, call
+   `0x00934439`), `default` (`0x0106AFA8`, `0x00934480`), `Default`
+   (`0x0106AFB0`, `0x009344C9`) and the empty name (`0x0106AF2F`,
+   `0x00934516`) and keeps the first hit.
+4. An empty name tries `default` (`0x0106AFB8`, `0x00934573`), `Default`
+   (`0x0106AFC0`, `0x009345C0`) and the empty name (`0x0106AF36`,
+   `0x00934608`).
+5. A found style copies two floats to output `+0x4C` and `+0x50` and is passed
+   to `0x00933E70` at `0x00934678`, at most twice
+   (`0x009346D4..0x009346DD`). With no hit the loader returns true with the
+   output still zeroed (`0x009346E3`).
+
+A style name that the searched sheet does not define falls back to error,
+default, Default and the empty name in that order, and the exact name NULL
+selects no style. STATIC. Whether `0x00934740` folds case and which sheet
+`+0x290` holds are UNKNOWN.
+
 The style files group parts by widget type. A part row names a reference type
 and a style, as in `Background_SelectedContent` of `TBC_chat`, which references
 the `Window` style `TBC_chat_selectedContent`. The `Frame` part of that style
@@ -588,6 +630,17 @@ The Visibility text is parsed by `0x00914580` and written by `0x009145F0`.
 
 `False` maps to Collapsed and every other text maps to Visible, including
 `True`, `Visible` and the empty text. STATIC.
+
+The parser pushes `Collapsed` (`0x01068728`), `Hidden` (`0x01068734`) and
+`False` (`0x0106873C`) in turn and compares each with the incoming text through
+the compare entry `0x009D244E` at `0x00914592`, `0x009145B4` and `0x009145D6`.
+With the global at `0x01363F24` zero and both pointers non-null, that entry
+jumps to the ASCII case-folding compare `0x009D2346`. Visibility text compares
+fold ASCII case, so `collapsed` and `FALSE` give 0 and `hidden` gives 1.
+STATIC. The decoded install uses the lowercase spelling, for example on the
+two TextBlocks of `system/bootup/CharacterSelection.form` that carry
+`Visibility="collapsed"`, one of them `TextBlock_Title`. Those elements start
+Collapsed. INFERRED.
 
 ## TextBox and LogControl
 
@@ -908,9 +961,9 @@ fields, see the open questions.
 - UNKNOWN. The meaning of the TextBox arrange host fields at +0x113C and
   +0x04A4, of the integer behind +0x17F0, and of the eight floats and three
   pointers in each default part record.
-- UNKNOWN. How a part whose style is NULL or undefined resolves. The resolver at
-  0x00933E70 returns without writing a skin, and the loader at 0x00934210 names
-  fallback styles, but the join was not traced. The default part records for
+- UNKNOWN. Which style sheet the loader at 0x00934210 searches, and so which
+  sheet supplies a fallback style. The writer of the sheet field +0x290 and
+  the loader caller at 0x008E2B54 were not traced. The default part records for
   ScrollBar:VerticalBackground (8) and LogControl:VerticalScrollBar:VerticalBackground
   (65) are part of the same question.
 - UNKNOWN. How LogControl paints its lines. The lines come from the native log

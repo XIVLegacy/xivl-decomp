@@ -36,6 +36,7 @@ complete-object locators cite. No client was executed.
 | `[0x004B6C60,0x004B6E5D)` saved position key registration | 509 | `7f9c1acf86e085b9b4f5c22a44afcbcd01b6a1157017fbaa53bfddae0e1fc1c5` |
 | `[0x004B6EC0,0x004B6F2C)` saved position read | 108 | `4caeec8b5c1bf90788df515f9024cc957e0f4097907031aa5316f6e55c8328df` |
 | `[0x00925490,0x009256F6)` Window arrange | 614 | `cefdae411ff2e3818b081e6961abd64b91869f5e0be075f592ed9960beecef7d` |
+| `[0x009302F0,0x0093043D)` base arrange | 333 | `cf656759c9b9a8511099eb2494bf2b590eb8b38c41462f584cd1c9c922a81b7d` |
 | `[0x006E3760,0x006E3890)` `_loadForm` native | 304 | `5b3fdde1acb3a5d1823c1ff2ead75ed9264f6fa80337d60669f971c0c3fdd67b` |
 | `[0x0075B750,0x0075B768)` load forward | 24 | `86c88b82faf9dcee6ef59402ef12329c5d7cb29613ddfea5358186f656b6aba7` |
 | `[0x00537D50,0x00537DDB)` FormElement load start | 139 | `78d8831be8d4359f1d5a1d11bba0cb490ff9a08c8c4c46da57e1d757eec44fb8` |
@@ -211,6 +212,89 @@ scale to `Left` and `Top` (`0x009255A0` to `0x00925686`) and clears the bit
 (`0x00925693`) (`STATIC`). A `Top` set before the first arrange is therefore
 subtracted from the bottom-aligned position.
 
+## Window arrange
+
+The Window facts below were also read from ghidra-cli disassembly of the same
+executable, and the two arrange bodies match the hashes above.
+
+The Window constructor `0x009246F0` registers four float cells through
+`0x009C1FD0` with the change callback `0x009238A0`. Each registration loads
+`FLDZ` as the initial value, so every cell starts at 0.0 (`STATIC`):
+
+| Cell | Descriptor | Name | Registration |
+| --- | --- | --- | --- |
+| `+0x37C` | `0x013570A0` | `Left` | `0x00924754..0x00924778` |
+| `+0x384` | `0x013570C4` | `Top` | `0x0092477D..0x00924799` |
+| `+0x38C` | `0x013570E8` | `SqwtLeftOffset` | `0x0092479E..0x009247BA` |
+| `+0x394` | `0x0135710C` | `SqwtTopOffset` | `0x009247BF..0x009247DB` |
+
+The static initializers `0x00F20AF0` and `0x00F20B20` name the last two
+descriptors from `0x01069CE0` and `0x01069CF0` (`STATIC`).
+
+The arrange routine `0x00925490` works in this order (`STATIC`):
+
+1. It calls virtual `+0xC4` of the Window and keeps the float result as the
+   scale (`0x009254B9..0x009254C3`). What the slot returns is `UNKNOWN`.
+2. It copies the four floats at `+0x04` to `+0x10` of the argument rectangle
+   and adds the scale times `Left` to the first and the scale times `Top` to
+   the second (`0x009254C7..0x0092552D`). The other two are unchanged.
+3. When bit 2 of `+0x444` is set and either startup alignment differs from
+   its element alignment, it runs the startup pass of the previous section for
+   both axes. Agreement on one axis does not skip that axis
+   (`0x00925537..0x00925551`). Each store of a difference into `Left` or `Top`
+   is skipped while bit 1 of the cell's flag byte (`+0x380`, `+0x388`) is set
+   or the value is unchanged. With bit 1 clear the routine clears bit 0. A
+   store sets bit 2 of that byte and calls
+   `0x00953BA0` with the descriptor (`0x0092561A`, `0x00925686`). A set bit 4
+   first calls `0x009157C0` with the descriptor and is cleared
+   (`0x009255D0..0x009255DE`, `0x0092563C..0x0092564A`). The pass then adds
+   the unscaled differences to the working rectangle
+   (`0x0092568F..0x009256AE`). The roles of the flag bits are `UNKNOWN`.
+4. On every call it adds the scale times `SqwtLeftOffset` and the scale times
+   `SqwtTopOffset` (`0x009256B6..0x009256D7`).
+5. It passes the working rectangle to the base arrange `0x009302F0`
+   (`0x009256DB`).
+
+Assuming the alignment result moves with the rectangle, these steps give the
+following placements (`INFERRED`, no run):
+
+- After the startup pass an arrange places the window at its element-aligned
+  place in the slot, shifted by the scale times `Left` plus `SqwtLeftOffset`
+  and `Top` plus `SqwtTopOffset`.
+- With no value written before the first arrange, the pass leaves the startup
+  place less the element-aligned place in `Left` and `Top`, so the window keeps
+  its startup place.
+- A value v written before an arrange that runs the startup pass still gives
+  the startup place on the first frame. Later arranges
+  place the window at the startup place less the scale times v.
+- A value written after the first arrange moves the window from its
+  element-aligned place by the scale times that value.
+
+## Collapsed size branch
+
+The base arrange `0x009302F0` compares the byte at `+0x158` with 0
+(`0x00930319`). `+0x158` is the Visibility cell. The constructor `0x0093C750`
+registers it at `0x0093C8A3` with descriptor `0x013596BC`, which the
+initializer `0x00F22900` names from `0x0106BEB8`, `Visibility` (`STATIC`).
+Visibility 0 is Collapsed, 1 Hidden and 2 Visible, as the
+[Visibility text table](sqwt-tab-scroll-text-parts.md#scrollviewer-and-scrollcontentpresenter)
+records.
+
+- At 0 the routine writes 0.0 to `+0x1B4` and `+0x1AC`. The initializers
+  `0x00F21DB0` and `0x00F21D80` name their descriptors `0x01358910` and
+  `0x013587F0` from `0x0106A90C`, `ActualWidth`, and `0x0106A8FC`,
+  `ActualHeight`. Each write happens only when bit 0 or bit 1 of the cell's
+  flag byte is set and the value is not already 0.0, and it calls `0x00953BA0`.
+  The routine then passes a rectangle of four 0.0 floats to `0x00939720`
+  (`0x00930326..0x00930422`) (`STATIC`).
+- At any other value it aligns the argument rectangle by the element
+  alignments `+0x24C` and `+0x24E` through `0x0092FD20` (`0x00930412`) and
+  passes the result to `0x00939720` (`STATIC`).
+
+A Hidden element takes the same branch as a Visible one, and only a Collapsed
+element gets an empty rectangle and zero actual size here (`STATIC`). What
+`0x00939720` does with the rectangle is `UNKNOWN`.
+
 ## Result for the shipped form
 
 For the second window, k is 1, the cached `Top` becomes 232 and `Height`
@@ -243,6 +327,9 @@ values, so it does not support the numbers.
 - The inputs of the comparison that can reapply the cached default after a
   saved position.
 - How later parent resizes or scale changes move the windows.
+- What Window virtual `+0xC4` returns, and the roles of the cell flag bits
+  that the arrange tests.
+- Whether the desktop arranges a Hidden window on every frame.
 
 ## Reproduction
 
