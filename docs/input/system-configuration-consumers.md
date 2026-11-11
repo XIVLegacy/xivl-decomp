@@ -57,6 +57,24 @@ versus producer `1`), and `C+0x40` (`0` versus producer `2`); the raw stores
 are VA `0x00405D1F`, `0x00405D2E`, and `0x00405D31` (RVAs
 `0x00005D1F`, `0x00005D2E`, and `0x00005D31`).
 
+The two string buffers are seeded by NUL-terminated UTF-16LE copy loops before
+the file is opened. `C+0x60` takes the text `MS UI Gothic` from VA
+`0x00F54C90` (source loaded at VA `0x00405CE1`, loop VA
+`0x00405D50..0x00405D5C`). `C+0xA0` takes the string at VA `0x00F54CAC`,
+whose first code unit is 0, so its seed is empty (source loaded at VA
+`0x00405D64`, loop VA `0x00405D70..0x00405D7C`). STATIC from ghidra-cli
+disassembly and the PE bytes. `MS UI Gothic` is a Windows font face name.
+INFERRED. When `C+0x54` is nonzero and the file leaves `C+0x60` unchanged,
+the `GameConfig` group 9, key 3 write described below carries that seed.
+INFERRED. With the reader default `C+0x54=0` it writes the empty value.
+
+An absent file keeps the seeded block. The `\config.sys` suffix at VA
+`0x00F54CB0` is pushed at VA `0x00405DBA`, and the `CreateFileW` result is
+compared with -1 at VA `0x00405E0F`. On -1 the branch at VA `0x00405E12`
+reaches the exit at VA `0x0040608D`, which frees the path string and returns
+the status byte that VA `0x00405DED` cleared. No file write lies on that
+path. STATIC.
+
 The only explicit startup bounds in this path are the lower clamps at VA
 `0x00402E93..0x00402E9C` (RVA `0x00002E93..0x00002E9C`) for `C+0x14` to
 `0x400` (1024), and at VA `0x00402EA8..0x00402EB1` (RVA

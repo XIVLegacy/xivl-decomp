@@ -217,6 +217,23 @@ value in this order:
 STATIC. The directory from `0x00405210`, the string at `[0x01323898]` and the
 key-name test are not traced. UNKNOWN.
 
+The lookup in step 1 and the setter both address the `SystemConfig` store.
+`0x00403640` allocates `0x968` bytes, constructs them through `0x00401750`
+and stores the result at `0x013232B8` (`0x004038AE..0x004038D1`). That
+constructor installs the vtable `0x00F54A24`, named by `.?AVMain@@`
+(`0x0040177F`), and calls the `SystemConfig` constructor `0x004B8640` on
+`+0x3A0` (`0x00401793..0x0040179D`). `0x00403640` then calls `0x00402B30`
+with `[0x013232B8]` as the receiver (`0x0040390F..0x0040391E`), which copies
+it to EBP (`0x00402B7B`) and sets ESI to `EBP + 0x3A0` (`0x00402C01`). No
+instruction between there and `0x00402D63` writes ESI, and the language
+lookup (`0x00402D42..0x00402D4E`) and the setter (`0x00402D61..0x00402D63`)
+both take ECX from ESI. STATIC, with ESI preserved across the intervening
+calls by the MSVC convention. The `SystemConfig` store registers group 0,
+key 25 as `debug_language`, an int from 0 to 10 with default 0
+([`xivl-client-structs:manifests/user_config_store.json`](https://github.com/XIVLegacy/xivl-client-structs/blob/bf54e031b25287d89d0fb52d73a4dcecdeb98ade/manifests/user_config_store.json),
+`systemConfig` group 0). The language dword `+0x20` is therefore a field of
+that store object.
+
 ## The sqwt root
 
 The initializer reads user-config group 2, key 8 at `0x004B3197`. The values 4,
@@ -224,6 +241,18 @@ The initializer reads user-config group 2, key 8 at `0x004B3197`. The values 4,
 selects `\client\sqwt` (`0x00F8CA80`). The routine `0x0090F870` stores the root
 at `0x01356AE0` and `0x0090F840` stores the absolute form at `0x01356A88`.
 STATIC.
+
+The initializer is slot 0 of the vtable `0x00F8CC1C`, named by
+`.?AVRapture@Application@@`, and the read takes ECX from ESI, which holds the
+routine's second stack argument (`0x004B2E2B`) and is not written again before
+`0x004B319D`. STATIC. Who passes that argument was not traced. The same
+receiver feeds the accessors `0x004B68A0` and `0x004B6900`, which read
+`+0x20` and `+0x24`, and `+0x20` is the language field of the `SystemConfig`
+store above. The `SystemConfig` store registers group 2, key 8 as `gamemode`,
+an int from 0 to 8 with default 2. The `GameConfig` store has no group 0,
+key 25 row and registers group 2, key 8 as the string `keyconfig`
+([`user_config_store.json`](https://github.com/XIVLegacy/xivl-client-structs/blob/bf54e031b25287d89d0fb52d73a4dcecdeb98ade/manifests/user_config_store.json)).
+The root read therefore addresses the `SystemConfig` store. INFERRED.
 
 ## Other resource kinds
 

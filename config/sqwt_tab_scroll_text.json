@@ -964,6 +964,8 @@
     "ScrollViewer computes each scroll bar's Visibility from its mode, the extent and the viewport. Auto gives Visible when the extent exceeds the viewport and Collapsed otherwise, Disabled gives Collapsed, Hidden gives Hidden, Visible gives Visible, and AutoHidden gives Visible when the extent exceeds the viewport and Hidden otherwise. STATIC.",
     "ScrollableWidth and ScrollableHeight are the extent less the viewport with a floor of 0. STATIC.",
     "Visibility text maps Collapsed and False to 0, Hidden to 1 and every other text, including Visible, to 2. STATIC.",
+    "Visibility text compares fold ASCII case, so collapsed and FALSE give 0 and hidden gives 1. STATIC.",
+    "A style name that the searched sheet does not define falls back to error, default, Default and the empty name in that order, and the exact name NULL selects no style. STATIC.",
     "The default part table holds 66 records keyed by part name. STATIC.",
     "No installed style file defines a Caret widget, so Caret:Background resolves to no skin. INFERRED.",
     "The chat scroll bar style SCB_chat defines no HorizontalBackground or VerticalBackground part. INFERRED.",
@@ -990,7 +992,7 @@
     },
     {
       "label": "UNKNOWN",
-      "text": "How a part whose style is NULL or undefined resolves. The resolver at 0x00933E70 returns without writing a skin, and the loader at 0x00934210 names fallback styles, but the join was not traced."
+      "text": "Which style sheet the loader at 0x00934210 searches, and so which sheet supplies a fallback style. The writer of the sheet field +0x290 and the loader caller at 0x008E2B54 were not traced."
     },
     {
       "label": "UNKNOWN",

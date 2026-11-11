@@ -428,6 +428,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Qix effect resource container](resource/vfx-qix-resource-container.md)
 - [VFX effect family](resource/vfx-effect-family.md)
 - [Client-initiated music](resource/client-music-initiators.md)
+- [Bootup logo, rating and title phases](resource/bootup-phase-owners.md) -
+  Phase factory, logo and rating end conditions, and the title version text.
 - [Qix control module registry](resource/vfx-control-module-registry.md)
 - [Qix veff data body](resource/vfx-effect-data-body.md)
 - [Qix effect runtime](resource/vfx-effect-runtime.md)
