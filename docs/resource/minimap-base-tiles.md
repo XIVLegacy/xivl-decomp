@@ -182,6 +182,8 @@ The following are the remaining submissions in source order:
 | 0x8B00 | 5008 | 0x3000 | 0x72420009 |
 | 0x8B30 | 5007 | 0x3000 | 0x7242000A |
 
+Their names, translations and collision extents are in
+[Private-area region layouts](private-area-region-layouts.md#region-202).
 Bridge is the fifth submission in that region. Actual manager retention,
 first selection and a link from SetMap zone 140 to that selection remain
 UNKNOWN.

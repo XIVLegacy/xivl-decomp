@@ -309,7 +309,8 @@ header (`xivl-captures:derived/payload_samples.json`, `samples.s2c` and
 
 The published samples hold zero bytes where names and event strings sit, so the
 target text above comes from the study table and the `0x0133` event string is
-not visible.
+not visible. The `0x0133` requests of every retained capture are joined to
+their headers in [Group header request c2s 0x0133](../net/group-header-request.md).
 
 INFERRED. The server publishes the relation group, its host and its variation
 to the inviter as well as to the invited player, since the capture shows them
