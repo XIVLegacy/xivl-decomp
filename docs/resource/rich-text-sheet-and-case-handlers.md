@@ -3,8 +3,9 @@
 The rich-string formatter `FUN_00CB2760` expands the `0x02` tokens of a text
 row through a handler vector. This page records which token ids have a
 handler, how the six integer comparison leads order their operands, and what
-three handlers do: `0x28` reads a cell of a named sheet, `0x2B` capitalizes
-the first letter of a string and `0x2D` capitalizes every word. The handlers
+four handlers do: `0x25` prints an integer as base 60 groups, `0x28` reads a
+cell of a named sheet, `0x2B` capitalizes the first letter of a string and
+`0x2D` capitalizes every word. The handlers
 `0x08`, `0x09`, `0x20` and `0x29` stay with
 [Sqwt plain text reference lookup](sqwt-plain-text-reference-lookup.md),
 SQTP-04 and SQTP-06, and
@@ -81,6 +82,8 @@ STATIC.
 | `0x32` | `0x00CA15F0` | `+0x94` | `0x00CA13A0` |
 | `0x33` | `0x00CA1610` | `+0x98` | `0x00CA13D0` |
 | `0x34` | `0x00CA15A0` | `+0x9C` | `0x00CA1400` |
+
+The operands and output of handler `0x25` are in RT-05.
 
 The vector holds `0x37` zero-initialized entries (the entry count page), so
 every other code below `0x37` has a null entry. The ids `0x10`, `0x16`, `0x19`,
@@ -271,6 +274,54 @@ is a nested `0x28` token in 13 of 14 tokens, and of `0x2D` in 6 of 9. Row 231
 uses `0x2B` for the class name and `0x2D` for a second class name in `en`, and
 `0x2B` alone in `fr`. The `de` and `ja` rows use neither.
 
+## RT-05: Handler 0x25, base 60 groups
+
+Handler `FUN_00C9F850` (`0x00C9F850..0x00C9F988`) decodes, in payload order:
+
+1. An integer expression with `FUN_00CB2D50` in mode 1 at `0x00C9F8B1`. It is
+   the value.
+2. A string expression with `FUN_00CB2AE0` in mode 1 at `0x00C9F8E1`, from the
+   cursor advanced by the first width (`0x00C9F8D1`). It is the separator.
+
+A zero width from either decode returns zero with nothing appended
+(`0x00C9F8BA`, `0x00C9F8EA`, `0x00C9F95F`). RT-03 records that the formatter
+treats a zero from a handler as failure. Otherwise the handler calls
+`FUN_00454ED0` at `0x00C9F902` with a local output string, the value, the
+constant 10, mode 4 and the separator, in parameter order. It appends the local
+output with `FUN_00447C80` at `0x00C9F91B` and returns the sum of the two widths
+(`0x00C9F924`). STATIC.
+
+`FUN_00454ED0` takes the mode dispatch when its third argument is a multiple of
+10 (`0x00454EF6..0x00454F1A`). It reads the separator characters through
+`FUN_00445210` at `0x00454F20` and indexes the table `0x00455380` by the mode
+minus 1 (`0x00454F2A..0x00454F3E`). The cell for mode 4 is `0x00455151`, which
+does not read the third argument again and behaves as follows:
+
+- A negative value sets a sign flag and is negated (`0x00455154..0x0045515D`).
+- A result that is not above zero prints `0%s00` (`0x00F677A8`) with the
+  separator and no sign (`0x0045515F..0x00455161`, `0x0045519A..0x004551AD`).
+  This covers zero and `0x80000000`, which stays negative after `NEG`.
+- Any other magnitude is split by repeated division by 60 into 16-bit groups,
+  least significant first, with a loop bound of 8 groups
+  (`0x00455163..0x00455194`).
+- Exactly one group prints `%s0%s%02d` (`0x00F677B4`) with the sign, the
+  separator and the group (`0x004551B2..0x004551DA`).
+- Two or more groups print `%s%d` (`0x00F677C4`) with the sign and the top group
+  (`0x004551DF..0x00455209`). Each lower group, in descending order, is then
+  printed with `%s%02d` (`0x00F677CC`) and the separator, and appended
+  (`0x0045520C..0x00455270`).
+- The sign is `-` when the flag is set (`0x00F677B0`, `0x00F677C0`) and an empty
+  string otherwise (`0x00F6776F`, `0x00F67775`).
+
+Each print goes through `0x009D4F08`, the one-group print at the shared call
+`0x00455347`. The common exit passes the text buffer and the length word at
+`0x00F67298` to `0x00447260` with the output string as `this`
+(`0x0045534F..0x00455361`). STATIC.
+
+INFERRED. Base 60 groups joined by a separator have the shape of a duration
+display. The join rests on the divisor 60 alone. The unit of the value and the
+separators that installed rows supply are not traced. UNKNOWN.
+
 ## Reproduction bounds
 
 Verify the executable identity and PE32 base. Read the vtable `0x01108ECC`
@@ -288,5 +339,6 @@ outside published artifacts.
 | Sheet handler | `0x00CA0E20..0x00CA0FF3`, `0x00CB3480..0x00CB36EB`, `0x00CA0930..0x00CA0A25`, `0x00CA0DCD..0x00CA0DD8`, `0x00CA0F4C..0x00CA0FF1` |
 | Handler failure | `0x00CB2938..0x00CB2948`, `0x00CB2AB4..0x00CB2AC5` |
 | Case handlers | `0x00C9FC20..0x00C9FD3F`, `0x00C9FD50..0x00C9FE0F`, `0x00445220..0x004453A5` |
+| Base 60 handler | `0x00C9F850..0x00C9F988`, `0x00454ED0..0x00454F3E`, table `0x00455380` plus 20 bytes, `0x00455151..0x00455272`, `0x00455347..0x00455361`, literals at `0x00F6776F`, `0x00F67775`, `0x00F677A8`, `0x00F677B0`, `0x00F677B4`, `0x00F677C0`, `0x00F677C4`, `0x00F677CC` |
 | Language and exceptions | `0x00C98150..0x00C98154`, `0x01108EA4` plus 24 bytes, `0x01108E70` plus 4 bytes, `0x01108E78` plus 3 bytes |
 | Installed sheet | Definition resource `0x0B450269` and the `xtx/_text_ui` definition `0x0B450082` for the per-language fields and the row 231 operands |
