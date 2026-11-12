@@ -65,8 +65,10 @@ row, column, row span and column span respectively.
 The rebuild at 0x0069E330 is called by both 0x0069EBE0 (slot 70, reached
 for Maximum from 0x00967337..0x00967345 when owner byte +0x20 bit 0 is
 set) and 0x0069EC10 (slot 10, after the base call at 0x0069EC18).
-It formats Maximum from C+0x344 through 0x00988A90 and takes the string
-length at 0x0069E447..0x0069E461. The default formatter uses %d at
+It deletes the old digit cells at 0x0069E3BA..0x0069E42B before
+formatting Maximum from C+0x344 through 0x00988A90 and taking the string
+length at 0x0069E447..0x0069E461. This rebuild replaces the cells even
+when the decimal place count is unchanged. The default formatter uses %d at
 0x01077268. For nonnegative Maximum this is the decimal place count,
 including one place for zero. It clears and recreates columns at
 0x0069E8FA..0x0069EA7A. Outer columns use unit 0 and value 0. Each digit
@@ -118,11 +120,16 @@ space with "0". The routed integer ValueChanged adapter 0x00966B70
 calls vtable +0x120 at 0x00966B8A..0x00966B9B. NumberInputBox override
 0x0069CB20 loads effective Value and calls 0x0069CA50 on higher places
 while Value / place is positive. The traced flag writes are sticky
-within the current NumberLabel allocation. Thus a higher zero starts
-blank, becomes a digit when first significant, and can subsequently
-display zero until a rebuild. This last sentence is INFERRED from the
-STATIC flag and text writes. The stock hand-in uses nonnegative bounds.
-Negative display and overflow parity are outside this slice.
+within the current NumberLabel allocation. A higher zero starts blank
+and can display zero until the next rebuild after the reveal flag is set.
+This is INFERRED from the flag and text writes. ValueChanged reveals the
+significant places. The routed RepeatButton MouseDown handler at
+0x0069CCA0 also stores the selected digit and calls 0x0069CBA0, which calls
+0x0069CA50 on the places from ones through the selection at 0x0069CBEC.
+The handler is registered for both arrows at 0x0069DE78..0x0069DE95 with
+descriptor 0x0135942C. Physical pointer ingress remains unverified.
+The stock hand-in uses nonnegative bounds. Negative display and
+overflow parity are outside this slice.
 
 Both arrows begin Hidden at 0x0069E1DA..0x0069E1F2. Rebuild writes
 Visibility byte 1 for Hidden or 2 for Visible based on the equality of
