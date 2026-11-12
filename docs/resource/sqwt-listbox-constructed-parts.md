@@ -4,8 +4,9 @@
 `ListBoxScrollViewer`, supplies the panel to `ItemsPanel`, and names the viewer
 `PART_ListBox_ScrollViewer`. The panel constructor initializes an axis byte
 whose height-axis consumers support a conditional vertical stacking rule.
-The embedded viewer gives the item panel a clipped viewport. Effective
-`TabPanel` placement and painted gaps remain UNKNOWN.
+The embedded viewer gives the item panel a clipped viewport and applies a
+changed scroll offset to the panel origin. Effective `TabPanel` placement
+and painted gaps remain UNKNOWN.
 
 ## Input and method
 
@@ -168,9 +169,116 @@ offscreen rows, except for the first row, last row and focused index
 plus its immediate neighbors (`0x00964C82..0x00964CF5`). The constructor
 sets that mask at `0x00963B7F..0x00963BA2`.
 `SqwtDesignData.StringValue2` can change it through `0x00960410`.
-These are conditional container-management rules. The final pixel
-translation, effective mask after styling and actual row focus for the
-installed form remain UNKNOWN.
+These are conditional container-management rules. The effective mask after
+styling and actual row focus for the installed form remain UNKNOWN.
+
+## ShopBuy first-tab focus requests
+
+The [standard ShopBuy carrier and binding](sqwt-xpath-data-sources.md#carriers-and-script-feed)
+identify `widget/ItemListWidget.form` and the English ShopBuy LPB
+`client/script/n1635q/9rz/r2vu8pln1635q.le.lpb`. The latter is
+22929 bytes, SHA-256
+`dc669e4277d43549f806925b5ada10f0be3915b03e01d02836146c70e939e227`.
+Its decoded chunk is 22916 bytes, SHA-256
+`d7c50c4d7de9eab15430868cb514d6407649c18cdc40cbc441e2af4dca6d7e16`.
+PCs are zero-based Lua 5.1 instructions. The linked LPB replay gives the
+decode method. The instructions were read with unluac 2025-12-23.
+
+MEASURED. ShopBuy `setInitialData` (`main/f2` PCs 35 to 36) sets
+`work.listbox` to 1. `getListBoxName` (`main/f14` PCs 0 to 3)
+returns `ListBox_TabItem_1` for 1. `updateListFocus` (`main/f6`)
+first requires `work.updatecount` equal to 0 (PCs 0 to 5). In the
+nonempty branch it caps `work.focus` at focus count minus 1, then
+writes `SqwtFocusedIndex` on that named list, calls `setWindowFocus`,
+and calls `setFocusedIndex` with the same list and index
+(PCs 43 to 82). The inherited `setFocusedIndex` in
+`widget/widgetbaseclass_common` `main/f114` PCs 0 to 4 writes
+the same property. The [native property path](https://github.com/XIVLegacy/xivl-client-structs/blob/8a8930c6da61d1ff8b3d442fe169396805394d23/docs/native-input-ui-boundaries.md#visibility-property-path)
+describes the generic named control and integer property write.
+
+MEASURED. ShopBuy `setWindowFocus` (`main/f8` PCs 0 to 14) rejects a
+nil or empty control name. It sets logical focus, then requests keyboard
+focus for the named control only when
+`desktopWidget:_getKeyboardFocusedWidget()` returns self. Common
+`main/f162` writes `LogicalFocus`. Common `main/f161` calls
+`_setKeyboardFocusedControl(nil, name)`, using the
+[default container path](https://github.com/XIVLegacy/xivl-client-structs/blob/8a8930c6da61d1ff8b3d442fe169396805394d23/docs/talk-native-contract.md#keyboard-focus).
+
+STATIC. The [bound focus path](#bound-row-focus-and-viewport) joins the
+property write to a scroll request only through its eligible branches.
+For caller flag 0 and ItemsControl `+0x15D` mask `0x20` clear,
+`0x00962440` instead checks the stored index at `+0x388` through
+`0x009624C1 -> 0x00962350`. That helper also uses `0x0091B7B0`.
+This predicate tests only nonnull global `0x01356F34` and
+`AnchorElement+0x158` equal to 2. The keyboard-focus interface and
+anchor-event recipient are separate globals. The
+[keyboard binding path](sqwt-window-trigger-order.md#attachment-and-conditional-focus-notifications)
+documents a conditional AnchorElement visibility writer. The focus
+request and the index write alone do not establish that the anchor is
+visible on this invocation.
+
+## Offset application and scrollbar geometry
+
+STATIC. A changed panel offset notifies the viewer through its primary
+`+0x11C` cell `0x01072090`, selecting `0x00971970`. The queue
+drain at `0x00973ED7` calls `0x00973D40`, which samples the
+panel interface and forwards the values to `0x00973660`.
+The event constructor `0x00973FE0` uses descriptor `0x0135BBFC`
+and copies viewer `+0x384` into event `+0x34`. The viewer handler
+cell `0x010720C4` selects `0x00970E50`. If the event handled
+byte through `+0x10` is clear, its source `+0x08` is this viewer,
+content `+0x340` is nonnull and viewer byte `+0x3B4` mask `0x20`
+is set, the handler negates the event's current vertical offset at
+`0x00970E96..0x00970EA6` and passes it to setter `0x009C2C50`
+on the embedded presenter at viewer `+0x760`. The base viewer
+constructor sets that mask at `0x00973381..0x0097338B`.
+The setter supplies presenter `+0x2EC` and descriptor
+`0x01363498` to `0x009B9320`. The initializer at `0x00F2AAA0`
+names it `VerticalOffset` from `0x01082800`.
+
+STATIC. Presenter arrange calls `0x0099CA00` at `0x009C2FDA`.
+The latter calls the presenter's virtual `+0x104` with the
+child and its calculated rectangle. Presenter cell `0x01082AA8`
+selects `0x009C29A0`, which takes the child rectangle's width and
+height and reads the y origin from presenter `+0x2EC`
+(`0x009C29D9..0x009C2A23`). Helper `0x0099C850` submits the
+rectangle through `0x0093A870`. In the constructed content join
+this translates the panel by minus the current vertical offset
+inside the separate clipped presenter. INFERRED for the composition
+and resulting coordinate. The retained row-start override producer
+`0x00995ED0` writes the thread-local child entry at `+0x10` in the
+same `+0x2154` table read during panel arrange. New containers call
+it at `0x00964F7A` with their accumulated row start.
+`0x00961250` also supplies cumulative row starts at `0x0096132E`.
+Thus the two placements are local row start and translated panel origin.
+The complete frame order and hit target remain UNKNOWN.
+
+STATIC. The embedded ListBox viewer constructor requests vertical
+visibility mode 0 through `0x009730D0` at `0x0096D1A1..0x0096D1B1`,
+using descriptor `0x0135BE6C`. Mode 0 is
+[Auto](sqwt-tab-scroll-text-parts.md#scrollviewer-and-scrollcontentpresenter).
+The template builder `0x00971EF0` appends one default star definition
+and one Auto definition to each Grid axis
+(`0x00971F1C..0x00971FCC`), then appends the presenter without a
+cell override (`0x00971FD1..0x0097200C`). The lazy vertical bar
+`0x00972500` appends its bar to the same Grid's children and assigns
+column 1 at `0x009725B2`, through
+[the Grid column setter](sqwt-number-input-digit-grid.md#control-and-template-grid).
+The default row remains 0. The presenter therefore uses the star
+column and the vertical bar uses the Auto column to its right.
+INFERRED for the relative placement. The first-tab carrier sets
+horizontal mode Disabled and gives no local vertical override.
+
+MEASURED. The first-tab ListBox names `LIB_basis`. Its declared vertical
+part in `common/default.style` is `SCB_basis` (decoded lines 5726 to
+5730). The [style file identity and parts](sqwt-tab-scroll-text-parts.md#identity-and-method)
+cover the same source. It maps the bar's up and down buttons, vertical
+thumb and vertical background at lines 5623 to 5631. The viewer installs
+the ListBox part map at `0x0096D1FF`; its vertical entries at
+`0x012E44F0..0x012E450F` give ListBox-specific style-key and part-name
+pairs. The relative grid and style evidence gives no fixed pixel width
+for the Auto column. Its effective width, exact scissor and pixel gap
+remain UNKNOWN.
 
 ## Panel axis and local stacking requests
 
@@ -249,6 +357,12 @@ ghidra disasm 0x009624EC -n 9 --json
 ghidra disasm 0x00962567 -n 20 --json
 ghidra disasm 0x00961EEF -n 65 --json
 ghidra disasm 0x009B7D00 -n 49 --json
+ghidra disasm 0x0091B7B0 -n 8 --json
+ghidra disasm 0x00970E50 -n 40 --json
+ghidra disasm 0x009C29A0 -n 41 --json
+ghidra disasm 0x009C2C50 -n 19 --json
+ghidra disasm 0x0096D1A1 -n 9 --json
+ghidra disasm 0x00971F1C -n 73 --json
 ghidra disasm 0x00964C82 -n 44 --json
 ghidra disasm 0x009B8660 -n 86 --json
 ghidra disasm 0x009B7FD0 -n 150 --json
