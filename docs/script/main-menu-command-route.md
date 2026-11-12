@@ -32,6 +32,7 @@ such as `main/f76` name the direct children of the chunk root in listing order.
 |---|---|---:|---|
 | `widget/desktopwidget_connector` | `client/script/n1635q/65rzqvun1635q_7vww57qvs.le.lpb` | 213487 | `0f8ca1585bb97c40d36cbf120dd3f6fa6351927c4530e3fad76a71582af95425` |
 | `widget/mainmenuwidget` | `client/script/n1635q/x91wx5wpn1635q.le.lpb` | 19491 | `c0e1782a3ca183fcaa520a16320946f62d3fc861c74978cde19ea20fcd064b0a` |
+| `widget/communitymenuwidget` | `client/script/n1635q/7vxxpw1qlx5wpn1635q.le.lpb` | 1210 | `b64803fdfc9a8be150bc015af58b16a67b0edaa5395854705579dd96ac3adc14` |
 | `widget/widgetbaseclass` | `client/script/n1635q/n1635q89r57y9rr.le.lpb` | 4080 | `aad807a42296e93301582defc8f15e4003b8093af672794282cd54950cc556ad` |
 | `widget/widgetbaseclass_common` | `client/script/n1635q/n1635q89r57y9rr_7vxxvw.le.lpb` | 32996 | `c549f746370366f9827570ee22201516e07a05d91829ca643a2e2ec0c73bcf3c` |
 
@@ -39,6 +40,7 @@ such as `main/f76` name the direct children of the chunk root in listing order.
 |---|---:|---|
 | `widget/desktopwidget_connector` | 213474 | `685a0a6dda2d4ae6fe06a9c684e57efd7e819938e145cb1a4a65df56555bd621` |
 | `widget/mainmenuwidget` | 19478 | `185d856d406d46ba7416444ddc2212b68036f7d56d0ee62148be2567630c90b2` |
+| `widget/communitymenuwidget` | 1197 | `832761807f87d257c46d9fced14243f0c7226e85e34329ec1829cdb1bac384aa` |
 | `widget/widgetbaseclass` | 4067 | `11e5bab509c4dbbd7e2767d35cdf132a59b5c510c32c2e215f83cac713115140` |
 | `widget/widgetbaseclass_common` | 32983 | `7c45426b1a9f168557d84e420c5767c6fdea4abf90b976b276546af4e6a5de5f` |
 
@@ -51,6 +53,8 @@ loads per
 |---|---:|---|---:|---|
 | `client/sqwt/widget/MainMenuWidget.form` | 3798 | `b7da0ae2a409ab4002b9bac5474bfe73fa07d32543a2882d8acdfd7dcd80e431` | 3790 | `dcf22124f067eddcb70acbbbad10a8fceddb0a17c138ba21dd20129d10739a90` |
 | `client/sqwt/widget/MainMenuWidget.tpl` | 13335 | `82a503ee4f4faa7b6b329f4295a1158aa194a1dea530333935093e328902deb2` | 13327 | `c0ba17e8ef7c4710e92590c0c428b6e75c9c7fa7d11ea75332ebed497b0230fb` |
+| `client/sqwt/widget/CommunityMenuWidget.form` | 1334 | `e19720c4c65f1a69ec2d2777d691dc4560c499634606cb93d7d9a4d3d6597786` | 1326 | `708c47bb442d8dd52d903bf15727b1997b91c7b3676bae967d2e1fe88866cea7` |
+| `client/sqwt/common/WINBasisWithTitle.tpl` | 7175 | `636d5dd7dbdb0b9d12b08cea875ee0bde729a1e9de9c1cd58eea2d7f66d06daa` | 7167 | `93c745038827c5608f09f4aeb2b4186c06138f8f7f7d45c0a2a2483faf11f88b` |
 | `client/sqwt/common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` | 353775 | `33bb178c3b172c62eeb65e8bcaf94f701a0ec3921564e27a619516900896d9f6` |
 
 The sheet rows are the `key_config` definition `0x01030169` with data
@@ -387,6 +391,68 @@ handles `UILuaCommands.Activated` by calling
 `init` leaves `work.mainMenuIndex` at -1, so the `Activated` arm sets no focus
 until a selection or a close has stored an index.
 
+## Community menu close
+
+OBSERVED. In `widget/mainmenuwidget` `main/f1`, row 9 calls
+`openMainMenuRootWidget("CommunityMenuWidget", self)` without an extra mode
+argument (PCs 166 to 172). The desktop wrapper's 3 is the root index.
+Connector `openRootWidget` (`main/f535` PCs 4 to 18) refuses when
+`isWidgetExec(3)` is exactly true and otherwise passes 3, the name, nil, the
+parent, true and any extra arguments to `openWidget`. `isWidgetExec`
+(`main/f531` PCs 0 to 8) checks for a nonnil `work.rootWidget` entry. The
+successful `processWidgetCreated` path (`main/f532` PCs 17 to 27) writes the
+created widget into the given root index when the slot is nil.
+
+MEASURED. The standard `widget/CommunityMenuWidget.form` names
+`Window_CommunityMenuWidget` (decoded line 1), merges
+`common/WINBasisWithTitle.tpl` (line 5) and selects
+`ControlTemplate_Window_WINBasisWithTitle` (line 10). The selected template
+names its title `Button_Close` and declares `UILuaCommands.WidgetClose` as
+its Command (decoded line 11). It declares `Focusable=False` and has no local
+CommandTarget, CommandParameter or ClickMode. The separate source-named
+Click trigger has only sound file 1 (lines 71 to 73). The Closing event's
+storyboard has `ApplicationCommands.DestroyWindow` as CompletedCommand
+(lines 31 to 44). It is a separate declaration from the title command.
+
+OBSERVED. Community init (`widget/communitymenuwidget` `main/f0` PCs 3 to 6)
+calls `setCancelCondition()` and `setCloseCondition()`. The inherited
+helpers above subscribe `_widget` to `UILuaCommands.Cancel` and
+`UILuaCommands.WidgetClose` with 5. The
+[subscription gate](../resource/sqwt-command-parameter-consumer.md#subscription-gate)
+identifies the root store and the numeric condition encoding as kind 0 with
+value 5. The title Button's declared command uses the ordinary
+[Button command path](../resource/sqwt-command-parameter-consumer.md#button-mouse-source)
+when eligible and routed to this root. Focus and handler gates still apply.
+
+OBSERVED. Community `processUICommandEvent` (`main/f2` PCs 0 to 13) directly
+compares the command with WidgetClose and Cancel. Either match calls
+`desktopWidget:closeWidgetDirect(self)` with no additional Lua control-name
+or mode test. `widgetbaseclass` `_onUICommandEvent` (`main/f6` PCs 2 to 12)
+sets the thread owner to self before calling that handler. Connector
+`closeWidgetDirect` (`main/f528` PCs 4 to 18) rejects nil and exact-false
+`_isAlive()`, then calls `closeWidgetLocal`. `closeWidgetRecursive`
+(`main/f525` PCs 29 to 52) defers the current thread owner's own `close()`.
+The local caller (`main/f526` PCs 0 to 13) clears that thread owner before
+calling its deferred `close()`.
+
+OBSERVED. `widgetbaseclass_common` `close` (`main/f38` PCs 0 to 6) disables
+input, calls `processClosing()`, then calls `_delete()`. The base
+`processClosing` (`main/f39`) returns immediately and Community has no
+override. The Lua chain requests native deletion directly. The [WidgetBase delete override](https://github.com/XIVLegacy/xivl-client-structs/blob/8a8930c6da61d1ff8b3d442fe169396805394d23/docs/fade-actor-group-native-contract.md#widget-delete-override)
+records the conditional native delete paths. The elapsed time from the
+request to the finalizer and the delivery of any Window Closing event on
+this path remain untraced.
+
+OBSERVED. `widgetbaseclass` `_onFinalize` (`main/f4` PCs 0 to 19) first
+calls the superclass. For a non-Desktop widget whose initialization is
+complete it calls `desktopWidget:processWidgetDeleted(self)`, then
+`processFinalize()`. The common initializer stores the widget index in
+`widgetWork.common.widgetIndex` (`main/f0` PCs 59 to 61) and
+`getWidgetIndex` reads it (`main/f5` PCs 0 to 3). Connector
+`processWidgetDeleted` (`main/f534` PCs 0 to 25) clears the nonnil root
+entry for that index when the cached root is the same widget or its
+`_isAlive()` is not exactly true. A different live root at index 3 survives.
+
 ## Row button style
 
 MEASURED. `common/default.style` declares one `SqwtStyle` named
@@ -423,9 +489,8 @@ The order in which the executable reads the skin slots is in
   selects. The style gives `SkinFocused` no skin and `SkinAnchored` the hover
   skin, and no trace joins either condition to that row.
 - NOT TRACED. Whether a selection that opens a widget leaves the menu shown.
-  The selection arm calls no `hide()`, and `openRootWidget` was not read.
-- NOT TRACED. The writer of `work.widgetEnableFlag[3]` and of
-  `work.rootWidget[3]`.
+  The selection arm calls no `hide()`.
+- NOT TRACED. The writer of `work.widgetEnableFlag[3]`.
 - NOT TRACED. The callers of `forceVisible`, and so whether
   `widgetWork.common.forceHideFlag` is true for static widget 1 when the
   command arrives.
