@@ -228,6 +228,79 @@ The original EquipWidget payload above was decoded with
 `tools/retail_script.py` and disassembled with pinned unluac.
 Rendered timing remains UNKNOWN.
 
+#### Retained equipment controls
+
+The package-1 batch completes on the open EquipWidget. Proto124
+PCs 90-96 call list refresh, mask refresh and `updateEquipItem`
+in that order. `updateEquipItem` proto17 PCs 25-29 rereads head
+slot 9 and calls `setHead`. In the standard form, `Button_Head`
+at line 267 selects `ControlTemplate_Button_EquipIcon`. The
+template declares the base and live icon children and the life
+and item badges on lines 19-24.
+
+`setHead` proto59 PCs 0-29 calls `setEquipSlotIcon` with the live
+icon, equipment icon ID, base icon and base ID 364, then writes the
+Caution, Danger, PolishMAX and Materia badge visibility. The icon
+helper proto53 PCs 0-37 gives the retained controls these states:
+
+| Head slot | Live icon | Base icon |
+| --- | --- | --- |
+| Positive icon | Visible and supplied IconDatas | Hidden |
+| Nil or nonpositive icon | Hidden and IconDatas 0 | IconDatas 364 and Visible |
+
+The inherited visibility helpers (common proto80 and proto82)
+write Visible for exact true, Collapsed otherwise, and Hidden on
+the explicit hidden path. The slot-specific badge writes use
+Visible and Collapsed.
+
+`updateEquipItem` proto17 PCs 92-114 also refreshes detail help
+for the current step. In step 101 with nonzero `focusedSlot`,
+it calls `displaySlotItemHelp(focusedSlot,true)`. Proto112
+PCs 4-30 writes title row 215 and RGB 1/1/1, and the exact-true
+operand admits a fresh item read even when the slot equals the
+last slot. The empty item requests help row 3603 and resets the
+detail flags at PCs 72-89. Separately, `maskSlot` proto83 PCs 0-36
+writes three numeric RGB values, each 0.5 or 1, and, when supplied
+a help row, requests
+`setHelpParameter(control,1,row)`. Common proto152 writes
+`Help.Type` followed by `Help.Value0..3`, substituting numeric zero
+for omitted values. The EquipWidget call sites supply at most
+Value0. Common proto182 formats numeric text IDs through
+`_setTextProperty` and sends a supplied string through `_setProperty`.
+
+These are repeated requests to the existing controls. The checked
+ordinary native stores compare their typed, retained values before
+their changed-value notifications:
+
+| Property family | Equal-value gate |
+| --- | --- |
+| Visibility | `0x009BCBA9..0x009BCBAB` compares the byte and skips the callback at `0x009BCBCD`. |
+| VisualOpacity and RGB | The four indexed Visual setters call `0x0095E7B0 -> 0x00941350`. Equal finite floats take the branch at `0x009413B4` past the callback at `0x009413CF`. |
+| Help.Type and Help.Value0..3 | The attached integer writer `0x0095EAC0 -> 0x009415B0 -> 0x0095E200` skips notification for an equal dword at `0x0095E259`. Changed help metadata can reach the existing help refresh checks at `0x0092DF4E..0x0092E011`. |
+| Text and IconDatas | The ordinary string writer `0x009BA4E0 -> 0x00983FE0` compares length and bytes through `0x00445DB0`. Equal resolved strings take `0x00984022` past the callback at `0x0098405B`. |
+
+Property admission and reference preprocessing precede these comparisons.
+The
+[Visual opacity render lanes](../resource/sqwt-keyframe-target-binding.md#observed-effective-opacity-at-the-selected-skin-quad)
+and
+[IconDatas conversion](../resource/sqwt-icon-control-textures.md)
+describe the downstream consumers.
+
+Inventory-row opacity uses the string branch of the XML row writer.
+`EquipWidget` proto101 PCs 134-146 and proto111 PCs 62-86 pass
+`"0.5"` or `"1.0"` to `setListProperty` for attribute `opacity`.
+`EquipItemListWidget.tpl` line 11 binds it to `Grid_List.VisualOpacity`. The
+[XML maker Action path](https://github.com/XIVLegacy/xivl-client-structs/blob/422a2c832d53c0dff50aa49e66cce92969b8ee71/docs/stub-overload-native-contract.md#sqwtxmldatamaker)
+resets Action after SetAttr or Update, so the same action can run
+again. Redraw with unchanged list counts remains open. The installed SQWT files were decoded
+with their basename Blowfish keys and checked by round trip.
+
+| Client-relative asset | Stored bytes and SHA-256 | Decoded bytes and SHA-256 |
+| --- | --- | --- |
+| `client/sqwt/widget/EquipWidget.form` | 89421, `2010deb69a2792dbe73be410500492c7c508eae2740b9db28f0eb1315d552bb9` | 89413, `4ce68aef535ab53ff1311e5dc109d10b1e90558ae75b914aba2f26691bf00bd8` |
+| `client/sqwt/widget/EquipWidget.tpl` | 4831, `a145e3147c423c771a9e6d8122169fa9316ebd70d0077037fc3fc4fc012ed266` | 4823, `1ca0e91d04372a2a81b7ea6116f52cebcd823d70ef49e3ea2b21745afc2d775b` |
+| `client/sqwt/widget/EquipItemListWidget.tpl` | 15765, `b42d268934e275c3242ec31f879617484a63b47a9a6104055f66a34285ee4a2a` | 15757, `ee6b5688a6cc67f1d623ac25cb91a01de371894df732709b0320483daf562461` |
+
 ## Request and incompatible-class dialog
 
 `itemUICommandSelection` (`:1464-1494`) rejects a focus beyond the filtered
