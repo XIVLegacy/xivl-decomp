@@ -514,6 +514,52 @@ and arbitrary native/inlined readers of the selected-title field were not
 exhaustively attributed. No runtime update timing, server award validation,
 rejection response or persistence behavior is established by these static paths.
 
+### StatusWidget player header
+
+The StatusWidget carrier `n1635q/rq9qprn1635q.le.lpb` is 36435
+bytes with SHA-256
+`2809eaf420ced30da99c28786a2fe5ab798050b9d654103cba7b3059926016d4`.
+Its decoded chunk SHA-256 is
+`9668b0bc032dfcacc3f19f285bb5bd5673ad72c3da8d0fc68e893d087b27bb90`.
+In zero-based PCs, `root/proto3` PCs 35-39 forward the current
+player's `_getAchievementTitle` result to `previewAchievementTitle`.
+That method, `root/proto84` at decoded offset `0x8D92`, uses PCs
+1-5 to set `TextBlock_PlayerName` from row 12034 with one supplied
+integer, the selected title ID.
+
+English `xtx/_text_ui` definition `0x0B450082` selects logical
+text column 1. Row 12034 occupies `[70691,70833)` of data resource
+`0x0B4502B5` (71588 bytes, SHA-256
+`f99e738cf8762e0831f9675f37ddfea7b6072d475b3d4b0c9edeadb67bb013e0`).
+The decoded cell SHA-256 is
+`1091d6a9257d000b0c4a896de784525432080346f4ff2c8ce7d27fb4800e26eb`.
+Its sole top-level token is conditional `0x08`, with a 134-byte
+payload and condition `0xE8` index 1. The formatter evaluates the
+selected arm and skips the other by width.
+[Conditional token and string expression](../resource/rich-string-entry-counts.md).
+
+A zero title selects one `0x29` over `0xEB` index 1 and displays
+the local player name. A nonzero title uses the same name and reads
+`xtx/title` at the supplied ID. Global integer `0xE9` index 4
+selects field 4 when nonzero and field 3 when zero. Boolean field 5
+places the name and line break before
+the title when false, and after the title when true.
+[Named-sheet handler](../resource/rich-text-sheet-and-case-handlers.md#rt-03-handler-0x28-named-sheet-text),
+[line break](../resource/logcontrol-line-format.md#code-0x10).
+
+The `MyPlayer` call at `0x006F362A -> 0x0076A750` writes
+the string from name structure `+4` to global deque element 0
+at `0x0076A77A`. It writes the zero-extended byte from `+0x58`
+to element 3 at `0x0076A797`. The row addresses those cells with
+one-based operands. The initialization source of the local name
+structure's `+0x58` byte remains open.
+[Global element producer](../resource/battle-log-line-path.md#bl-07-global-context-elements).
+
+Reproduce the caller with the pinned LPB tools above. Decode the
+selected sheet cell with the `xivl-tools` sheet and rich-string
+readers. The call sites and operands are STATIC from the installed
+resources and x86-32 disassembly of the identified executable.
+
 ## Reproduction
 
 Verify the executable hash and map each VA using the PE image base and section
