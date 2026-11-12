@@ -451,6 +451,68 @@ Decode with `tools/retail_script.py` and walk the zero-based instructions
 with `tools/build_quest_contracts.py:ChunkReader`. Recheck the listed native
 VAs in the pinned PE with Ghidra 12.1.4 and LLVM 21.0.0 disassembly.
 
+### Initial KO pose and publication
+
+STATIC. The first admitted scene selection from committed sentinel `0xFF`
+uses the desired byte and enters posture phase/subphase 1/1
+(`0x007C0ECB..0x007C0EEC`). Desired decimal 11 is the explicit
+exception and first selects 0. Desired `0xFF` with the same committed
+sentinel fails the inequality in `0x007A7220`. An admitted unequal byte
+passes through the selection store. Actual installation still depends
+on the selected state's table entry.
+
+Posture phase 1 dispatches to `0x007BC110` at `0x007C1961`.
+Its complete body reads selected and never samples desired
+`S+0x5AA`. A newer desired value can select the initial state only
+if it reaches the state object before that phase-0 selection.
+A subsequent desired write while phase 1 runs leaves the initial
+request and commit on the latched selected value. After that commit
+and the phase reset, the separate phase-0 arm for committed 1 or 3
+can handle an admitted difference (`0x007C18CB..0x007C18F1`).
+
+For initial selected 1 or 3, posture phase 1 visits `0x007BC110`.
+Subphase 1 uses the owner sentinel or the two helper checks at
+`0x007BC3B7..0x007BC3E1`. Tables `0x007BC55C/0x007BC538` select
+`0x00665140(0,1)` for 1 and `0x00665140(1,1)` for 3. A nonzero
+request result calls `0x0065B140` and sets mask `0x400`.
+Subphase 5 waits for that mask to clear and calls the installer
+`0x007AC5A0(1)` at `0x007BC241`. Both selected values use the
+installer's default table entry `0x007AC737`. The caller then uses
+the following direct motion requests.
+
+| Selected | Request order | Locators |
+| ---: | --- | --- |
+| 1 | `cbnm_dedpose` | `0x007BC316..0x007BC342` |
+| 3 | `cbbm_dedpose`, then `cbnm_dedpose` only for a zero first token | `0x007BC2AC..0x007BC30E` |
+
+Each name goes to `0x007B8D40` on owner `+0x438` and
+`0x007B9920` on owner `+0x4C0`. The request token in AL is saved
+at `S+0x5B0`. The field row has one explicit named request. The
+[shared motion lookup](../resource/motion-resource-request.md#entry-and-mcb-availability)
+can still rewrite a `cbnm` name internally. The
+[installed bank pairs](locomotion-bank-census.md#ko-pose-entries)
+provide both named poses for the standard player models.
+
+The shared tail requests `cbnm_id0` through `0x007B8D40` at
+`0x007BC355` and writes death phase 6 for visual category 1 or
+phase 8 for other categories at `0x007BC35C..0x007BC36D`.
+The [base model split](appearance-path-decoder.md#base-model-split)
+gives ordinary player model numbers such as 3 category 0.
+The tail sets readiness bit `0x2000` and enters posture subphase 6.
+The checked initial route therefore skips the phase-1 SCB search used
+by the fall from a known prior state.
+
+On the next admitted subphase 6, `0x007BC144` calls `0x007BA850`.
+That helper commits selected at `0x007BAC5A`, posts local `0x53` at
+`0x007BAC60` and then local `0x54` at `0x007BAC6F`.
+The first received state can already have committed at the element
+when element `+0xF0=-1` (`0x00588BC5..0x00588BCB`).
+The later `0x54` consumer compares old and new before storing and
+only calls back on change (`0x0058E3B1..0x0058E3D0`).
+For the same retained actor and value this suppresses a duplicate
+callback. Pose request success, publication delivery and painted timing
+remain conditional.
+
 ### KO pose request
 
 STATIC. The state update `0x007C2B90` calls the transition at `0x007C2BCD`
