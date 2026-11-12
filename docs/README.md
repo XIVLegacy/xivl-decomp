@@ -271,6 +271,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt NumberInputBox integer range](resource/sqwt-number-input-box.md)
 - [Sqwt NumberInputBox digit grid and assets](resource/sqwt-number-input-digit-grid.md)
 - [Sqwt NumberInputBox button frames](resource/sqwt-number-input-button-frames.md)
+- [Sqwt NumberInputBox row measurement](resource/sqwt-number-input-row-measure.md)
+- [Sqwt NumberInputBox pointer edit](resource/sqwt-number-input-pointer-edit.md)
 - [Sqwt DoubleAnimation clock and capture](resource/sqwt-double-animation-clock.md) -
   Bounded nonrepeat timer input, current-property capture and ordering limits.
 - [Sqwt DoubleAnimation Velocity](resource/sqwt-double-animation-velocity.md) -
