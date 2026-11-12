@@ -193,8 +193,10 @@ focused widget equals the receiver before requesting textbox focus.
 `DesktopWidget.processInputWordAnalyze` and requests `setDeactiveBatch`
 for either empty or nonempty input.
 
-STATIC. TextBox KeyDown cell `0x0106ED24` selects `0x0097A380`, which calls
-`0x0091F440` before its raw Return handling. The latter visits the element's
+STATIC. On the conditional RaptureTextBox construction path for
+`TextBox_ChatInput`, interface KeyDown cell `0x00FC1504` selects
+`0x0066BB40`. After the completion-state branch it calls `0x0097A380`
+at `0x0066BCD9`, which calls `0x0091F440` before its raw Return handling. The latter visits the element's
 own binding collection at `0x0091F4A5`. A successful ordinary KeyGesture
 execution with unchanged collection serial reaches slot 9 at
 `0x0092126D`. Table cell `0x00FC5AC8` selects `0x005584F0`, whose write at
@@ -229,6 +231,55 @@ submit on the focused chat input. `LogControlPressKey` has the separate
 [CommonAskWidget trigger](../resource/logcontrol-key-wait.md#input-that-raises-the-press-commands).
 The active modal and input recipient when both surfaces are visible, and
 live dispatch under an overridden profile, remain UNKNOWN.
+
+### Chat activation
+
+STATIC. Initializer `0x00F0DB50` constructs the RoutedCommand at
+`0x01339AD8` from the `RaptureCommands.Chat` string at `0x00FA8044`
+(`0x00F0DB79..0x00F0DB99`, Ghidra and LLVM objdump). The standard
+`client/sqwt/common/Desktop.form` includes it in the root's
+`ConsumedCommand`. `Desktop.tpl` lines 19 to 20 declare a matching
+sound action with file number 2. The form and template SHA-256 values are
+`c1c55278e57ea5cd557bc14e26fb751ab2bd1d77d637f5e250bd46529186a24e` and
+`4fa48cf4a82e7804b34b7664aa28e8fb11884a4ae1b7be234027e95775dcc7ee`.
+
+OBSERVED. Desktop connector `init` `main/f0` PCs 343 to 345 registers
+`RaptureCommands.Chat` through `setUICommandCondition`. The shared
+`main/f54` requests `_widget` and priority 5. Desktop `main/f142` PCs 14 to
+29 creates primary `LogWidget` at static slot 2 with init operand 1, and
+`LogWidget2` at slot 3 with init operand 2.
+
+`processUICommandEvent` `main/f62` PCs 0 to 20 require `work.mode > 1`,
+nil current keyboard-focused widget for this command, and sender
+`_widget`. The `RaptureCommands.Chat` arm at PCs 55 to 85 then requires
+`isShow()` and `getInputEnable()` each equal to true on static slot 2.
+It sends `Log.FadeIn` to slot 3, requests `changeFocusedWidget` on slot 2
+with false as the show operand, then calls `setKeyboardFocusToChatControl`
+on slot 2. This arm neither reads nor updates `chatMode` or
+`temporaryChatMode`. Their initialization at `LogWidget.init` `main/f1`
+PCs 122 to 125 is separate.
+
+Desktop `changeFocusedWidget` `main/f122` PCs 0 to 35 checks the actor,
+enables input on the non-Desktop widget and requests widget focus if it
+is not already current. The false show operand skips its show arm.
+[Native focus admission](../resource/sqwt-command-parameter-consumer.md#conditional-actionmenu-focus-request)
+records the native refusal conditions. `LogWidget` `main/f6` forwards the
+next request to `setKeyboardFocusToChatInput`, whose `main/f26` PCs 0 to
+10 require the current focused widget to compare equal to itself before
+requesting `TextBox_ChatInput` focus. The caller discards both focus
+results.
+
+`RaptureCommands.Chat` with int 0, the default Space binding, makes no
+text write or prefill on this arm. The standard textbox declares no
+`Text` attribute. Normal submission or cancellation calls
+`setDeactiveBatch`, whose `main/f32` PCs 14 to 27 clear textbox text,
+hide the chat menu, reset history indices and cancel focus. This explains
+opening a cleared editor without a leading space. Int 191, the default
+slash binding, alone requests append of `/` (`main/f62` PCs 80 to 85).
+`appendStringForChatControl` `main/f7` PCs 0 to 24 rechecks widget focus,
+appends to the existing text, and sends `ApplicationCommands.ImeOff`
+for this literal. This establishes the prefill after focus admission.
+`RaptureCommands.Chat2` and the channel shortcuts have separate arms.
 
 ## Desktop branch
 
