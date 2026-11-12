@@ -31,8 +31,7 @@ motion name, for example `cbnm_id0`. An entry is an MTB when it starts with
 [container framing](../resource/mtb-container-framing.md) and the
 [motion blob](../resource/mtb-fixed-motion-calculator.md) layouts. A key frame
 is `32*group + field` (bits 43 to 47 of the 48-bit key) for kinds 0 and 1 and
-`255*segment + frame byte` for kinds 4 to 9. No resource bytes or hashes are
-recorded here. Byte equality between entries is stated as equal or not equal.
+`255*segment + frame byte` for kinds 4 to 9. Selected resource hashes identify entries in the KO pose section.
 
 ## Bank directory shape
 
@@ -129,6 +128,34 @@ time. The census does not test that tie against the clip data.
 `cbbm_abls_2lp` 80, `cbbm_abls_3_can` 52, `cbbm_ded` 155, `cbbm_dmg_brace` 10,
 `cbbm_dmgm_{b,f,l,r}` 30 each, `cbbm_dodge_f` 80, `cbbm_pb02_dmg` 30 and
 `cbbm_wekid_2lp` 100. It has no walk or run clip.
+
+## KO pose entries
+
+MEASURED. The retail `client/chara/pc/<model>/act/emp_emp/bid/base/0000`
+banks below contain the normal and battle KO pose requests selected by the
+[native updater](locomotion-selection.md#ko-pose-request). Ordinals are
+zero-based in the PWIB directory described above.
+
+| Model | Bank bytes | Bank SHA-256 |
+|---|---:|---|
+| `c001` | 702992 | `2ce7ec3844054c2ec89a21079c2820bdab588398128400c8aebab63456b3495c` |
+| `c009` | 697488 | `0d09b8e5398c1003a064404b059c056f120e88d703341b9dce1467750ce8a727` |
+
+| Motion name | MTB ordinal | MCB ordinal |
+|---|---:|---:|
+| `cbbm_dedpose` | 38 | 39 |
+| `cbnm_dedpose` | 113 | 114 |
+
+All four MTB payloads are 4077 bytes and byte-identical. Their SHA-256 is
+`df797264833aaf1ff68e633febcd5a1920d2ff9c632fa4d80cb12b3384a079ed`.
+The MCBs at ordinals 39 and 114 differ within each bank. Neither bank
+contains an SCB named `dead1`, `dead2` or `dead`. The same directory read
+on `client/chara/pc/c001/act/clb_sld/bid/base/0001` does find `dead` at
+ordinal 78, size 1568, SHA-256
+`d21af3e8d0e785679bcb08c31c3fa65fb4863939d227760d7d1c45c35807161a`.
+The latter bank is 411472 bytes, SHA-256
+`52a366e7bb4eb4667cdbfd1dca3c2d0b839046e3ac956e3746e90756c68429c0`.
+The directory facts leave active root order and scheduler admission open.
 
 ## The walk and run set outside `emp_emp`
 

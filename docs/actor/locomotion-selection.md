@@ -24,8 +24,7 @@ Executable: retail FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
 Producing tools are `ghidra` CLI decompile and cross-reference queries plus
 Capstone 5.0.7 x86-32 disassembly and raw reads of the PE image for jump
 tables, string tables and constants. Install facts come from the
-[bank census](locomotion-bank-census.md) and are not restated here. No resource
-bytes or hashes are recorded. No live session was observed. The producer joins also use Ghidra CLI 0.2.2,
+[bank census](locomotion-bank-census.md). No live session was observed. The producer joins also use Ghidra CLI 0.2.2,
 LLVM objdump 21.0.0 and original PE section-backed instruction and data checks.
 
 Roles used below. `C` is the CharaActor. `H = C+0xBF0` is the movement helper
@@ -451,6 +450,57 @@ The original LPBs and decoded payloads matched their entries in the
 Decode with `tools/retail_script.py` and walk the zero-based instructions
 with `tools/build_quest_contracts.py:ChunkReader`. Recheck the listed native
 VAs in the pinned PE with Ghidra 12.1.4 and LLVM 21.0.0 disassembly.
+
+### KO pose request
+
+STATIC. The state update `0x007C2B90` calls the transition at `0x007C2BCD`
+and the death updater at `0x007C2C27` on the same S. In the admitted
+phase-0 transition, committed field 0 with desired 1 or 3 clears
+`S+0x5B4` mask `0x4000` at `0x007C0F69..0x007C0F6F`. The battle 2 arm
+for desired 1 or 3 sets the mask at `0x007C11D7..0x007C11DD`. Both arms
+copy desired to selected and committed before `0x007AC7F0` sets death
+phase 1. The mask therefore preserves the distinction between these two
+prior states for the later pose request.
+
+In phase 1, the admitted `0x54` publication at `0x007BAF26` precedes a
+same-owner resource search. `0x007BAEE7..0x007BAF0F` pairs `dead1`,
+`dead2`, `dead` with phases 2, 3, 4. Owner virtual `+0x10` receives type
+`0x736362` (SCB) and each name at `0x007BAF7A`. For a nonnull resource,
+nonnull service from owner `+0x114` slot `+0x08`, and nonnull owner
+`+0x12F0`, the scheduling path supplies owner `+0xDC` as both caster and
+target. A nonnull result from the call at `0x007BB068` is retained in
+`S+0x348/0x34C/0x350` and chooses the corresponding phase. All misses set
+phase 5 at `0x007BB0A4` for a later update. The early scheduler phases can
+also reach 5 through their progression checks or the timer expiry at
+`0x007BAE3D..0x007BAE81`. The [scheduler evidence](ifrit-nail-action-banks.md#native-death-scheduler-route)
+records the three SCB names separately from the pose resources below.
+
+Phase 5 clears the retained scheduler pointers and skips pose and
+publication when desired `S+0x5AA` is neither 1 nor 3
+(`0x007BB430..0x007BB463`). Otherwise `0x007BB4EE` tests mask `0x4000`.
+The set arm requests `cbbm_dedpose` first, and the clear arm requests
+`cbnm_dedpose` first. Each path calls `0x007B9030` on owner `+0x438`
+and `0x007B9920` on owner `+0x4C0` with the chosen name. The first
+call sites are `0x007BB4FF/0x007BB516` for battle and
+`0x007BB568/0x007BB57F` for field. A zero AL from `0x007B9920` allows
+the opposite name at `0x007BB552/0x007BB5CE` for battle or
+`0x007BB5B7/0x007BB5CE` for field. The updater stores zero-extended AL
+in `S+0x5B0` at `0x007BB520`, `0x007BB589` or `0x007BB5D6`.
+Both paths then pass selected `S+0x5A8` to `0x0065BBC0` at `0x007BB5E6`.
+That routine posts one byte with selector `0x53` at `0x0065BBEE..0x0065BBF0`,
+separate from the earlier `0x54` main-state change callback.
+
+The [motion request](../resource/motion-resource-request.md#entry-and-mcb-availability)
+can retry a `cbnm` name with byte 2 changed to `b` during MCB lookup.
+Its [returned AL](../resource/motion-resource-request.md#request-assembly)
+is a request token under its admission guards. The caller's test does
+not prove playback. The [installed pose entries](locomotion-bank-census.md#ko-pose-entries)
+identify player motion assets without establishing the active resource
+root order or live pose timing. Reproduce the call order, dispatch and
+literals in the pinned PE using Ghidra and LLVM disassembly. The death
+phase table is at `0x007BB71C`, the scheduler literals are at
+`0x00FE73B8..0x00FE73C8`, and the pose literals are at
+`0x00FE73E0..0x00FE7450`.
 
 ### Installation readiness callback
 
