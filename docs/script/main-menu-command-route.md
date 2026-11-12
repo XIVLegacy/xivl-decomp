@@ -260,8 +260,9 @@ on slot 2. This arm neither reads nor updates `chatMode` or
 PCs 122 to 125 is separate.
 
 Desktop `changeFocusedWidget` `main/f122` PCs 0 to 35 checks the actor,
-enables input on the non-Desktop widget and requests widget focus if it
-is not already current. The false show operand skips its show arm.
+enables input on the non-Desktop widget and requests widget focus when
+the current widget differs. `checkActor` `main/f6` PCs 0 to 8 rejects a
+nil actor or `_isAlive()` equal to false. The false show operand skips its show arm.
 [Native focus admission](../resource/sqwt-command-parameter-consumer.md#conditional-actionmenu-focus-request)
 records the native refusal conditions. `LogWidget` `main/f6` forwards the
 next request to `setKeyboardFocusToChatInput`, whose `main/f26` PCs 0 to
@@ -273,13 +274,31 @@ results.
 text write or prefill on this arm. The standard textbox declares no
 `Text` attribute. Normal submission or cancellation calls
 `setDeactiveBatch`, whose `main/f32` PCs 14 to 27 clear textbox text,
-hide the chat menu, reset history indices and cancel focus. This explains
-opening a cleared editor without a leading space. Int 191, the default
-slash binding, alone requests append of `/` (`main/f62` PCs 80 to 85).
+hide the chat menu, reset history indices and cancel focus. Int 191, the
+default slash binding, alone requests append of `/` (`main/f62` PCs 80 to 85).
 `appendStringForChatControl` `main/f7` PCs 0 to 24 rechecks widget focus,
 appends to the existing text, and sends `ApplicationCommands.ImeOff`
 for this literal. This establishes the prefill after focus admission.
 `RaptureCommands.Chat2` and the channel shortcuts have separate arms.
+
+STATIC. On an admitted textbox focus change, `IsKeyboardFocusWithin`
+callback case 5 invokes complete receiver slot `+0x64` at `0x0093B92F`.
+RaptureTextBox table cell `0x00FC15F8` selects `0x00959CE0`, which calls
+`0x0097A480` at `0x00959CE8`. It passes the focus holder's value bit to
+`0x0091B580` at `0x0097A4EF`, storing the byte at `0x01356F31`.
+The keyboard worker samples this byte before and after routing KeyDown
+(`0x00553027`, `0x0055307B`). On a `0 -> 0` or `0 -> 1` transition it
+retains the record's second dword at keyboard `+0x27C`
+(`0x00553084..0x0055309A`). The text branch discards a later matching
+second dword and clears the retained value, with an exception for `0x2F`
+(`0x00552F11..0x00552F30`). Thus an admitted Space opener can suppress its
+paired text record. Delivery of unmatched text records is a separate path.
+
+The slash row's column 2 value 1 selects generator arm `0x0054FA94`
+through table cell `0x00551EE0`. It emits a `CharBinding` with `/` as the
+`Char` (`0x0054FABA..0x0054FAE6`), which takes the text event route. The
+keyboard/text branches establish conditional record processing. Physical
+record pairing and a live focus transfer remain unobserved.
 
 ## Desktop branch
 
