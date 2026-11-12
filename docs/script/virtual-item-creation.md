@@ -80,6 +80,66 @@ often it was polled, the cost per catalog entry, or when a window became
 visible. Short operating-system thread waits and fast completed file reads
 do not by themselves exclude time spent awaiting these client states.
 
+## Catalog maximum stack
+
+STATIC. Standard callback `0x00708E60` calls the shared creation body
+`0x00702A20` at `0x00708EB8` with flag 0. Extended callback
+`0x00708F00` calls the same body at `0x00708F58` with flag 1.
+The checker stores this byte at `+0x20` at `0x006E04DA` and uses it
+for the returned control branch after the first-stage query. Both
+forms construct the same ItemBuilder at `0x00702C99`.
+The integer read from argument 0 at `0x00702A7F..0x00702A86`
+is passed by address to `0x006EF490 -> 0x006DF580` and stored
+at Item `+0x24` by `0x006DF5DD..0x006DF5DF`. Argument 1, or 1
+for its Nil case, goes to the independent stack count at `+0x18`.
+Argument 2 goes to `+0x20` on this builder path.
+
+The checker gives the builder to ItemSheetLoadRequestSimple at
+`0x006E04F5..0x006E04FB`. Request vtable `0x00FD5580` slot `+8`
+selects `0x007143E0`, which returns the pointer retained at request
+`+8`. The first-stage query passes that pointer to `0x006DFB50`
+at `0x006E2D67`. The original image pointer at `0x012BFB5C`
+selects `_item` at `0x00FD4A10`. The loader supplies that name
+to the sheet interface at `0x006DFBB8..0x006DFBD4` and passes
+Item `+0x24` to row lookup at `0x006DFBFC..0x006DFC05`.
+Null, unavailable and unresolved sheet/row paths return before
+the copy below.
+
+On the admitted row branch `0x006DFD18..0x006DFD29` requests
+zero-based column 1 through integer reader `0x0078E320` and stores
+its dword at temporary data `+0x54`. The copy call at `0x006DFD84`
+uses `0x006DF7E0`, whose `0x006DF7F5..0x006DF7F8` writes the
+same dword into the static data subobject at Item `+0x28`.
+The destination is Item `+0x7C`. A separate optional column 4
+uses static data `+0x58` and does not override the maximum.
+The loader copies this data before requesting the item script.
+The [item query contract](https://github.com/XIVLegacy/xivl-client-structs/blob/8a8930c6da61d1ff8b3d442fe169396805394d23/docs/item-native-contract.md#stack-and-rare-queries)
+reads the stored dword as an int in `_getMaxStack` and returns
+an unsigned greater-than-1 test in `_isStackable`. An unresolved
+row does not supply a default catalog maximum through this branch.
+
+MEASURED. Run the [sheet CSV export](https://github.com/XIVLegacy/xivl-tools/blob/604210657f4858fb69744a3a92c90f3369040057/docs/cli.md#export-sheets)
+against the 1.23b install. The complete `_item.csv` and
+`xtx_itemName.csv` outputs match the byte lengths and SHA-256
+values in the
+[published table manifest](https://github.com/XIVLegacy/xivl-client-data/blob/e34b3da2cfa4bd023f029eae9af31413ab63dbe8/manifests/tables.json).
+Each has one row with ID 3011502. `_item.csv` has four data columns
+and gives signed dword 99 in column 1. The same-ID
+`xtx_itemName.csv` column 5 is Salted Butter.
+
+STATIC. The Buy LPB's catalog-row branch (`main/f21` PCs 22-37)
+creates the virtual item, then reads `_isStackable` and `_countStack`
+from it. `charabaseclass_event` `main/f8` PCs 0-4 supplies the
+catalog and constants 1 and 1 to the extended native. The Buy
+branch forwards the resulting Boolean and count to
+`desktopwidget_itemdetail` `main/f0` at Buy PC 147. The selected
+stackable arm at PCs 237-256 writes row `stackable=1`, the
+separate `stackCount`, and `stackMax` from `_getMaxStack`.
+The [quantity panel](../resource/sqwt-number-input-pointer-edit.md#shopeditwidget-mode-12)
+uses those row fields to request the visible numeric input and
+its bounded range. The row's price, available money, callback
+admission and live visibility remain separate conditions.
+
 ## First-stage sheet-loader state
 
 Fresh read-only runs `shop-predicate-dependencies-20261001-01` and
