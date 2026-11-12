@@ -129,8 +129,10 @@ The constructor also assigns Slider.MaximizeValue and Slider.MinimizeValue to tw
 In the text editor's ApplicationCommands.Operate branch at
 0x0069C622..0x0069C687 (command 0x01357C88 from 0x00F2149C), the handler
 calls the same integer converter 0x00988A30 and then typed Value setter
-0x00967090. The keyboard-to-editor focus sequence, full bindings,
-pointer geometry, skin drawing and sound playback were not traced.
+0x00967090. The [Button Frame route](sqwt-number-input-button-frames.md)
+covers skin drawing and point geometry. The [pointer edit route](sqwt-number-input-pointer-edit.md)
+covers a conditional gesture and its Lua command. The keyboard-to-editor
+focus sequence and sound playback remain unverified.
 
 The [EventItemSelectWidget script contract](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/event-item-select-widget-contract.md)
 covers the script writes to Minimum, Maximum and Value and consumption of

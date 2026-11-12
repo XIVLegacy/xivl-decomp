@@ -127,7 +127,9 @@ significant places. The routed RepeatButton MouseDown handler at
 0x0069CCA0 also stores the selected digit and calls 0x0069CBA0, which calls
 0x0069CA50 on the places from ones through the selection at 0x0069CBEC.
 The handler is registered for both arrows at 0x0069DE78..0x0069DE95 with
-descriptor 0x0135942C. Physical pointer ingress remains unverified.
+descriptor 0x0135942C. Live pointer ingress remains unverified.
+The [pointer edit route](sqwt-number-input-pointer-edit.md) follows the
+conditional mouse producer through this handler and the value command.
 The stock hand-in uses nonnegative bounds. Negative display and
 overflow parity are outside this slice.
 
@@ -207,3 +209,6 @@ minimum and paint overhang of the 20x20 source cells. Slot-34
 `0x00936DB0` supplies the independent Background brush route. Runtime
 opacity, native first-frame pixels and output at non-unit scale remain
 unverified.
+
+The [item row measurement](sqwt-number-input-row-measure.md) follows the
+digit's spanning desired height through the outer Grid and item stack.
