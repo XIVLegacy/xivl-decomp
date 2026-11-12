@@ -371,6 +371,87 @@ Subphase 6 waits for bit `0x2000`, calls `0x007BA850` at
 returns through the dispatch epilogue after its current subphase.
 Advancing the byte alone does not execute the next subphase there.
 
+### Player KO movement and committed callback
+
+STATIC. The shared clientbound dispatcher resolves `0x0134` through the
+wrapped sub-event's normalized source actor key, then calls the current
+CharaElement's slot 9. The state arm keeps only the low byte of wrapped
+record `+0x10`. `0x00588BA0` stores it at element `+0xF4` and posts scene
+records `0x39` and `0x3A`. With initialized element `+0xF0`, incoming
+1 or 3 skips the immediate `+0xF0` write and callback
+(`0x00588BE0..0x00588BF8`). Initial `+0xF0=-1` takes the direct write
+and callback at `0x00588BC5..0x00588BCB` even for those states. Other
+incoming values take the ordinary direct write and callback. These are
+separate from the later scene-to-element publication.
+[Receive ownership and admission](../net/combat-result-element.md#element-resolution)
+
+In the selected local movement lane, `0x007AFD90` calls `0x007AA710` at
+`0x007AFE8A`. The latter rejects movement when `0x007A3EA0` returns 1
+(`0x007AA7AB..0x007AA7B2`). That predicate returns 1 for either desired
+`S+0x5AA` or committed `S+0x5A9` state 1 or 3, or a nonzero death-phase
+byte `S+0x5AC`. In the inspected branch the caller clears its permission
+byte and writes requested locomotion level `H+0x1A0=0`
+(`0x007AFEBF..0x007AFEE9`). This is a movement gate. The incoming
+packet or HP alone does not establish the time of a Lua KO callback.
+
+The phase-0 field state 0 and battle state 2 arms commit desired 1 or 3
+as selected and committed scene state, then call `0x007AC7F0`
+(`0x007C0F69..0x007C0F83`, `0x007C11D7..0x007C11F1`). That helper
+requests movement level zero through `0x007AB150` at `0x007AC88F` and
+writes death phase 1 at `0x007AC8C9`. Its dedicated update `0x007BADE0`
+can publish the selected byte at `0x007BAF26 -> 0x0065BC00`, guarded by
+the owner sentinel or both helper results at `0x007BAEB1..0x007BAEDD`.
+
+`0x0065BC00` sends one byte with local selector `0x54` at `0x0065BC29..0x0065BC2E`.
+For the same actor key, local transport reaches CharaElement slot 8
+and its `0x54` arm. The consumer sign-extends the byte, writes element
+`+0xF0`, and calls `0x00575260(new, old)` on change
+(`0x0058E3B1..0x0058E3D0`). The LuaActorImpl table `0x00FDFB2C` slot
+`+0x150` gives `0x0075D9B0`, which dispatches through `0x008A2E30` and
+CharaBase control slot `+0x88`. The MyPlayer table `0x00FD785C` gives
+`0x00704820`, which calls `0x006FA840` at `0x00704835`. The firer builds
+two integer cells, new then old, and invokes `_onChangeActorMainStat`
+on that control (`0x006FA8EB`, `0x006FA904`, `0x006FA938`).
+[Local envelope transport](../net/ferry-scene-notice-producer.md#native-result-producers-and-local-transport)
+
+In the installed Lua, `CharaBaseClass._onChangeActorMainStat`
+(`charabaseclass.lua` root/proto32 PCs 2-24) updates the nameplate and
+forwards the receiver, new and old to the desktop. `isDead` reads
+`_getActorMainStat` and compares against 1 and 3
+(`charabaseclass_cliprog.lua` root/proto17 PCs 0-8). The desktop callback
+(`desktopwidget_connector.lua` root/proto81 PCs 16-57, 66-75) checks the
+local player and `isDead`. The dead arm requests lock-on clear, sub-target
+cancel, cursor 1 target clear, `updateActionMenuWidget(false,false)` and
+`stopCastGauge` on `ActionGaugeWidget` under static widget 7. It then
+requests `worldMaster.notify` with provider `worldMaster` and row 25005
+when the current area reports `isInstanceRaid()==false`. The self branch
+also requests a main-menu refresh. The `worldMaster.csv` English row
+describes Return followed by revival at the registered destination.
+[Published table identity](https://github.com/XIVLegacy/xivl-client-data/blob/e34b3da2cfa4bd023f029eae9af31413ab63dbe8/manifests/tables.json)
+
+On the ordinary MainMenu path, `getButtonMask` skips occupancy and recast
+checks for Return when `isDead` is true (`mainmenuwidget.lua` root/proto10
+PCs 45-67). Row 15 calls `executePlayerReturn`, which forwards only command
+24220 after the receiver (`desktopwidget_connector.lua` root/proto318
+PCs 0-3). With the destination operand nil, `TeleportCommand.canFire`
+accepts a result other than true from `isLiving` before reading recast
+(`teleportcommand.lua` root/proto0 PCs 9-22). For a live script instance
+with game parameters, the original `isLiving` instructions read `getHP`
+and require HP greater than zero (`charabaseclass_battle.lua` root/proto0
+PCs 0-14). `hasGameParameter` reads `charaWork.gameParameter`
+(`charabaseclass_cliprog.lua` root/proto0 PCs 0-2). This separates the
+HP-based Return and ConfirmRaise eligibility from the main-state movement
+and cleanup gates. Incoming offer publication, completed revival, and
+movement resumption on a live server remain unobserved by this trace.
+[MainMenu row route](../script/main-menu-command-route.md#rows)
+[ConfirmRaise reply contract](https://github.com/XIVLegacy/xivl-client-scripts/blob/853cb52599a720ca86e2c176a408eefe191d8a8d/docs/confirm-prompt-client-contracts.md#eligibility-and-expiry-boundary)
+
+The original LPBs and decoded payloads matched their entries in the
+[Lua manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/853cb52599a720ca86e2c176a408eefe191d8a8d/manifests/retail_lua_coverage.json).
+Decode with `tools/retail_script.py` and walk the zero-based instructions
+with `tools/build_quest_contracts.py:ChunkReader`. Recheck the listed native
+VAs in the pinned PE with Ghidra 12.1.4 and LLVM 21.0.0 disassembly.
+
 ### Installation readiness callback
 
 Installation binds callback `0x007A3D80` to the exact S at
