@@ -313,6 +313,90 @@ value that is forced to false when
 `updateMainMenuCommand` and through it `updateButtonMask` (`main/f15` PCs 23 to
 24 and `main/f13`). The rows are therefore re-masked on each show.
 
+### Return countdown
+
+OBSERVED. The sixth mask in `getButtonMask`, main/f10 PCs 44-74,
+starts as the first mask. When that mask is exactly true and
+`isDead()` returns exactly false, occupancy exactly true disables Return.
+Otherwise the positive recast check runs only when the formal argument
+is exactly true. This branch has no area or inn query. Main/f8
+PCs 104-109 stores the sixth result as row 15 `MainEnable`.
+
+Main/f11 PCs 0-11 reads `getWarpRecastTime()` and forces zero when
+`isDead()` returns exactly true. The player method, main/f67 PCs 0-9
+of `chara/player/playerbaseclass`, clamps the native deadline minus
+[server time in whole seconds](../actor/cast-timing-clock.md#native-clock-model)
+at zero. On a positive result, main/f11 PCs 12-35 write
+`FValue0` equal to that result, `FValue1=0`, `IValue0=1` and
+`TimerVisibility=Visible`, in that order, to `MainMenu` row 15.
+The other arm writes only `TimerVisibility=Collapsed`.
+Both call `updateListProperty("MainMenu")` at PCs 43-45.
+
+MEASURED. In the standard template, `Label_Timer` contains a grid with
+`IconControl_Timer` (icon 111) and `CustomControl_TimerLabel`.
+The latter declares type `TimerTextBlock`. One-way XPath bindings
+take `@TimerVisibility`, `@IValue0`, `@FValue0` and `@FValue1` to
+`Visibility`, `IntData.Value0`, `FloatData.Value0` and
+`FloatData.Value1`, respectively. The icon binds its visibility
+one-way to the custom control's `Visibility`. Both children disable
+hit testing. These are the properties of the selected row template.
+The selector resolution remains in [Open items](#open-items).
+
+STATIC. The custom-control factory's TimerTextBlock branch at
+`0x00549B19..0x00549B51` constructs through `0x006A2120`. Its primary
+table `0x00FCE644` identifies
+`.?AVTimerTextBlock@CustomControl@SqwtInterface@Main@Application@@`.
+The separate `TimerLabel` branch at `0x005496D1..0x00549709` uses
+`0x0069BB90`. TimerTextBlock calls the TimeTextBlock base constructor
+with a 250 millisecond period. Its inherited notification slot 6
+(`0x008752D0`) tests descriptor `0x0135F908` (`IntData.Value0`) at
+`0x008752DE`, then resets the embedded timer at `+0x370` with zero
+delay and the retained period through `0x009871C0` at `0x008752FA`.
+It uses the descriptor without reading the integer payload and calls
+slot 70, which is a no-op for TimerTextBlock. The [Sqwt clock](../resource/sqwt-double-animation-clock.md#clock-source-units-and-epoch)
+sets the elapsed-time origin on the first admitted timer pass. Subsequent
+samples of the two float properties use that origin.
+
+On each timer callback `0x008755E0` calls slot 71 (`0x006A2230`).
+The two readers `0x00875130` and `0x008751F0` select
+`FloatData.Value0` and `FloatData.Value1`, parse each with `atof`,
+store to binary32 and truncate toward zero. `0x00875110` divides
+unsigned elapsed milliseconds by 1000. For the row's finite positive
+start and zero target, the displayed count is start minus whole elapsed
+seconds, clamped to zero. The sample splits the count into hours,
+minutes and seconds through `0x008750B0`. Constructor `0x00874FC0`
+sets the TimeString mode to 1. With that mode retained,
+`0x00875460` writes all three components with minimum width 2,
+fill digit 0 and literal colon separators from `0x0104FA80`.
+The result is `HH:MM:SS` for the ordinary short countdown, with no
+game language or text-sheet selection in this formatter.
+The callback sends it to [TextBlock.Text](../resource/damage-plate-numeric-presentation.md)
+through `0x009556A0` at `0x00875603`.
+
+When the sampled count reaches the target, `0x006A2230` routes
+`RaptureCommands.TimerEnd` from the control's `+0xB4` interface
+through `0x00927FA0` at `0x006A22DC`. The command object
+`0x0133B298` is initialized from the named literal at
+`0x00F0EE79..0x00F0EE99`. The per-control latch `+0x420`
+is set after dispatch and cleared on a nonterminal sample.
+The receiver registered at main/f0 PCs 59-61 uses the
+`_widget` condition with value 5
+(`widget/widgetbaseclass_common` main/f54 PCs 0-4).
+MainMenuWidget `processUICommandDefault` main/f3 PCs 13-32 calls
+`getButtonMask(false)`, writes its sixth result to row 15 `MainEnable`,
+collapses the timer and updates the list.
+
+The native observations use Ghidra CLI 0.2.2 and LLVM PE32
+disassembly of retail `ffxivgame.exe` 2012.09.19.0001, 15996808
+bytes, base `0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The [retail Lua coverage manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8be1a405d2309ab4a2127df1fc745fcb6c55c861/manifests/retail_lua_coverage.json)
+identifies the player script. Match the original and decoded hashes,
+read the listed zero-based PCs, and compare the factory branches,
+vtable cells, timer argument readers and command identity in the PE.
+Same-value list refresh, control re-realization, and the visible
+lifetime of the original countdown remain untraced.
+
 ## Selection
 
 OBSERVED. `WidgetBaseClass.processUICommandEvent`, `main/f13` of
