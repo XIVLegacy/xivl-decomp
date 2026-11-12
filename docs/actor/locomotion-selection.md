@@ -436,9 +436,30 @@ at `0x00CC7AB4`. It checks the script engine byte, that record's byte
 [Login binding](actor-instantiation-and-self-player.md#initialization-gates)
 orders WorldMaster, self player, area master and DesktopWidget.
 CharaBaseClass proto32 PCs 2-9 and 19-24 dereference the local player's
-DepictionJudge and DesktopWidget directly. The Desktop dead branch uses
-the result of static-child lookup for ActionGaugeWidget directly at
-proto81 PCs 41-46. An initial native dispatch alone therefore supplies
+DepictionJudge and DesktopWidget directly. The Desktop dead branch
+immediately calls `stopCastGauge()` on
+`self:getStaticChildWidget(7, "ActionGaugeWidget")` at proto81
+PCs 41-46. Connector proto521 PCs 0-5 calls `getStaticWidget(7)`
+and tail-calls that widget's `getChildWidgetByWindowName`.
+WidgetBaseClass common proto46 PCs 0-16 scans the direct child slots
+from 1 through their count and returns the first exact window-name
+match or nil. The route has no nil, false or visibility guard.
+
+The [slot 7 initialization](../resource/sqwt-keyframe-target-binding.md#actionmenu-creation-and-registration)
+requests ActionMenuWidget first. Desktop connector proto142 PCs 70-74
+then calls `createStaticChildWidget(7, "ActionGaugeWidget", false)`.
+Proto519 PCs 0-11 forwards the slot-7 instance as parent, the same
+class and window name, the parent's widget index and the false
+visible flag to `createWidget`. WidgetBaseClass `_onInit` proto0
+PCs 83-110 runs common form setup, invokes the selected `init`,
+attaches a nonnil live parent and sets `widgetWork.initialized`.
+ActionGaugeWidget `init` proto0 PCs 0-4 sets `work._temp` and calls
+`hideWidget`. Its `stopCastGauge` proto3 PCs 0-3 unconditionally
+requests stop animation and hide, including for an initialized
+hidden child.
+[Cast gauge property and command flow](https://github.com/XIVLegacy/xivl-client-scripts/blob/8be1a405d2309ab4a2127df1fc745fcb6c55c861/docs/cast-gauge-property-command-flow.md)
+
+An initial native dispatch alone therefore supplies
 no Desktop or notice readiness guarantee. Which login tick first
 delivers `0x0134` relative to those instances remains unknown. A later
 scene publication with the same element value follows the unchanged
