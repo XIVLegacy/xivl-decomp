@@ -217,6 +217,110 @@ documents a conditional AnchorElement visibility writer. The focus
 request and the index write alone do not establish that the anchor is
 visible on this invocation.
 
+## Layout0 vertical keyboard focus
+
+MEASURED. The game master's `key_config` definition `0x01030169` uses
+data, enable and offset resources `0x0103016A`, `0x0103016B` and
+`0x0103016C`. Decode the fields using the
+[retained source definitions](https://github.com/XIVLegacy/xivl-client-data/blob/e34b3da2cfa4bd023f029eae9af31413ab63dbe8/docs/movement-binding-rows.md#retained-source-definitions).
+The replayed `key_config.csv` is 63816 bytes with SHA-256
+`9e98035b2775a07f17df82ce391e95f89b1d900e993279135ca78f50a6105c1b`.
+The primary focus entries have these zero-based column values.
+
+| Row | Column 3 default | Column 8 | Column 9 | Column 10 | Column 11 |
+| --- | --- | --- | ---: | ---: | --- |
+| 1013 | `KeyUpFocus1` resolves to `UP` | `ApplicationCommands.MoveFocus` | 1 | 2 | True |
+| 1031 | `KeyDownFocus1` resolves to `Down` | `ApplicationCommands.MoveFocus` | 1 | 4 | True |
+
+In both rows column 2 is 0, column 4 is `**`, and columns 5 through
+7 are 0, True and False. The defaults therefore qualify ordinary
+unmodified KeyDown and repeat bindings. Earlier rows 1007 and 1025
+carry the same default keys for `UILuaCommands.PushSlotPrev` and
+`UILuaCommands.PushSlotNext`. See
+[Main Menu key bindings](../script/main-menu-command-route.md#key-bindings)
+and the
+[default field groups](https://github.com/XIVLegacy/xivl-client-data/blob/e34b3da2cfa4bd023f029eae9af31413ab63dbe8/docs/movement-binding-rows.md).
+
+STATIC. The enabled range `(1001, 48)` feeds group 1 at
+`0x00553397..0x005533A5`. Profile 0 selects `key_config`.
+Registration of a non-Desktop form root with a resolved indexed
+container and nonnull container root assigns the binding provider at
+`0x005387AC`. For that root,
+`0x005472F7..0x00547310` selects group 1, subject to current profile
+`[0x01336BC4]` and route delivery. The type-0 emitter formats the
+integer at `0x00551CFE..0x00551D42`. The column-11 flag reaches the
+test at `0x00551DB6`, which appends `SqwtShowAnchor=True` from
+`0x00FA1DA8` when the byte is 1. The parser
+`0x009483B5..0x009483E5` writes markup `+0x16B`. The ordinary
+KeyBinding constructor call at `0x009475B7` passes the option into
+the binding flags at `+0x9C`, where mask `0x02` carries it.
+The [configuration and provider trace](../input/player-movement-command-origin.md#configuration-text-and-substitutions)
+and the
+[ordinary KeyBinding parser and matcher](sqwt-command-parameter-consumer.md#actionmenu-keyboard-aliases)
+give the construction and eligibility gates.
+
+STATIC. The keyboard walker samples that binding mask and calls command
+slot `+0x08` at `0x00921233`. For `MoveFocus`, the RoutedCommand
+implementation `0x00927FA0` returns the handled byte of the last
+event it dispatched. The
+[PreviewExecuted dispatch](sqwt-command-parameter-consumer.md#executed-event-delivery)
+visits ListBox input slot `+0x100` when eligible. The ListBox
+constructor installs input table `0x010720EC` at `0x0096D9DE`.
+Cell `0x010721EC` selects `0x009641E0`. That handler checks the
+handled byte, complete ListBox `+0x47C` mask 4, nonnull ItemsSource
+at `+0x354`, command `0x01357968`, and a nonnegative row index
+resolved from the current anchor-event recipient `[0x01356FCC]`
+(`0x00964223..0x009642DC`). An eligible changed candidate calls
+`0x009637A0` at `0x0096446F` for Down or `0x00964546` for Up,
+then sets the command handled byte. The setter updates
+`SqwtFocusedIndex` at `+0x388` and can invoke its callback
+synchronously through `0x00926E80 -> 0x00953BA0`.
+
+STATIC. Only after the command returns exactly 1 and the binding mask
+is set does `0x00921235..0x00921246` call `0x0091B530` with 1.
+A nonnull AnchorElement then receives a Visibility 2 request at
+`0x0091B54E`. The index-based scroll inside the command samples the
+anchor before that request. Existing visibility, earlier bindings,
+the preview and gesture gates, and the accepted focus target qualify
+the join.
+
+### Realized focus after the visibility change
+
+STATIC. The
+[AnchorVisibleChanged route](sqwt-window-trigger-order.md#attachment-and-conditional-focus-notifications)
+can deliver the visibility change to the current anchor-event recipient.
+For ListBox, ListBoxItem and Button, input slot `+0x110` selects
+`0x0092C2B0` from tables `0x010720EC`, `0x0107AE8C` and
+`0x01073B84`. The ListBoxItem and Button constructors install
+their input tables at `0x0099E188` and `0x00974454`. After the
+holder refresh, the handler calls `0x0092B4B0` at
+`0x0092C2D9` only if the anchor gate is open and input slot
+`+0x10` returns nonzero. Those tables select `0x0091C4A0` for that
+slot, which compares the receiver with the current keyboard-focus
+interface `[0x01357020]`.
+
+STATIC. `0x0092B4B0` supplies a local zero-origin rectangle with the
+focused element's arranged width and height to its primary slot
+`+0xAC` at `0x0092B51E`. For the checked Button, ListBoxItem, Grid,
+VirtualizingStackPanel and ScrollContentPresenter tables that slot
+selects `0x0092B530`. It adds the element's layout origin and
+continues to its logical parent at `0x0092B553..0x0092B5B2`.
+The constructed viewer's cell `0x01072020` instead selects
+`0x00970EF0`, which can request a new vertical offset through the
+panel scroll interface slot `+0x6C` at `0x00971077`. A focused
+realized row with this current parent chain can therefore receive
+a rectangle-based reveal after the visibility change. INFERRED for
+the retained composition.
+
+The later container pass can call `0x00962440(index, 1)` at
+`0x00965175` if it runs with nonzero viewport height and a stored
+nonnegative focus index from an ItemsControl with the focus-within
+mask set. This is another conditional entry into the index scroll
+path. If focus did not reach the requested row before
+AnchorVisibleChanged, the rectangle path uses the actual focused
+element. A first key's delivery, realized row, and resulting offset
+remain UNKNOWN.
+
 ## Offset application and scrollbar geometry
 
 STATIC. A changed panel offset notifies the viewer through its primary
@@ -358,6 +462,14 @@ ghidra disasm 0x00962567 -n 20 --json
 ghidra disasm 0x00961EEF -n 65 --json
 ghidra disasm 0x009B7D00 -n 49 --json
 ghidra disasm 0x0091B7B0 -n 8 --json
+ghidra disasm 0x00551DB6 -n 6 --json
+ghidra disasm 0x0092121F -n 17 --json
+ghidra disasm 0x009641E0 -n 64 --json
+ghidra disasm 0x00964466 -n 9 --json
+ghidra disasm 0x0096453D -n 9 --json
+ghidra disasm 0x0092C2B0 -n 24 --json
+ghidra disasm 0x0092B4B0 -n 31 --json
+ghidra disasm 0x0097105A -n 9 --json
 ghidra disasm 0x00970E50 -n 40 --json
 ghidra disasm 0x009C29A0 -n 41 --json
 ghidra disasm 0x009C2C50 -n 19 --json
@@ -374,6 +486,8 @@ ghidra disasm 0x009108E0 -n 30 --json
 
 Use the setter and initializer addresses in the property table for the other
 joins. Read referenced RTTI, strings and constants from their PE sections,
-following the pointer recipe above. Compare the cited instructions and data
+following the pointer recipe above. For the keyboard path compare row keys
+1013 and 1031 by the linked definition and check the input and primary
+table cells against the pinned PE. Compare the cited instructions and data
 with the identified executable. Keep raw output, executable bytes and Ghidra
 project state outside the tracked tree.
