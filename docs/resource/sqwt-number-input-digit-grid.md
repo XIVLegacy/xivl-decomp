@@ -201,13 +201,9 @@ to the drawing context. The body reads font colors +0x300/+0x308 at
 0x009360B3..0x00936103. This proves the use of ordinary text rendering
 for decimal glyphs.
 
-The four button sources are 20x20 texture rectangles. Their exact
-destination sizes remain unverified. The remaining
-native boundary is the selection and placement of Frame skin cells
-after the shared 0x00934210/0x00933E70 lookup. In particular, the
-Button/RepeatButton slot-34 0x00936DB0 reads the Background brush.
-It does not identify the renderer that consumes the selected Frame
-cells. Tracing the selected style results through the scene packet
-to the 0x008E0000 family would settle any HitMargin expansion, actual
-destination size, and draw order. Runtime opacity, native first-frame
-pixels, and output at non-unit scale remain UNKNOWN.
+The [Button Frame route](sqwt-number-input-button-frames.md) follows the
+ordinary style peer through the renderer and establishes the layout
+minimum and paint overhang of the 20x20 source cells. Slot-34
+`0x00936DB0` supplies the independent Background brush route. Runtime
+opacity, native first-frame pixels and output at non-unit scale remain
+unverified.
