@@ -41,8 +41,8 @@ Padding=0,0,2,0, Width=92, Margin=2,0,0,0, TextAlignment=Right,
 HorizontalAlignment=Left, VerticalAlignment=Center, and Grid.Column=1.
 Each omits BorderThickness and TextWrapping. Both are inside the
 Grid_RepairEquipCost descendant of Grid_RepairEquipment, whose own
-Visibility at line 627 is Collapsed. A normal first-show equipment frame
-therefore cannot directly validate the two amount rows.
+Visibility at line 627 is Collapsed. The two amount rows are observable
+when the repair grid is shown.
 
 The TextBlock style entries at default.style lines 3210-3219 and 3246-3255
 both select Frame skin BOD_basis_moneyBackground_bg in SkinNormal,
