@@ -661,6 +661,103 @@ bound these exclusions. Indirect writes can take the generic Row
 path. A producer for the ordinary SSD reader and actual live reader
 identities remain UNKNOWN.
 
+## Shop item visibility
+
+### Carriers and script feed
+
+MEASURED. The English ShopBuyWidget and ShopSellWidget LPBs both install
+`getFormName` at main PC 9. In each chunk, `main/f0` PCs 0 and 1 return
+`ItemListWidget`. The standard `widget/ItemListWidget.form` has root
+`Window_ItemListWidget` and merges `widget/ItemListWidget.tpl` at line 16.
+Use SQWT decode and source verification for the carriers and the
+[LPB replay](minimap-base-tiles.md#ordinary-minimap-ready-requests) for
+the scripts. The LPBs match
+[xivl-client-scripts' resource and decoded pins](https://github.com/XIVLegacy/xivl-client-scripts/blob/c3340f42170201f3aedcdbb89ed04012cff22c5f/manifests/retail_lua_coverage.json).
+
+| Carrier under `client/sqwt` | Bytes | SHA-256 | Decoded SHA-256 |
+| --- | ---: | --- | --- |
+| `widget/ItemListWidget.form` | 49304 | `65a8c82bc93664231778fe1b704b27254e03a759f4ec37fa23e6ae2f516a46be` | `2d5d129d4028f025863c288fa0b9028e7f9222c5c0546b7e09f015b34a37622a` |
+| `widget/ItemListWidget.tpl` | 16943 | `ba8b86dbf36558e6086721524833d17528be08b11bf72c062d0b76fd318de7d5` | `3a4e9869b456295bbf753b20ec433cee6702656139e705dac25cf712d2fee86b` |
+| `widget/ShopEditWidget.form` | 9177 | `23fb6f4c044126501e718779db8f2fe8512f5a3acdfc5c13cc70c2fc00c75fc5` | `1009c0fdfc908746c26f1c1b5e854c8f8bc07fbc67a0cdfb32f4f32168370c13` |
+
+| LPB under `client/script` | Script role |
+| --- | --- |
+| `n1635q/9rz/r2vu8pln1635q.le.lpb` | ShopBuyWidget |
+| `n1635q/9rz/r2vur5yyn1635q.le.lpb` | ShopSellWidget |
+| `n1635q/r2vu561qn1635q.le.lpb` | ShopEditWidget |
+
+MEASURED. At form lines 65, 78, 91, 104 and 117 the five item
+ListBoxes select `DataTemplate_ItemList`. Their OneWay ItemsSource
+bindings read the corresponding `XmlData_TabItem_N` makers at lines
+6 through 10 with `XPath=/TabItem_N`. Those makers use names
+`TabItem_N_Maker`. The template starts at line 7. Its
+`IconControl_PolishMAX` at line 37 has numeric `IconDatas=800` and
+`Visibility` bound with `XPath=@polmax`, `Mode=OneWay` and no
+`Source`, `Path` or converter. The
+[items-control path](#items-controls) assigns a realized row to its
+container's DataContext. ShopBuy `main/f4` returns matching
+`TabItem_N_Maker` names for list indices 1 through 5. One
+ShopBuy `main/f21` branch writes `polmax` as `Collapsed` through
+`setListProperty` at PCs 87 through 92, with the maker supplied by
+`getListPropertyName` and its row index from the second explicit
+argument. This is one producer branch. The selected tab, realized
+row, inherited holder and update timing remain conditions.
+
+### Conditional Visibility write
+
+STATIC. With source redirection clear, the source-less at-sign binding
+reads the target control's DataContext. If the read fails,
+`0x0099946B..0x0099946D` skips the write. If the read succeeds but its
+string does not resolve to an object, `0x00999497..0x009994A3` takes
+the ordinary target write with the working string unchanged. A resolved
+row with an absent attribute produces empty text through
+`0x0099ADB0`. In each admitted target write,
+`0x009999F9..0x00999A07` calls `0x00912850` with mode 0.
+
+STATIC. IconControl's primary table `0x01070FCC` has a false-returning
+`+0x34` interceptor, `0x00910B50`. Its constructor reaches UIElement
+through `0x0096A25B -> 0x0092F640 -> 0x0093C750`. That base constructor
+registers `Visibility` at holder `+0x158` and appends info
+`0x01359728` at `0x0093CBE5..0x0093CBEF`. When unqualified lookup
+selects that info and descriptor `0x013596BC`, the ordinary string
+engine dispatch at `0x00912A3F..0x00912A55` selects info setter
+`0x0091B440` and parser `0x0093D090` (initializer
+`0x00F22B24..0x00F22B64`). Parser ordinal 1 enters
+`0x0093D0D1..0x0093D0F2` with holder `+0x158`, the incoming mode and
+notify byte 1. On the ordinary nonsentinel text path, `0x009740C0`
+calls the [Visibility converter](sqwt-tab-scroll-text-parts.md#scrollviewer-and-scrollcontentpresenter)
+`0x00914580` and guarded store `0x009BCB50`. The ASCII comparison
+branch maps Collapsed and False to 0, Hidden to 1 and other text
+including empty to 2. An admitted store sets the Visibility value.
+This route does not establish a write when property preprocessing or
+store admission rejects it.
+
+### Separate quantity window
+
+MEASURED. The standard ShopEdit form has the same declaration on a
+direct `IconControl_PolishMAX` at line 67, outside a row template.
+The form and its two direct dictionaries declare no DataContext.
+IconControl inherits the Control DataContext holder at `+0x208`, whose
+initializer at `0x0092F8B0..0x0092F8C7` passes null to `0x00965600`.
+If the holder is still null when the binding activates, the getter
+`0x0092BE70` formats empty text and returns success. The ordinary
+[IconControl completion drain](sqwt-icon-control-textures.md#direct-consoleicontray-design-data-binding)
+can activate the binding. On the admitted ordinary text path, that
+successful null read supplies empty text and requests Visibility 2.
+This is conditional on the holder remaining null and on normal
+binding and property admission.
+The standard-density carrier above differs from `widget/ShopEditWidget.sd.form`,
+which has no PolishMAX node. The Buy LPB `main/f36` and Sell LPB
+`main/f45` call `openChildWidget` with `ShopEditWidget`, the parent
+widget and additional arguments. In ShopEdit `main/f1`,
+`setInitialData` requests `setVisibility` on the icon with false
+at PCs 114 through 117. Later branches read `polish` and `mperm`
+via the supplied widget and request direct visibility writes (PCs
+303 through 324 and 855 through 876). Those branches do not name
+`polmax` or pass an XML row handle. No live DataContext source,
+ordering against those direct writes or rendered result for the
+quantity-window icon has been established.
+
 ## Census
 
 The install markup holds 1155 SQEX files below `client/sqwt`. Of 1121 bindings
