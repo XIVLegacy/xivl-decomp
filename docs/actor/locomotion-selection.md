@@ -428,6 +428,56 @@ also requests a main-menu refresh. The `worldMaster.csv` English row
 describes Return followed by revival at the registered destination.
 [Published table identity](https://github.com/XIVLegacy/xivl-client-data/blob/e34b3da2cfa4bd023f029eae9af31413ab63dbe8/manifests/tables.json)
 
+The direct initial element write calls the same dispatch helper as the
+scene publication. The helper resolves the receiver's own registry record
+at `0x00CC7AB4`. It checks the script engine byte, that record's byte
+`+0x7F`, and method preparation before invoking at `0x00CCF862`
+(`0x00CCF7F7..0x00CCF862`). These are receiver-side checks.
+[Login binding](actor-instantiation-and-self-player.md#initialization-gates)
+orders WorldMaster, self player, area master and DesktopWidget.
+CharaBaseClass proto32 PCs 2-9 and 19-24 dereference the local player's
+DepictionJudge and DesktopWidget directly. The Desktop dead branch uses
+the result of static-child lookup for ActionGaugeWidget directly at
+proto81 PCs 41-46. An initial native dispatch alone therefore supplies
+no Desktop or notice readiness guarantee. Which login tick first
+delivers `0x0134` relative to those instances remains unknown. A later
+scene publication with the same element value follows the unchanged
+branch at `0x0058E3B1..0x0058E3D0`.
+
+For the already-initialized local player, Desktop proto81 PCs 47-52
+get the [first listed current area](current-area-master-list.md#which-area-is-current)
+through `_getCurrentAreaMaster` (`0x006F9620`) and require the exact
+Boolean false from its `isInstanceRaid`. AreaBaseClass `_onInit` proto11
+PCs 23-24 stores formal R2 in `areaWork.isInstanceRaid`. Its proto3
+PCs 0-2 reads and returns that field. A nil area has no guard before
+method lookup. A nil flag fails the exact comparison.
+
+Desktop proto81 PCs 53-57 call `notify` with the explicit owner
+`worldMaster` and row 25005, with no additional value.
+`world/worldmaster_event` proto5 PCs 0-8 and `widget/desktopwidget`
+proto15 PCs 2-9 forward the WorldMaster source, category 32, WorldMaster
+text owner and row to `_appendLogPool`. Its native entry `0x006ECF80`
+calls `0x006E8360` with flag 0. The
+[pool route](../resource/logcontrol-pool-feed.md#conditional-four-explicit-native-frame)
+uses an empty sender for WorldMaster and no formatter arguments for
+the omitted tail. The [same-instance named load](../script/logcontrol-player-producer.md#conditional-worldmaster-load)
+qualifies the owner key when ready. The installed English
+[worldMaster block](../script/logcontrol-player-producer.md#exact-english-resources)
+has enabled row 25005 in data resource `0x03A200BC`, byte span
+`[14042,14119)`, logical field 1. The decoded 73-byte cell has no
+control-token lead byte and has SHA-256
+`49c77003d18d7266e8698d799a97103d6f94fc8ba7315998b2b9063538021543`.
+[Category 32 admission and formatting](../resource/logcontrol-line-format.md#ko-notice-category)
+describe the conditional chat presentation. Retail runtime readiness,
+language selection and presentation remain unobserved.
+
+The script paths and original and decoded identities are in the
+[retail Lua coverage manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8be1a405d2309ab4a2127df1fc745fcb6c55c861/manifests/retail_lua_coverage.json).
+Match both hashes, unwrap each LPB and list the zero-based PCs above.
+To reproduce the row, select the English definition and read the
+enabled span through its offset table. Decode its sole framed string
+before hashing.
+
 On the ordinary MainMenu path, `getButtonMask` skips occupancy and recast
 checks for Return when `isDead` is true (`mainmenuwidget.lua` root/proto10
 PCs 45-67). Row 15 calls `executePlayerReturn`, which forwards only command
@@ -535,11 +585,39 @@ target. A nonnull result from the call at `0x007BB068` is retained in
 phase 5 at `0x007BB0A4` for a later update. The phase-1 gate admits
 owner `+0xE0=0x7FFFFFFF` or both
 `0x007AD830(owner+0x4C0)==0` and
-`0x0065C3C0(owner,-1)!=0`. The latter reads action lanes 8 and 9
-through `0x00844320` and requires both zero. The update may visit
-this gate on the transition tick because the posture update precedes
-the death updater. The post is independent of SCB lookup success. The [scheduler evidence](ifrit-nail-action-banks.md#native-death-scheduler-route)
+`0x0065C3C0(owner,-1)!=0`. The update may visit this gate on the
+transition tick because the posture update precedes the death updater.
+The post is independent of SCB lookup success. The
+[scheduler evidence](ifrit-nail-action-banks.md#native-death-scheduler-route)
 records the three SCB names separately from the pose resources below.
+
+The owner sentinel is an inherited RaptureActor group value, initialized
+to zero at `0x007CF068`. Setter `0x007CCEC0` writes it at `0x007CCECA`
+and compares a nonzero value with the owner's container `+0xD4` at
+`0x007CCED8..0x007CCEEA`. The
+[CutManager BindClip character request](../resource/attribute-resource-and-scene-binding.md#character-factory-and-world-provider)
+sets `0x7FFFFFFF` on its nonnull result at `0x0061A40A..0x0061A413`.
+This is a concrete producer for the bypass value.
+
+`0x007AD830` returns 1 for a motion list node with all bits in mask
+`0xA02` clear at node `+0x6C` (`0x007AD835..0x007AD897`), or for a
+pending ring record with bits `0xA00` clear at record `+0x48` and
+byte `+0x10` zero (`0x007AD898..0x007AD970`). Only if neither
+collection has such an entry does it return 0. Motion playback state
+and the pending request collection are both consulted.
+
+Before these tests, calls at `0x007BAEA3` and `0x007BAEAC` pass
+action lanes 6, then 8 and 9, to `0x00844C40`. That helper writes
+entry state 2 at `+0x04` unless the entry already has state 2 or 3
+(`0x00844CB8..0x00844D14`). The loop leaves bucket counts in place.
+`0x0065C3C0(owner,-1)` then requires both lanes 8 and 9 of the
+CharaActionController at owner `+0x2858` to have count zero
+(`0x0065C406..0x0065C44D`). The count getter `0x00844320` reads
+bucket `+0x10`, incremented at `0x0056935D` on
+[insertion](action-queue.md#proven-entry-population-and-insertion).
+Lane 6 is absent from the selected count test. After admission,
+`0x0065C370(-1)` at `0x007BAF17` requests type 8 and 9 entries
+via `0x0065AE70` and `0x00846080` before the `0x54` post.
 
 Phase 5 clears the retained scheduler pointers and skips pose and
 publication when desired `S+0x5AA` is neither 1 nor 3
