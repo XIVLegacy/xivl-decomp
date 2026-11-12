@@ -308,6 +308,75 @@ A latency measurement
 must distinguish request submission, loader callback completion and these
 binding states while accounting for the observation tool's own pauses.
 
+## Held item script class
+
+STATIC. The held-item update body `0x006F4490` constructs an `ItemBuilder`
+at `0x006F4589`, constructs an `ItemSheetLoadRequest` at `0x006F45F6`
+and queues it at `0x006F462E`. The held request's vtable `0x00FD5A40`
+slot `+8` reads its builder pointer from request `+0x0C`. The worker
+`0x006EF710` reads the slot at `0x006EF985` and calls the shared
+`_item` row loader `0x006DFB50` at `0x006EF997`.
+
+On the admitted row branch, `0x006DFC8A..0x006DFC90` reads zero-based
+column 0 as a string. The slash-suffix helper `0x0078BD10` at `0x006DFCB3`
+extracts the Lua class name. The prefix helper `0x0078BDC0` at `0x006DFCEE`
+feeds the family selector `0x007188B0` at `0x006DFD03`, which maps `Normal`
+to 0. The copy `0x006DFD84 -> 0x006DF7E0` writes the class name at item
+`+0x28` and the family at item `+0x84` (`0x006DF7E6..0x006DF7F0`,
+`0x006DF801..0x006DF804`). The loader passes the complete column 0 string
+to `0x006DD920` at `0x006DFD98` for `/Item/` prefixing and queued script
+submission through the [first-stage route](#first-stage-submission).
+
+The loader's completion callback `0x006E0EF0` dispatches request slot
+`+0x0C` at `0x006E0EFB`. In the held request table that slot is
+`0x006F7A60`. With the owner lookup admitted and the package key unequal
+to `0xFC` (`0x006F7AA7..0x006F7AC0`), it calls `0x006F18C0` at
+`0x006F7BE7`. The zero-family branch (`0x006F18FA..0x006F190A`,
+`0x006F196E`) calls `0x006F1830 -> 0x006EFE70`, which writes the
+`Application::Lua::Script::Client::Control::NormalItem` vtable `0x00FD5C84`
+at `0x006EFEBF`. Its base copy preserves the string at item `+0x28`
+(`0x006EFE9D -> 0x006DF6F4..0x006DF704`). The held callback passes the
+materialized item to the package slot setter `0x006EE0F0` at `0x006F7C3F`.
+
+The [shared held-item getter](https://github.com/XIVLegacy/xivl-client-structs/blob/6fc1e051943799927124af585a76d4b86952fb81/docs/item-native-contract.md#extended-temporary-item)
+passes a found record to `0x006E2770` at `0x007024E0`. That wrapper reads
+the class name from item `+0x28` (`0x006E27DA`) and passes its copy to
+all three control constructors (`0x006E2855`, `0x006E288D`,
+`0x006E28CA`). The ordinary constructor goes through `0x00CC8104 ->
+0x00CD9360`, which looks up the class through `0x00CD8870` at `0x00CD93A7`.
+For `NormalItem`, the separate virtual call at `0x006E27C9` goes through
+vtable offset `+0x10` to `0x006DE430` and formats the instance name
+`_item%llX` from item `+0x10/+0x14`.
+
+After installing the package slot, the held callback calls `0x006F7800`
+at `0x006F7C78`. For family 0, a virtual `+0x0C` result of 1 admits
+`0x006F7340` at `0x006F7875`. Its `0x006F7349` call to `0x006F7000`
+constructs the initialization control using the same item `+0x28` class
+(`0x006F7066 -> 0x006E2970`, `0x006E2A26..0x006E2A48`) and dispatches
+`_onInit` through `0x00CC7A90` at `0x006F711E`. These branches establish
+class selection and initialization order. Queue latency, the outcome of a
+failed script load and the live initialization predicate remain unmeasured.
+
+MEASURED. The `_item.csv` output pinned in [Catalog maximum stack](#catalog-maximum-stack)
+has one row 3020001 and its column 0 is `Normal/PotionItem`. The native
+path above submits `/Item/Normal/PotionItem` and requests class `PotionItem`
+for its held control. The English `1q5x/wvsx9y/uvq1vw1q5x.le.lpb` matches
+the [published Lua manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/3083d242ab0b4c1eb237e42c2cedec4cb2ffef8a/manifests/retail_lua_coverage.json#L678-L691).
+Its `main` PCs 0-7 require `/Item/Normal/NormalItemBaseClass` and define
+`PotionItem` with that base. The
+[ItemUseWidget contract](https://github.com/XIVLegacy/xivl-client-scripts/blob/3083d242ab0b4c1eb237e42c2cedec4cb2ffef8a/docs/item-use-widget-contract.md#selected-item-and-self-target)
+records its relation predicate and the stock self-target branch. The
+[NormalItemBaseClass initialization contract](https://github.com/XIVLegacy/xivl-client-scripts/blob/3083d242ab0b4c1eb237e42c2cedec4cb2ffef8a/docs/gil-shop-widget-opening.md#sheets-bound-during-item-initialization)
+records the inherited `_onInit` and its dynamic `init` call.
+
+Reproduce the VAs above with Ghidra 12.1.4 `disasm` and LLVM 21.0.0
+`llvm-objdump -d --start-address=<start> --stop-address=<end>` on the
+pinned PE. Read table cells and slash strings `0x00FE053C` and
+`0x00FE0540` from the file-backed PE sections. Decode `potionitem` with
+[xivl-client-structs `tools/decode_lpb.py`](https://github.com/XIVLegacy/xivl-client-structs/blob/6fc1e051943799927124af585a76d4b86952fb81/tools/decode_lpb.py)
+and inspect the decoded Lua 5.1 instructions after checking the payload
+hash against the manifest.
+
 ## Predicate observation points
 
 Fresh read-only run `shop-predicate-logpoints-20261001-01` used the same
