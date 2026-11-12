@@ -156,6 +156,78 @@ The linked shared-branch finding pins the desktop resource and payload.
 The Equipment identity above pins the remaining methods. These checked
 inputs, rather than the callback names alone, support the paths.
 
+### Ordinary gear changes
+
+The retail `change_helm.pcapng` capture contains two command-12009
+requests for Lua slot 9. The first requests removal. The second references
+bag package 0, slot 113. Both server update scopes open with `0x016D`
+mode 0, select package 0 (capacity 200), carry one `0x0148` item, then
+select package `0xFE` (capacity 35). The first clears equipment slot 8
+with `0x0152`. The second links slot 8 to package 0, slot 113 with
+`0x014D`. Each scope contains two `0x0147` markers and closes with
+`0x016E`. The bag records carry the removed item at slot 131, catalog
+`0x007A3D64`, and the equipped item at slot 113, catalog `0x007A3F58`.
+These are capture values for the two observed operations.
+
+Use `xivl-captures:derived/payload_samples.json` under `samples.c2s`
+`0x012d` indices 10 and 11 and `samples.s2c` `0x0146` indices 4-7,
+`0x0148` indices 2 and 3, `0x0152` index 0 and `0x014d` index 1.
+Indices are zero-based. Read application fields after the 16-byte
+game-message header. The sequence is in `derived/sequences.json`,
+`perCapture.change_helm.pcapng.collapsed` indices 29-35 and 65-71.
+The [equipment transition census](https://github.com/XIVLegacy/xivl-captures/blob/9c827fd1d84e12f7a462e6cd5234d874c0e886c9/studies/equipment-property-correlation/derived/evidence-map.md#exact-transitions)
+also joins the equip link and its source row in frame 28.
+
+The [direct equipment cache path](examine-equipment.md#remote-gear-cache-and-publication)
+handles links in `0x006F46C0`. The matching clear branch at
+`0x006F4806..0x006F486D` compares the selected package with `0xFE` at
+`0x00FE050C` and calls `0x006EE220` to clear each supplied slot. Both
+direct `0xFE` branches omit the dirty-slot insertion used by the
+`0xFD` link and non-`0xFE` clear branches. The accompanying full bag
+item uses `0x006F4490`, which marks the slot dirty at `0x006F4651`
+and sets the deferred-load byte at `0x006F4691`.
+
+End publication integrates staged packages through `0x006F7880`
+before `0x007034E0` publishes dirty slots. On the deferred branch
+`0x0070374B..0x00703789` queues the terminator with table
+`0x00FD556C`. After its pending-load checks,
+`0x006EFAD1..0x006EFB5C` consumes the head terminator and calls the
+ItemManager's load-finished slot. Cell `0x00FD761C` selects
+`0x007036E0`, which preserves integration before dirty publication
+at `0x007036E9..0x007036F1`. The native callback translates bag
+package 0 to Lua package 1 through `0x00702F4F -> 0x0078BCA0`.
+
+For that package the open EquipWidget makes a bag list entry for each
+supplied changed slot. After the batch reaches zero, it updates the list,
+item mask and ordinary equipment displays. `updateEquipItem` calls
+`getPlayerEquipmentForParts(9)` for the head button and that getter
+uses the local player's `_getEquippingItem(9)`. The native getter
+reads equipment package `0xFE`, so the ordinary bag notification
+rereads the integrated equipment link or clear. The original Lua
+locators are `root/proto124` PCs 7-13, 18-30 and 90-96,
+`root/proto17` PCs 25-29, and `root/proto18` PCs 39-41.
+
+Each later `0x0139` sample (indices 5 and 6) has command 12009, selector
+`0x7C000062`, one row, zero control value and zero row text ID.
+The [result path](../net/combat-result-element.md#opcode-routes)
+stages that selector as class 7 for Scene command 4. Its text-dependent
+header and row branches have no text to process. The selector also
+fails the [ActionCheck](../net/s2c-0193-native-state.md#actioncheck-consumers)
+insert and erase guards. On the admitted
+[action-queue route](../actor/action-queue.md#boundary-with-wire-and-vfx-systems),
+the visual selector goes through table cell `0x00FE45A4` to
+`0x00798A40 -> 0x007987F0`. The low value `0x62` selects the
+`put_mes` action name through PE cell `0x012C4890`. These checked
+paths establish result and action handling. An independent Gear refresh
+from this result remains unproved.
+
+The native sites were checked with ghidra-cli and LLVM objdump against
+retail `ffxivgame.exe`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The original EquipWidget payload above was decoded with
+`tools/retail_script.py` and disassembled with pinned unluac.
+Rendered timing remains UNKNOWN.
+
 ## Request and incompatible-class dialog
 
 `itemUICommandSelection` (`:1464-1494`) rejects a focus beyond the filtered
