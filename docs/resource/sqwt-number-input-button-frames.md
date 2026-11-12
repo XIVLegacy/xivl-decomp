@@ -113,6 +113,62 @@ truncates the finite floats and stores them at WindowContext
 `+0xF0..+0xFC`. Visual position is a separate peer property (`+0x34`
 through `0x0093FE45..0x0093FE54`).
 
+## Explicit Label Frame condition
+
+`SqwtSkinStatus` supplies the ordinary Frame's condition index. In the same
+pinned PE, descriptor initializer `0x00F22050` names it through
+`0x0106A9C4` and sets descriptor `0x013589A0` ordinal `0x12`.
+The attribute arm `0x009308B1..0x009308D2` passes the holder at
+`+0x210` to `0x0095CB50`. The ordinary literal path calls
+`0x00988A30` for integer parsing and `0x00926E80` for storage.
+A changed integer sets holder flag `0x04` at `+0x214`.
+On an existing peer, case `0x12` of `0x0092DAB0` forwards the
+integer through the peer's `+0x78` (`0x0092DC9E..0x0092DCC7`).
+
+Label RTTI `.?AVLabel@Controls@Sqwt@@` at `0x0126D200` has a complete
+object locator referenced at `0x010738B0`. The constructor installs
+primary table `0x010738B4` at `0x009742DE`. Peer acquisition uses
+`+0x54 -> 0x0093EF90` at `0x0093F8B3..0x0093F8BC`.
+The new-peer replay at `0x0093FADD` calls Label slot
+`+0x50 -> 0x00937120`. It reaches `0x0092A440`, where a nonempty
+style control name and holder flag `0x04` admit the retained
+`+0x210` integer to peer `+0x78` at `0x0092A57B..0x0092A591`.
+
+DrawingToolContext table `0x00FA28E4` resolves that slot to `0x0055A3A0`.
+It stages the dword at cached record `+0xE0` and sets the dirty bytes
+`+0xE8` and `+0x5C`. The subrecord at `+0xDC` is initialized for local
+operation 9 at `0x0054D424..0x0054D437`. Flush `0x0054EBCE..0x0054EBF7`
+calls its table `0x00FA2C74` slot `+4 -> 0x005563E0`, which sends the dirty
+dword through the ordinary command helper at `0x00556401`.
+WindowContext operation 9 (table cell `0x008CF3DC`) retains the value at
+`+0x124` and forwards it to an existing RenderSkin (`0x008CEE63..0x008CEE79`).
+The RenderSkin factory replays the same retained value at
+`0x008CD03C..0x008CD049`. Setter `0x008E1880` stores condition at `+0xE8`.
+Style group is a separate value at `+0xE4`. With an admitted style row, value
+1 selects slot 1, SkinActive. SkinHover is slot 4.
+[RenderSkin row selection](action-menu-timer-icon-style.md)
+
+Installed `client/sqwt/widget/ItemUseWidget.form` line 96 assigns
+`SqwtSkinStatus=1` and `SqwtStyle=LAB_winBasis` to `Label_ItemUseWindow`.
+The form root selects `common/default.style`, where the Label style's Frame
+maps SkinActive to `WIN_basis_H` and SkinNormal to `WIN_basis_N` (lines
+1989-1993). In `common/default.skin` lines 2083-2089, the active merged skin
+references gradient `WIN_basis_bg1_H`, tiled `WIN_basis_bg2_N`, and 3x3
+`WIN_basis_frame_H`, in that order. The installed form is 10627 bytes,
+SHA-256 `35f88233e405f4fd6faa199f2bbd95106c224375091812c5fe7bf4d03390b7fd`.
+The decoded document is 10619 bytes, SHA-256
+`0fc0f34f2124dd3fff6743ae1a65de5502dfa4061f847dffd9d336a816b83a12`.
+The pinned style and skin identities are in the installed assets table on the
+[digit grid page](sqwt-number-input-digit-grid.md#installed-assets).
+
+Use LLVM objdump 21.0.0 and PE section-backed dword reads at the cited VAs.
+Decode the three named assets with `xivl extract-resource <input> --output
+<scratch> --materialize-payloads` and verify the SQEX round trip.
+This establishes the selected Frame for the retained literal on an admitted
+peer. Automatic status selection at `0x00930C20` can write the same
+holder under its own conditions. Later effective status and live paint
+timing remain unverified.
+
 ## Painted dimensions and point containment
 
 WindowContext update copies `+0xF0..+0xFC` at
