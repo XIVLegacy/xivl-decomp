@@ -42,10 +42,16 @@ The common numeric dictionary declares ControlTemplate_Label_NumberInputBox
 with target Label at line 2. Lines 3-7 contain a ContentPresenter and a
 ValueChanged EventTrigger, with command NumberInputBox.ValueChanged,
 one integer from PropertyName1=Value, and a sound action. Separately
-lines 11-15 declare Style_NumberInputBox, target Slider, empty
-SqwtIsAutoSetSkin, FontSize 14, and the same command trigger. The selected
-form contains zero references to that Slider style. WINBasis declares the
-Window-target template ControlTemplate_Window_WINBasis at line 2.
+lines 11-15 declare Style_NumberInputBox. The Style at line 11 sets
+TargetType to `{x:Type Slider}`, names the style through x:Key, and carries
+an empty SqwtIsAutoSetSkin attribute. Its only direct Setter child, at
+line 12, sets Property FontSize to Value 14. FontSize is absent from the
+Style attributes. The Style.Triggers entry opens at line 13. Its
+ValueChanged EventTrigger specifies SourceType Slider at line 14 and
+executes NumberInputBox.ValueChanged at line 15 with an Int parameter
+from PropertyName1 Value. The selected form contains zero references
+to that Slider style. WINBasis declares the Window-target template
+ControlTemplate_Window_WINBasis at line 2.
 
 ## Custom control factory
 
