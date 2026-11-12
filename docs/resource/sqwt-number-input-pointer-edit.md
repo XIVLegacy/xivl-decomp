@@ -175,3 +175,111 @@ range write, live owner and eligible scheduler. Clamped no-change edits
 produce no new ValueChanged event. Keyboard, pad, editor focus, repeat
 cadence, alternate pointer targets, command loss under concurrent
 priority-5 events, actual sound and original live delivery remain open.
+
+## ShopEditWidget mode 12
+
+The [ShopBuy selection contract](https://github.com/XIVLegacy/xivl-client-scripts/blob/c3340f42170201f3aedcdbb89ed04012cff22c5f/docs/shop-buy-selection-contract.md#row-and-quantity-selection)
+owns the row, count and confirmation result. Here the quantity control is
+the standard `widget/ShopEditWidget.form` carrier (9177 bytes, SHA-256
+`23fb6f4c044126501e718779db8f2fe8512f5a3acdfc5c13cc70c2fc00c75fc5`,
+decoded SHA-256
+`1009c0fdfc908746c26f1c1b5e854c8f8bc07fbc67a0cdfb32f4f32168370c13`).
+Line 5 merges the same numeric dictionary described above. At lines
+76 and 77, `Label_NumberInput_1` selects
+`ControlTemplate_Label_NumberInputBox` and contains
+`CustomControl_NumberInput` of type `NumberInputBox`. The child
+declares no range or focus overrides and does not request the separate
+Slider style. `Button_Done` and `Button_Back` at lines 122 and 123
+declare `UILuaCommands.Operate`. These identities were checked by SQWT
+roundtrip and XML start-element line numbers (MEASURED).
+
+The ShopEdit LPB `n1635q/r2vu561qn1635q.le.lpb` and the shared widget
+LPBs matched the encoded and decoded pins in
+[xivl-client-scripts](https://github.com/XIVLegacy/xivl-client-scripts/blob/c3340f42170201f3aedcdbb89ed04012cff22c5f/manifests/retail_lua_coverage.json).
+Read the zero-based prototype PCs with the same Lua 5.1 replay as above.
+
+- ShopEdit `main/f0` PCs 68-71 register `NumberInputBox.ValueChanged`
+  on the named numeric control before initial setup. The shared
+  `widgetbaseclass_common` helper `main/f55` PCs 0-4 calls
+  `_setUICommandCondition` with priority 5. The selected template
+  action uses the effective Value and record kind 1. The
+  [native subscription](sqwt-command-parameter-consumer.md#subscription-gate)
+  stores numeric condition kind 0. These kinds are separate.
+- `main/f1` PC 360 selects mode 12, PC 371 sets count 1, and PCs
+  373-420 derive the maximum. It starts at the current item's
+  `stackMax`. When supplied money is below `pricedata * stackMax`,
+  it substitutes floor of money divided by `pricedata`. For item
+  IDs strictly between 1000002 and 1000101 it caps that maximum at
+  999. PC 429 supplies value 1, minimum 1 and that maximum.
+  `main/f4` writes Minimum, Maximum and Value in that order at
+  PCs 6, 12 and 16. `main/f1` PCs 454-495 request quantity
+  control visibility according to the `stackable == 1` branch.
+- `processAfterShow` (`main/f3`, PCs 0-4) requests `Button_Back`
+  when its explicit argument is Boolean true. `main/f5` first
+  sets logical focus to that control, and requests keyboard focus
+  only when the desktop's focused widget already equals self
+  (PCs 4-14). This gives a conditional initial request rather
+  than a measured live recipient.
+
+### Focus before the quantity step
+
+STATIC. The RepeatButton preview-down base call at `0x0097EFFE`
+reaches `0x0092EB90`. After the base returns, a clear handled byte
+and original source equal to the arrow admit its call to
+`0x0092EA10` at `0x0092EBB7`. With the constructor's Focusable
+false retained on the arrow, the ordinary non-Window path reaches
+`0x0092B150` at `0x0092EB0F`. This searches complete logical parents
+through `+0x240`, checking registry exclusion, enabled/input
+admission, Focusable, visibility and tab admission, and requests the
+first eligible ancestor's input `+0x38` at `0x0092EB25`. This occurs
+before the MouseDown digit-selection handler and release Click.
+
+The NumberLabel constructor's arrow-child insertion callback
+(`0x0069DE97..0x0069DECC`) and NumberInputBox's digit insertion
+callback (`0x0069E5BF..0x0069E5DC`) reach `0x009955D0` for the
+embedded Grids. Both controls install their Grid templates through
+`0x00938170`. On the admitted current-template branch
+`0x00936EB9..0x00936ED7`, the owner attaches its Grid. These insertion
+paths use `0x009313C0`, which can store the complete parent at
+`0x0093145B` and the input parent through `0x00931405 -> 0x0091E180`
+at input `+0x60`. The resulting path is arrow, digit Grid, NumberLabel,
+box Grid, NumberInputBox. It assumes the selected roots and attachment
+stores are retained.
+
+Grid construction requests Focusable false (`0x00995CE4..0x00995CEA`).
+Label construction requests IsTabStop false through `0x0097436F`
+and `0x00937FC0`. NumberInputBox inherits the Control constructor's
+Focusable true request at `0x00939063` and initial IsTabStop true
+at `0x00938F49..0x00938F53`. On that retained, admitted path
+the ancestor candidate is the NumberInputBox. Its input table
+`0x00FCB184` selects `0x0091E3E0` at `+0x38` and
+`0x0069C2B0` at `+0x68`. Selection mode `0x0F` delegates to
+`0x0092E650 -> 0x0092E5F0`, which can retain the box interface.
+The separate mode 9 arm can choose a retained digit or the first
+vector digit. Preview cancellation, candidate redirection, actual
+pointer containment and current widget/input guards remain conditions.
+
+The admitted focus store at `0x0091E75C` precedes the
+GotKeyboardFocus delivery at `0x0091E880`. When the box receives it,
+its `+0xE8` entry `0x00930D20` calls `0x0093D370` at
+`0x00930DED`. Input `+0x14` selects `0x0091C4B0`, which returns
+true for the current focus interface itself or any of its input
+parents. The guarded refresh stores the sample at box `+0x15D` bit 5.
+The LostKeyboardFocus entry `0x009299D0` similarly resamples the
+current interface chain. The registered getter ordinal 5 selects
+`0x0093A2F6 -> 0x0093E220` and reads that stored bit.
+The ordinary property read formats True or False and the
+[WidgetBase Lua getter](https://github.com/XIVLegacy/xivl-client-structs/blob/8a8930c6da61d1ff8b3d442fe169396805394d23/docs/chocobo-naming-native-contract.md)
+converts the result to Boolean through case 6 at `0x005382A6`.
+
+The short release step and current ValueChanged template action
+follow the paths above. ShopEdit `main/f8` PCs 0-14 checks wait status
+and the zero operation, then forwards integer argument 1 to
+`updateNumber`. `main/f9` PCs 0-8 stores the integer only if
+the current named control's IsKeyboardFocusWithin read is Boolean true.
+Done consumes that stored count through the linked ShopBuy selection
+contract. A clamped no-change step produces no new ValueChanged.
+The LPB can reject the callback even after a changed range value if
+focus has moved before delivery. This trace establishes the
+conditional short-press route and leaves live focus acceptance,
+scheduler timing, other modes and repeated presses open.
