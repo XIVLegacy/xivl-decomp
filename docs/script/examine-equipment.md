@@ -67,8 +67,11 @@ Sources: `widget/desktopwidget_connector.lua:13794-13977` and
 
 `command` selects a command name and calls `_executeCommand` only after its
 admission test. If its command-event callback executes,
-`_onCommandEvent` forwards the name, command actor and first four varargs to
-`_callServerOnCommand` (`chara/player/playerbaseclass.lua:1820-1881`).
+`_onCommandEvent` forwards the name, command actor and its complete variadic
+tail to `_callServerOnCommand`. The original PlayerBase LPB
+`729s9/uy9l5s/uy9l5s89r57y9rr.le.lpb`, `root/proto42` PC14
+(decoded offset 16406) uses VARARG B=0 and PC15 (16410) uses CALL B=0.
+[PlayerBase LPB identity](https://github.com/XIVLegacy/xivl-client-scripts/blob/2be50ecfc1d8717b18d7cd9cd477a6a441c90e23/docs/player-command-event-routes.md)
 The [generic native request bridge](materia-command-dispatch.md#generic-command-request-bridge)
 owns the conditional continuation through `0x006E8B30`, `0x006E2FB0`,
 `0x0075E1C0`, `0x0089E0D0` and the `0x012D` constructor `0x00776760`.
