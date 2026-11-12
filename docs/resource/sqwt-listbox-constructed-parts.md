@@ -121,8 +121,56 @@ The encoded form and template SHA-256 values are
 `ba8b86dbf36558e6086721524833d17528be08b11bf72c062d0b76fd318de7d5`.
 MEASURED from the decoded installed resources. The viewer's constructed
 viewport bounds the row subtree independently of the outer presenter.
-INFERRED. Exact scissor dimensions, initial row cut, and the focus-to-scroll
-route for this form remain UNKNOWN.
+INFERRED. Exact scissor dimensions and initial row cut remain UNKNOWN.
+
+## Bound row focus and viewport
+
+Assigning ItemsPanel to a VirtualizingStackPanel saves the panel and its
+scroll owner at ItemsControl `+0x3F0/+0x3F4`
+(`0x0096320F..0x00963267`). The `SqwtFocusedIndex` descriptor
+`0x0135AB38` has index 9, initialized at `0x00F23E80`. Callback
+`0x00963140` uses branch `0x009632DD` for that index. With a
+nonnegative request different from the index of the current focus object,
+it calls `0x009627B0` with the requested index and flag 0. A nonnull
+ItemsSource at `+0x354` selects `0x00962440`. STATIC.
+
+For an eligible bound row without a retained container, and for a retained
+container whose `+0x15D` mask `0x20` is set, the checked branches at
+`0x009624EC..0x009624F8` and `0x00962567..0x00962573` call the
+scroll request at `0x00961E40` only if `0x0091B7B0` returns 1.
+That predicate requires a current visible
+[AnchorElement](sqwt-window-trigger-order.md#attachment-and-conditional-focus-notifications).
+The branch at `0x00962580` can also reach the request through
+`0x00962350`, with the same predicate. The row, focus and caller flag
+checks in `0x00962440` qualify these branches. STATIC.
+
+For a valid nonnegative vertical index with bound source, panel and
+scroll owner, `0x00961E40` obtains the cumulative row start and end by
+summing preceding cached extents through `0x00961550` for the index and
+index plus one. It reads vertical offset and viewport height through
+panel interface `+0x28/+0x2C`. For ordinary finite inputs, the first
+branch requests the row start when it is less than or equal to the
+current offset. Otherwise it requests end minus viewport height when the row end
+is past the viewport bottom. Both requests call interface `+0x6C` at
+`0x00961F88` or `0x00961FDA`. The panel cell selects `0x009B7D00`,
+which bounds an ordinary finite request to the scrollable extent with a
+floor of zero, writes a changed offset at interface `+0x1C` and
+notifies the scroll owner. STATIC. Admission depends on an eligible focus
+request and a visible anchor.
+
+The viewer publishes changed offset and viewport through
+`0x00973D40 -> 0x00973660`. ItemsControl subscribes to ScrollChanged
+at `0x00963267..0x00963284` and the handler at `0x00963020` copies
+the vertical values to `+0x470/+0x474`. The update at `0x00964940`
+requires nonzero viewport height to process containers. With `+0x47C`
+mask `4` set, its finite comparisons use the viewport to skip
+offscreen rows, except for the first row, last row and focused index
+plus its immediate neighbors (`0x00964C82..0x00964CF5`). The constructor
+sets that mask at `0x00963B7F..0x00963BA2`.
+`SqwtDesignData.StringValue2` can change it through `0x00960410`.
+These are conditional container-management rules. The final pixel
+translation, effective mask after styling and actual row focus for the
+installed form remain UNKNOWN.
 
 ## Panel axis and local stacking requests
 
@@ -195,6 +243,13 @@ ghidra disasm 0x00971FD1 -n 41 --json
 ghidra disasm 0x00934A50 -n 45 --json
 ghidra disasm 0x0099D0A0 -n 50 --json
 ghidra disasm 0x00970DF0 -n 35 --json
+ghidra disasm 0x0096320F -n 35 --json
+ghidra disasm 0x009632DD -n 27 --json
+ghidra disasm 0x009624EC -n 9 --json
+ghidra disasm 0x00962567 -n 20 --json
+ghidra disasm 0x00961EEF -n 65 --json
+ghidra disasm 0x009B7D00 -n 49 --json
+ghidra disasm 0x00964C82 -n 44 --json
 ghidra disasm 0x009B8660 -n 86 --json
 ghidra disasm 0x009B7FD0 -n 150 --json
 ghidra disasm 0x009B81B0 -n 120 --json
