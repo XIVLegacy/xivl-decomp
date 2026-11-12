@@ -139,6 +139,7 @@ zero-based in the PWIB directory described above.
 | Model | Bank bytes | Bank SHA-256 |
 |---|---:|---|
 | `c001` | 702992 | `2ce7ec3844054c2ec89a21079c2820bdab588398128400c8aebab63456b3495c` |
+| `c003` | 693184 | `c7fd91087a273b9c3dc67ed2ed4a41afd2afe60aa847352bc295e7986b91e9af` |
 | `c009` | 697488 | `0d09b8e5398c1003a064404b059c056f120e88d703341b9dce1467750ce8a727` |
 
 | Motion name | MTB ordinal | MCB ordinal |
@@ -146,11 +147,27 @@ zero-based in the PWIB directory described above.
 | `cbbm_dedpose` | 38 | 39 |
 | `cbnm_dedpose` | 113 | 114 |
 
-All four MTB payloads are 4077 bytes and byte-identical. Their SHA-256 is
+The four c001 and c009 MTB payloads are 4077 bytes and byte-identical.
+Their SHA-256 is
 `df797264833aaf1ff68e633febcd5a1920d2ff9c632fa4d80cb12b3384a079ed`.
-The MCBs at ordinals 39 and 114 differ within each bank. Neither bank
-contains an SCB named `dead1`, `dead2` or `dead`. The same directory read
-on `client/chara/pc/c001/act/clb_sld/bid/base/0001` does find `dead` at
+Both c003 MTB payloads are 4093 bytes and byte-identical. Their SHA-256 is
+`1d18876682dc6b4ca29788a9ea5717fdeae7f39c4a79ac34e132c8b9606ba0c5`.
+Each c003 Header has 30.0 at `+0x00` and extent 100.0 at `+0x04`. The
+`SpuBinary` channels contain 95 quaternion keys at frame 0 and zero
+quantized samples. The
+1232-byte MCBs differ. Battle ordinal 39 has SHA-256
+`1dc6e198c751cb814b4a67a1d9febf58a3aaf2e519afecac73a1543caa02e0bb`
+and field ordinal 114 has SHA-256
+`7d959f727bef1d5cbb06ccf24a44276ff206475bec50f5b9d4cfdc2d2578aeda`.
+
+All ten c001 through c010 `emp_emp/bid/base/0000` banks place the two
+MTBs and MCBs at these ordinals. The 20 MTBs contain eight distinct
+payloads. Each has the same two Header values, frame-0 quaternion keys
+and zero quantized samples. c010 has different normal and battle
+MTBs. The other nine banks have byte-identical pairs within each bank.
+None of these ten banks contains an SCB named `dead1`, `dead2` or `dead`.
+The same directory read on
+`client/chara/pc/c001/act/clb_sld/bid/base/0001` finds `dead` at
 ordinal 78, size 1568, SHA-256
 `d21af3e8d0e785679bcb08c31c3fa65fb4863939d227760d7d1c45c35807161a`.
 The latter bank is 411472 bytes, SHA-256
