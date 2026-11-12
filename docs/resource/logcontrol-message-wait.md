@@ -9,7 +9,7 @@ image base 0x00400000. All locators are VAs. Ghidra CLI produced the
 disassembly, xrefs, RTTI and decompilation used to navigate the trace.
 Instructions, branch targets and referenced data were checked against the
 identified PE. The observations are static. Actual event delivery, VM resume
-and NPC window behavior remain unproved.
+and NPC window timing remain unobserved.
 
 ## Checker setup and output
 
@@ -22,8 +22,11 @@ DWORD at C+4 and initializes byte C+8 to zero.
 OBSERVED. At 0x006ECF27..0x006ECF5B a stack wrapper holding the checker
 pointer is passed to 0x00CD2860 before the entry calls shared worker
 0x006E8360 with flag 1. Neighboring _appendLogPool at
-0x006ECF80..0x006ECF8C supplies flag 0. Allocation success and the internal
-yield-helper protocol are not established for a selected execution.
+0x006ECF80..0x006ECF8C supplies flag 0. The yield helper reaches
+0x00CCD390 at 0x00CD28A3. On normal completion it installs the checker in
+the thread's +0xE8 at 0x00CCD45F. The native worker runs after that request.
+The functor executor then tests the checker slot through 0x00CCD380 at
+0x00D19DD7, and a nonnull checker selects the yield branch.
 
 OBSERVED. Table 0x00FD5340 has deleting slot 0x00718E70 and predicate slot
 0x00713A20. Complete-object locator 0x0115D344 and type descriptor
@@ -32,20 +35,26 @@ OBSERVED. Table 0x00FD5340 has deleting slot 0x00718E70 and predicate slot
 
 OBSERVED. Predicate 0x00713A20..0x00713A44 reads the captured D+0x79 byte.
 A nonzero byte sets byte C+8 to 1 and writes the DWORD loaded from global
-0x01377ECC through the first output pointer. A zero byte instead writes the
-DWORD loaded from 0x0130CECC. These are distinct source addresses. Their
-runtime values, whether those values differ, their enum meanings and the VM
-consumer remain unknown.
+0x01377ECC. A zero byte writes the DWORD loaded from 0x0130CECC.
+The [scheduler status contract](attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion)
+gives these cells the initial values 0 and 1. Poll 0x00CCD4A0 calls checker
+slot 1 at 0x00CCD527. Scheduler 0x00CF1B50 leaves value 1 queued at
+0x00CF1CE0 and dispatches value 0 to 0x00CCF290 at 0x00CF1D1D. The
+distinct null-checker status 2 takes 0x00CCE1C0 at 0x00CF1D16. The
+AppendMessage checker itself supplies only 0 and 1.
 
-OBSERVED, LIMITED SPAN. Deleting slot 0x00718E70..0x00718E8B calls
-0x00718E10. The retained suffix at 0x00718E43..0x00718E50 tests byte C+8 and
-writes byte D+0x79=1 on its zero branch. The full teardown entry prefix is
-not established by this span.
+OBSERVED. Deleting slot 0x00718E70 calls teardown 0x00718E10. The
+teardown stores the derived table at 0x00718E35, writes D+0x79=1 only
+when C+8 is zero at 0x00718E43..0x00718E4C, and then installs the base
+table at 0x00718E58. The yield helper deletes an existing different
+checker before installing the new one (0x00CCD43E..0x00CCD45F).
+A previous unfinished AppendMessage checker for the same D can therefore
+set the shared byte when replaced. This is a conditional teardown path.
 
-The [pool feed contract](logcontrol-pool-feed.md#fifo-flags-publication-and-lifetime)
-owns flag-1 publication through the same log module, including its string
-combination and suppression branches. Marker and suffix meanings and any
-window notification remain unknown.
+OBSERVED. Successful formatting sets the separate pool record ready byte
+at 0x00777EF3. The [pool feed contract](logcontrol-pool-feed.md#fifo-flags-publication-and-lifetime)
+traces the subsequent FIFO and module publication. Those paths do not
+write the captured DesktopWidget byte or poll the checker.
 
 ## LogControlWait0 and callback guards
 
@@ -126,6 +135,43 @@ receiver and passing the handler guards reaches the callback. Command
 production and table registration do not establish the full target-to-container
 route or selected runtime execution.
 
+## Impish Impositions price and confirmation
+
+OBSERVED. `Spl0i2.processEventSUMFES001` proto4 calls `WorldMaster.say`
+for price row 23 at PCs 151, 162, 173 or 184, then reaches the confirmation
+opener at PCs 185-191 only after the call returns. The shipped `say` and
+`showMessage` helpers forward category 40 and discard native results.
+The following `askExtendWidget` uses row 24 and flag 1, selecting
+`DesktopWidget.askForEventMode` at `npcbaseclass_event` proto11 PC38.
+The connector proto237 opens `Ask/AskWidget` at PC15 and shows it through
+`selectWidgetYield` at PC31. See the
+[runner bytecode](https://github.com/XIVLegacy/xivl-client-scripts/blob/8be1a405d2309ab4a2127df1fc745fcb6c55c861/docs/impish-impositions-client-contract.md#runner-menu-and-callback-values)
+and the [WorldMaster call route](../script/worldmaster-message-pool.md#registered-callback-and-call-arguments).
+
+OBSERVED. Category 40 is admitted by the [NpcSay consumer](logcontrol-line-format.md#lf-05-installed-logwidget-and-npcsay-values)
+and the first chat tab. `NpcSayWidget` reacts to `TextChanged` while shown
+and starts its independent opacity animation on the first update. The key
+release raises a command and sound, while the window's hide follows the
+separate desktop mode or close path. See the
+[NpcSay window chain](../event/npcsay-window-chain.md).
+
+OBSERVED. The authenticated English price cell and the selected category-40
+line-format cell contain no code 0x11. The inspected price substitutions
+contain no wait control. Dispatcher 0x004D6D90 appends its flag-1 suffix
+through 0x0044AB90. That suffix starts empty, as the string constructor
+0x00445CF0 at 0x004DC1F9 stores its size 1 and a leading zero. The
+[key-wait trace](logcontrol-key-wait.md#logdocument-wait-state) bounds the search for
+later suffix writes. It also establishes that a page-break-only press
+does not emit Wait0.
+
+UNKNOWN. With the selected category-40 row, empty dispatcher suffix and
+no other armed wait, the traced path supplies no positive D+0x79 writer
+from the line itself. The callback uses one DesktopWidget byte across
+calls and carries no message record identity. Actual release of this
+price call, first paint, and its visible overlap with the following Ask
+remain unobserved. Neither the format result nor the traced window
+animation establishes a release boundary.
+
 ## Reproduction and limits
 
 Use Ghidra CLI on the identified executable. Inspect the append entry,
@@ -142,11 +188,11 @@ raises command 0x0133A438, the press commands that reach it, and the fan-out to
 the container handler. The [NpcSay window chain](../event/npcsay-window-chain.md)
 records the window show and hide.
 
-UNKNOWN. The literal 0xC0000024 registration beyond the local DesktopWidget
-record, actual VM consumption or resume time, marker and suffix meanings,
-rendering and runtime chronology remain unproved. The separate
-[Anime and Window path](sqwt-anime-property.md#window-handler) does not
-establish an edge from these message calls to window visibility.
+UNKNOWN. Actual callback delivery to the matching live DesktopWidget,
+resume time, marker and suffix meanings, rendering and runtime chronology
+remain unproved. The separate
+[Anime and Window path](sqwt-anime-property.md#window-handler) owns native
+window animation dispatch.
 
 A limited native lead at 0x0075BE50..0x0075BE72 looks up 0xC0000024 and,
 only on a null result, calls 0x004D90C0 with literals 0x1A and 0xC0000024.
