@@ -4,7 +4,7 @@ This page records how a stored chat line becomes a line of a LogControl: which c
 
 [Copied controls](#copied-controls) records how the `0x10`, `0x19` and `0x1A` tokens that the formatter leaves in a line are laid out and drawn.
 
-This page does not establish the colour a category draws in, the wrap rule, the scroll bar behaviour, the hanging indent, the user configuration default of the filter data, or any rendered line.
+This page does not establish the colour a category draws in, the wrap rule, the scroll bar behaviour, the hanging indent, or any rendered line.
 
 ## Input and method
 
@@ -143,7 +143,7 @@ So for a numeric `LogFormat` the text row of a line is `LogFormat + category`, a
 
 OBSERVED (private install). The form declares both `LogControl_Main_1` and `LogControl_Main_2` with `LogFormat="2400"`, `LogFormat2="2600"`, `IndentHasName="@2206"`, `IndentNoName="@2207"`, `LinesPerSec="3"`, `LinesPerSecHi="30"`, `IsEnableKeyWait="False"`, `FontSize="14"`, `FontEdge="True"`, `FontEdgeColor="#ff262626"`, `Margin="8,4,4,4"` and `VerticalScrollBarVisibility="AutoHidden"`. The script function `LogWidget.updateLogFormat` (unluac lines 878 to 914) writes `LogFormat` 2400 and `LogFormat2` 2600 to both controls and then `App.InvalidateRender`. Rows 2206 and 2207 of the `en` table are plain numbers.
 
-OBSERVED (private install). The script function `LogWidget.updateLogCategoryDisplayFromUserConfig` (unluac lines 1093 to 1216) builds the string of the literals 28, 29, 30, 31, 34, 35, 36, 37, 38, 39 and 40 joined by commas. For each tab 1 and 2 it uses that string only when the window index `work.index` is 1 and the tab is 1, and the empty string otherwise. It appends a comma and the result of `getConfigLogFilterData(index, tab)` when that result is not the empty string, and calls `setLogCategories` with `LogControl_Main_<tab>` and the string. So the `Categories` value of the first tab of the first window starts with the categories 28 to 31 and 34 to 40. Every other control takes the empty string, a comma and the filter datum, so a nonempty datum arrives with a leading comma (unluac lines 1185 to 1197). The converter skips a token that `strtol` cannot start. The resulting vector state for an initial empty token is outside the two-value case above. The filter data is read from user configuration and its default is UNKNOWN here. The function `updateDisplayStatus` (unluac lines 1218 to 1253) returns at once for window index 1 and shows a window of another index only when `getConfigLogEnable` is true for one of its two tabs.
+OBSERVED (private install). The script function `LogWidget.updateLogCategoryDisplayFromUserConfig` (unluac lines 1093 to 1216) builds the string of the literals 28, 29, 30, 31, 34, 35, 36, 37, 38, 39 and 40 joined by commas. For each tab 1 and 2 it uses that string only when the window index `work.index` is 1 and the tab is 1, and the empty string otherwise. It appends a comma and the result of `getConfigLogFilterData(index, tab)` when that result is not the empty string, and calls `setLogCategories` with `LogControl_Main_<tab>` and the string. So the `Categories` value of the first tab of the first window starts with the categories 28 to 31 and 34 to 40. Every other control takes the empty string, a comma and the filter datum, so a nonempty datum arrives with a leading comma (unluac lines 1185 to 1197). The converter skips a token that `strtol` cannot start. The resulting vector state for an initial empty token is outside the two-value case above. The filter data is read from user configuration. The function `updateDisplayStatus` (unluac lines 1218 to 1253) returns at once for window index 1 and shows a window of another index only when `getConfigLogEnable` is true for one of its two tabs.
 
 OBSERVED (private install). Rows 2400 to 2449 and 2600 to 2649 of `xtx/_text_ui` in `en` each hold, under the colour tokens, uses of the one-based supplied string tokens. The rows from 2600 use only supplied string 2 (the text). Most rows from 2400 use supplied string 1 (the sender), a separator literal that differs by row, and supplied string 2, and rows 2428 and 2429 use supplied string 2 alone. The rows 2414 to 2421 hold a token that has no evaluated handler in the formatter used as a lead. The colour operands are literal in some rows and the `0xE9` global parameter reference of [Rich-text global parameter vector](rich-text-global-parameters.md) in others, so the colour of a category is the colour state of its row. Which category a given row serves follows LF-04 and is not tied here to a channel name.
 
@@ -163,6 +163,40 @@ span `[19743,19781)`. The decoded 34-byte cell has SHA-256
 `5247959ebb8d9acf037440a4e6bba47ab2697bfda3f68e5f8e6f5ebee6ec92ef`.
 The [price row evidence](https://github.com/XIVLegacy/xivl-client-data/blob/44a4e89ea239b7be993426f0b2ad1f8a9e598e14/docs/impish-impositions-reward-price-text.md#installed-resources)
 pins the supplied message body separately.
+
+### KO notice category
+
+STATIC. Desktop `init` proto0 PCs 312-313 checks log configuration.
+`getConfigLogIndex` proto492 PCs 0-4 yields
+`(window - 1) * 2 + (tab - 1)`. For window 1 tab 1, the category
+list is user-config group 6, key 9. `checkConfigLogData` proto497
+PCs 9-23 initializes that list only when the native read returns an
+empty string. `initConfigLogData` proto498 PCs 0-17 writes the default
+and enables tab 1. For this tab `getConfigLogDefaultData` proto499
+PCs 2-7 and 17-203 choose the 1-through-128 loop. Category 32
+passes the exclusions at PCs 25-196 and reaches insertion at PCs
+197-201. `setConfigLogData` proto495 PCs 10-26 saves the
+slash-delimited list.
+
+`getConfigLogData` proto496 PCs 4-11 reads the same key and converts
+a stored `@` to empty. The initializer preserves a stored `@`.
+`getConfigLogFlagTable` proto500 PCs 7-28 sets the stored category flags
+and its remaining stores preserve index 32. `getConfigLogFilterData`
+proto501 PCs 9-18 serializes its true flags. Thus the first tab's
+configuration suffix admits 32 after successful default initialization.
+For an existing list the same admission depends on stored category 32.
+The [installed script manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8be1a405d2309ab4a2127df1fc745fcb6c55c861/manifests/retail_lua_coverage.json)
+pins `widget/desktopwidget_connector` for these zero-based PCs.
+
+The [committed KO notice](../actor/locomotion-selection.md#player-ko-movement-and-committed-callback)
+uses category 32 with an empty sender. With the first chat tab's
+`LogFormat2=2600` and the retained English provider, LF-04 selects
+`xtx/_text_ui` row 2632. Its English data span in `0x0B4502B5` is
+`[19439,19477)`. The decoded 34-byte cell has the same hash and
+argument 2 token as the category 40 wrapper above. The first tab keeps key wait disabled. NpcSay's category vector
+admits 38 and 40 only.
+Native row lookup, category installation and chat presentation remain
+conditional on the current controls and provider.
 
 ## Copied controls
 
@@ -249,7 +283,7 @@ The italic advance does not change in the draw. In `0x00CAC330` the slant local 
 - Other modules that register the thunks `0x00B241C0`, `0x00CBFDC0` and `0x00B241B0`, and whether they treat `0x10`, `0x19` and `0x1A` the same way.
 - How bold draws beyond the added advance of 1, and the role of bit 2 that code `0x1B` sets.
 - The rendered result. No row break or shear was observed in a running client.
-- The string-to-vector parse of `Categories`, the default filter data, and the category values a server sends.
+- The complete default filter set, the remaining string-to-vector cases of `Categories`, and the category values a server sends.
 - The formatter's rejection conditions and its output for a sender or text holding a byte `0x02` (LF-03).
 - Whether the `Categories` conversion accepts an empty first token (LF-05).
 
