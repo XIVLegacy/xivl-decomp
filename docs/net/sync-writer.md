@@ -107,9 +107,58 @@ slot 1 with one value or a range. The SyncContainer secondary slot-1 target is
 `FUN_00CFD580`, which forwards to the access object at `SyncContainer+0x08`,
 vtable slot 3.
 
-String, actor, array, and endian-adjusting wrapper framing remains unresolved.
-The class names and shared bodies alone do not prove ownership, byte swapping,
-or an on-wire representation.
+The actor, array and endian-adjusting wrapper families retain separate
+framing limits.
+
+### String value apply and Lua read
+
+STATIC. The admitted actor property path forms the value pointer after the
+four-byte hash and supplies it with the zero-extended record width at
+`0x0077563A..0x00775652`. It also supplies the callback context operand.
+If registration selects the shared-work adapter at `0x00CFD69B`, its slot
+1 `0x00CFECE0` forwards the same stack arguments to the inner writer.
+The StringInformation factory `0x00D2C580` constructs SyncWriterString on
+its sync arm (`0x00D2C64E`). Table `0x01110358` uses common slot 1
+`0x00D30C70`, apply slot 6 `0x00D30550`, and callback slot 7 `0x00D2FD10`.
+
+Apply sizes the writer-local vector to the supplied width and copies that
+many bytes at `0x00D30589`. It performs no prefix read, byte conversion or
+terminator append. A zero width reaches the empty-vector error path at
+`0x00D3057A`. The callback forwards the vector begin and byte count to
+handler slot 1 at `0x00D2FD35..0x00D2FD46`. SyncContainer's secondary table
+`0x0110EF18` selects `0x00CFD580`, which passes the same begin and count to
+the current access object's slot 3.
+
+The default actor work builder enters `0x00CC8760` for MyPlayer at
+`0x0076DE48` and initializes the SyncContainer through `0x00CCC200`.
+Its base constructor stores access object `0x0130D414` at `0x00CFE2D9`.
+The object's SimpleAccess table `0x0110ECDC` selects `0x00CFCDB0` for
+slot 3. With that access retained, the callback uses the registration's
+pool byte offset. It compares the supplied range and copies exactly that
+count when different (`0x00CFCDB0..0x00CFCE8F`). A short write leaves the
+remaining bytes as stored. This path checks the start offset against the
+pool size. The inspected body adds no member-width clamp or terminator.
+
+The StringInformation table `0x0110FE94` selects Lua read slot `+0x1C`
+`0x00D2A520`. Absent storage takes the nil branch. The admitted read uses
+the descriptor's byte count at `+0x10` and `0x00D25900` member start.
+`0x00D12B30` allocates count plus one zero-filled bytes at `0x00D12B77`,
+then copies count bytes from the selected pool at `0x00D12BC0`. In the
+same default actor storage path, `0x00CE4550 -> 0x00CCB430` selects
+SyncContainer slot `+0x08` `0x00CFD4E0`. SimpleAccess slot 2 `0x00CFCD70`
+copies the passed count at `0x00CFCD9F`.
+
+The temporary's final zero remains beyond the copied field. The string
+constructor `0x00447260` at `0x00D12BE4` scans to the first zero with the
+file-backed -1 sentinel at `0x00F67298`. `0x00CF3340` then calls the Lua
+C-string push at `0x00CF3350 -> 0x00DCE1F0`. These bodies preserve the byte
+prefix before the first NUL, with no encoding conversion or UTF-8 check
+shown. They leave later formatting and the encoding of a historical server
+payload outside the claim. Confirmed operands and table cells are VAs in
+retail 1.23b `ffxivgame.exe`, PE32 base `0x00400000`, 15996808 bytes,
+SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+Reproduce using Ghidra CLI 0.2.2 and LLVM objdump 21.0.0 x86-32 listings,
+then read the cited table cells directly from the file-backed PE sections.
 
 ## Shared sync staging
 

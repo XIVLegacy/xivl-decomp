@@ -38,10 +38,11 @@ MurmurHash2 algorithm. They are not observed confirmation packet fields.
 | `variableCommandConfirmWarpSenderSex` | `integer8` | `0x24620683` |
 | `variableCommandConfirmWarpPlace` | `integer32` | `0x229A12A1` |
 
-The `32` string length is a source declaration. It is not an authenticated
-fixed wire width, terminator rule or accepted sender-name encoding. The
-integer alternative and place field must not be renamed actor ID or
-destination ID without another discriminator.
+The `32` string length is the declared field capacity. The selected
+[string path](sync-writer.md#string-value-apply-and-lua-read) explains
+how it bounds a read. A historical offer's record width and sender
+encoding remain unobserved. The integer alternative and place field must
+not be renamed actor ID or destination ID without another discriminator.
 
 `_bindWork(100001, "playerWork", "variableCommandConfirmRaise")` and
 `_bindWork(100002, "playerWork", "variableCommandConfirmWarp")` occur at
@@ -64,8 +65,7 @@ been registered through that mechanism, their `integer32`, `integer8` and
 `string` tokens select the corresponding writer families. This supplies an
 expected field/handler join. It does not observe a live registration, select
 the recipient actor from a packet header, or prove that all fields arrive
-together. String framing and the selected scalar endian mode remain explicit
-limits.
+together. The selected scalar and string apply modes are below.
 
 The focused original-byte check used retail 1.23b `ffxivgame.exe`, size
 `15996808`, SHA-256
@@ -115,10 +115,24 @@ four-byte store only when the mode byte is nonzero. Four-byte variation
 and sender-ID values therefore use the direct little-endian store when
 constructed under the nonpositive mode. Integer8 sex takes the first
 byte. The getter's nonzero sender-ID branch does not read the sender
-string. These are conditional inputs for a numeric-sender test. The actual
-retail offer transaction, string framing and server clear policy remain
-unobserved. Recheck the constructor, apply and completion sites in the
-pinned PE with LLVM objdump 21.0.0 and Ghidra CLI 0.2.2.
+string. These are conditional inputs for a numeric-sender test. Recheck the
+constructor, apply and completion sites in the pinned PE with LLVM objdump
+21.0.0 and Ghidra CLI 0.2.2.
+
+### Selected Raise sender string
+
+The installed Raise `_sync` declaration loads `string` and capacity 32
+(`playerbaseclass.lua`, `root/proto18` PCs 147-148). With that descriptor,
+matching registered handler, valid initialized actor pool and ordinary
+completion, `0x1A368F0B` receives raw sender bytes under the
+[SyncWriterString path](sync-writer.md#string-value-apply-and-lua-read).
+When SenderByID is zero the getter returns the field prefix up to the
+first NUL, or all 32 bytes if none occurs in the field. A short replacement
+that includes NUL terminates even if a previous value left a suffix in the
+pool. A full 32-byte replacement can supply its own padding or fill the
+field. The extra terminating byte is added in the read temporary. These
+are compatible forms under the traced branch. The original producer's
+chosen width, encoding and offer clear policy remain unobserved.
 
 ## Update target and consumer boundary
 
@@ -163,9 +177,9 @@ has 918 rows for the four captures in
 matches the nine derived hashes. This is a negative over those decoded table
 rows, not an absence claim over arbitrary capture bytes or other scenarios.
 
-The remaining incoming discriminator is a field-specific registered-writer
-or property transaction witness that fixes actor selection, scalar endian
-mode and sender-string framing. The named fields, type tokens, listener
-targets and getter behavior are direct static Lua observations; their hashed
-incoming composition is conditional. Historical timeout and server-side
-publication/clear policy remain unknown.
+The remaining incoming discriminator is a field-specific property transaction
+witness that fixes the live owner, record widths, scalar mode, sender encoding
+and sender publication order. The named fields, type tokens, listener targets
+and getter behavior are static Lua observations. Their hashed incoming
+composition is conditional. Historical timeout and server-side publication
+and clear policy remain unknown.
