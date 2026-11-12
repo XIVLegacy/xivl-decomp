@@ -4,7 +4,8 @@
 `ListBoxScrollViewer`, supplies the panel to `ItemsPanel`, and names the viewer
 `PART_ListBox_ScrollViewer`. The panel constructor initializes an axis byte
 whose height-axis consumers support a conditional vertical stacking rule.
-Effective `TabPanel` placement and painted gaps remain UNKNOWN.
+The embedded viewer gives the item panel a clipped viewport. Effective
+`TabPanel` placement and painted gaps remain UNKNOWN.
 
 ## Input and method
 
@@ -50,8 +51,9 @@ The viewer constructor receives the panel pointer as its first stack argument.
 Its second argument is the panel's `+0x300` interface address, or zero when
 the panel pointer is null. The interface vftable is `0x0107F5F4`, whose
 locator `0x011817D0` records object offset `0x300`. The viewer stores the
-second argument at viewer `+0x3B8` at `0x0096D1BA`. The broader contract of
-that viewer field is UNKNOWN.
+second argument at viewer `+0x3B8` at `0x0096D1BA`. The outer constructor
+passes the viewer back to interface slot `+0x24` at `0x0096DB9E..0x0096DBAE`.
+The slot selects `0x009B78F0`, which stores it at interface `+8`. STATIC.
 
 ## Content, Name and ItemsPanel joins
 
@@ -72,8 +74,55 @@ decompiler-assigned names. STATIC.
 | Name | `0x00912D50` | `0x01356BC8` | `0x00F20620` | `0x01068310` |
 | ItemsPanel | `0x00963540` | `0x0135ABEC` | `0x00F23D50` | `0x0106F7D8` |
 
-These joins establish construction and property assignment. The effective
-part tree after template and markup processing remains UNKNOWN.
+## Constructed item viewport
+
+The outer constructor inserts its embedded viewer as a visual and logical
+child at `0x0096DB8E..0x0096DB99` through `0x00940B30` and `0x009313C0`.
+This is separate from the outer ListBox Template property. STATIC.
+
+The viewer inherits the ScrollViewer constructor at `0x0096D16A`. The
+base constructs a Grid at viewer `+0x3C0`, a ScrollContentPresenter at
+`+0x760` and a template at `+0xA5C` with that Grid as its root
+(`0x009733BE..0x00973419`). Viewer table cell `0x01071FA0` selects
+`0x0096D600 -> 0x00971EF0`, which adds the presenter to the Grid
+at `0x00971FD1..0x0097200C` and assigns the template through
+`0x00938170` at `0x00972054`. STATIC.
+
+The [template application path](sqwt-progress-template-style.md#conditional-style-inheritance)
+attaches the Grid and calls virtual `+0x10C`. Viewer cell
+`0x01072080` selects `0x00934A50`. With unparented content, it reads
+the viewer Content at `+0x340` and calls `0x0092B340` with the default
+content-source name. That lookup searches logical children for a
+ContentPresenter with matching ContentSource and does not descend into
+child ContentControls. The constructed presenter defaults to `Content`
+at `0x0099D6BF..0x0099D6DE`. The callback supplies the panel to the
+presenter through `0x0099CEE0` or `0x0099CF10` at
+`0x00934AB8..0x00934AC3`. Presenter callback `0x0099D0A0` then
+attaches the supplied panel at `0x0099D0E0..0x0099D110`. STATIC for
+the branches and callsites, INFERRED for their default viewer composition.
+
+The ScrollContentPresenter inherits the default ClipToBounds and
+[render-size clip path](sqwt-number-input-button-frames.md#hand-in-viewport-evidence).
+Its arrange keeps its final viewport separate from the child extent
+(`0x009C2EC0`). The viewer arrange forwards the presenter's
+`ViewportHeight` and `ViewportWidth` at viewer `+0xA24` and `+0xA2C`
+to the panel interface `+0x70/+0x74` at `0x00970E1A..0x00970E3C`.
+Those fields belong to presenter descriptors `0x013633E4` and
+`0x01363408`, named at `0x00F2A9C0` and `0x00F2A9F0`.
+Panel interface entries `0x009B79F0` and `0x009B7A20` store changed
+values at interface `+0x20/+0x24`. STATIC.
+
+In the installed standard `widget/ItemListWidget.form`, line 65 sets
+`ListBox_TabItem_1` Height to 200, sets horizontal scrolling to Disabled
+and selects `ControlTemplate_ListBox`. Its matching definition in
+`widget/ItemListWidget.tpl` lines 64-65 declares a bare ContentPresenter.
+The encoded form and template SHA-256 values are
+`65a8c82bc93664231778fe1b704b27254e03a759f4ec37fa23e6ae2f516a46be` and
+`ba8b86dbf36558e6086721524833d17528be08b11bf72c062d0b76fd318de7d5`.
+MEASURED from the decoded installed resources. The viewer's constructed
+viewport bounds the row subtree independently of the outer presenter.
+INFERRED. Exact scissor dimensions, initial row cut, and the focus-to-scroll
+route for this form remain UNKNOWN.
 
 ## Panel axis and local stacking requests
 
@@ -140,6 +189,12 @@ commands through `ghidra-cli` include:
 ghidra disasm 0x0096D980 -n 250 --json
 ghidra disasm 0x0096D140 -n 60 --json
 ghidra disasm 0x00963540 -n 18 --json
+ghidra disasm 0x0096DB8E -n 12 --json
+ghidra disasm 0x009733BE -n 25 --json
+ghidra disasm 0x00971FD1 -n 41 --json
+ghidra disasm 0x00934A50 -n 45 --json
+ghidra disasm 0x0099D0A0 -n 50 --json
+ghidra disasm 0x00970DF0 -n 35 --json
 ghidra disasm 0x009B8660 -n 86 --json
 ghidra disasm 0x009B7FD0 -n 150 --json
 ghidra disasm 0x009B81B0 -n 120 --json
