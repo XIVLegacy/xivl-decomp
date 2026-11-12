@@ -4,7 +4,7 @@ This page records how a stored chat line becomes a line of a LogControl: which c
 
 [Copied controls](#copied-controls) records how the `0x10`, `0x19` and `0x1A` tokens that the formatter leaves in a line are laid out and drawn.
 
-This page does not establish the colour a category draws in, the wrap rule, the scroll bar behaviour, the hanging indent, the string-to-vector parse of the `Categories` property, the user configuration default of the filter data, or any rendered line.
+This page does not establish the colour a category draws in, the wrap rule, the scroll bar behaviour, the hanging indent, the user configuration default of the filter data, or any rendered line.
 
 ## Input and method
 
@@ -101,7 +101,12 @@ The property change callback `0x00593F90` switches on the descriptor index store
 
 ## LF-02: Filter gate
 
-The filter `0x00591F80` adds no line while the control's `Categories` vector at control `+0x1A5C` (begin) and `+0x1A60` (end) is empty: its loop only advances the read index. With a nonempty vector it reads each unread stored line through `0x004C3F10`, searches the 32-bit entries of the vector for the recovered 16-bit category, and calls `0x004571F0` for the line only when an entry equals it. A control with no categories shows no line. STATIC. The pool feed page records the same comparison. The string-to-vector conversion of the `Categories` value is not traced, so the separators and the number base it accepts are UNKNOWN.
+The filter `0x00591F80` adds no line while the control's `Categories` vector at control `+0x1A5C` (begin) and `+0x1A60` (end) is empty: its loop only advances the read index. With a nonempty vector it reads each unread stored line through `0x004C3F10`, searches the 32-bit entries of the vector for the recovered 16-bit category, and calls `0x004571F0` for the line only when an entry equals it. A control with no categories shows no line. STATIC. The pool feed page records the same comparison. The index-3 change handler passes the `Categories` value, count limit
+128 and vector at control `+0x1A58` to `0x009170A0` at `0x00594031`.
+The converter calls `strtol` with base 0 at `0x009170FF` and writes the
+integer when the end pointer advances (`0x00917107..0x0091714F`).
+It searches for a comma first and for a space if no comma was found
+(`0x00917152..0x00917175`). Thus `38,40` gives decimal 38 and 40.
 
 ## LF-03: The line builder
 
@@ -134,13 +139,30 @@ So for a numeric `LogFormat` the text row of a line is `LogFormat + category`, a
 
 `0x00592760(row, out, sender, text)` wraps the sender and then the text as string arguments, in that order, into a parameter set (`0x004D3420` and `0x004D50D0` twice), and calls `0x004B58B0` on the object `ECX` holds. `0x00592760` loads that `ECX` from the static `[0x0133C638]`, which it initialises to `[0x0133C63C] + 0x3C`, where `[0x0133C63C]` is the result of `0x00974220`, the global at `0x0135C2AC` (`0x005927A3..0x005927CC`, `0x005928AA`). `0x004B58B0` pushes the address `ECX + 4`, the row, the dword at `ECX + 0x288`, the parameter set and the output string, and calls slot +0xC of the object at `ECX + 0x268` with them (`0x004B58B1..0x004B58D8`). That is the five argument contract of `0x00CA0930` in the [ordinary text lookup contract](logcontrol-text-lookup.md): key K, row R, column selector, parameter set P and output O. So `ECX + 0x288` is the column selector and the key K is at `ECX + 4`. The out string is the output O. STATIC for the argument order. Whether the object at `ECX + 0x268` is the TextModule, the value of K and the value of the column selector are not traced here, so which sheet the log rows come from is UNKNOWN on this chain. The installed LogWidget rows named in LF-05 were read in `xtx/_text_ui` as a lead. The row text is then expanded by the formatter with the supplied vector `[sender, text]`.
 
-## LF-05: Installed LogWidget values
+## LF-05: Installed LogWidget and NpcSay values
 
 OBSERVED (private install). The form declares both `LogControl_Main_1` and `LogControl_Main_2` with `LogFormat="2400"`, `LogFormat2="2600"`, `IndentHasName="@2206"`, `IndentNoName="@2207"`, `LinesPerSec="3"`, `LinesPerSecHi="30"`, `IsEnableKeyWait="False"`, `FontSize="14"`, `FontEdge="True"`, `FontEdgeColor="#ff262626"`, `Margin="8,4,4,4"` and `VerticalScrollBarVisibility="AutoHidden"`. The script function `LogWidget.updateLogFormat` (unluac lines 878 to 914) writes `LogFormat` 2400 and `LogFormat2` 2600 to both controls and then `App.InvalidateRender`. Rows 2206 and 2207 of the `en` table are plain numbers.
 
-OBSERVED (private install). The script function `LogWidget.updateLogCategoryDisplayFromUserConfig` (unluac lines 1093 to 1216) builds the string of the literals 28, 29, 30, 31, 34, 35, 36, 37, 38, 39 and 40 joined by commas. For each tab 1 and 2 it uses that string only when the window index `work.index` is 1 and the tab is 1, and the empty string otherwise. It appends a comma and the result of `getConfigLogFilterData(index, tab)` when that result is not the empty string, and calls `setLogCategories` with `LogControl_Main_<tab>` and the string. So the `Categories` value of the first tab of the first window starts with the categories 28 to 31 and 34 to 40. Every other control takes the empty string, a comma and the filter datum, so a nonempty datum arrives with a leading comma (unluac lines 1185 to 1197). Whether the unparsed `Categories` conversion accepts the empty first token is open. The filter data is read from user configuration and its default is UNKNOWN here. The function `updateDisplayStatus` (unluac lines 1218 to 1253) returns at once for window index 1 and shows a window of another index only when `getConfigLogEnable` is true for one of its two tabs.
+OBSERVED (private install). The script function `LogWidget.updateLogCategoryDisplayFromUserConfig` (unluac lines 1093 to 1216) builds the string of the literals 28, 29, 30, 31, 34, 35, 36, 37, 38, 39 and 40 joined by commas. For each tab 1 and 2 it uses that string only when the window index `work.index` is 1 and the tab is 1, and the empty string otherwise. It appends a comma and the result of `getConfigLogFilterData(index, tab)` when that result is not the empty string, and calls `setLogCategories` with `LogControl_Main_<tab>` and the string. So the `Categories` value of the first tab of the first window starts with the categories 28 to 31 and 34 to 40. Every other control takes the empty string, a comma and the filter datum, so a nonempty datum arrives with a leading comma (unluac lines 1185 to 1197). The converter skips a token that `strtol` cannot start. The resulting vector state for an initial empty token is outside the two-value case above. The filter data is read from user configuration and its default is UNKNOWN here. The function `updateDisplayStatus` (unluac lines 1218 to 1253) returns at once for window index 1 and shows a window of another index only when `getConfigLogEnable` is true for one of its two tabs.
 
 OBSERVED (private install). Rows 2400 to 2449 and 2600 to 2649 of `xtx/_text_ui` in `en` each hold, under the colour tokens, uses of the one-based supplied string tokens. The rows from 2600 use only supplied string 2 (the text). Most rows from 2400 use supplied string 1 (the sender), a separator literal that differs by row, and supplied string 2, and rows 2428 and 2429 use supplied string 2 alone. The rows 2414 to 2421 hold a token that has no evaluated handler in the formatter used as a lead. The colour operands are literal in some rows and the `0xE9` global parameter reference of [Rich-text global parameter vector](rich-text-global-parameters.md) in others, so the colour of a category is the colour state of its row. Which category a given row serves follows LF-04 and is not tied here to a channel name.
+
+OBSERVED (private install). `NpcSayWidget.init` proto0 PCs 19-31
+constructs `38,40` and assigns it to `LogControl_NpcSay.Categories`.
+The installed control uses `LogFormat2="2600"` and enables key wait.
+The WorldMaster message has an empty sender and takes the unnamed route.
+For category 40 the retained English provider selects row 2640. The row
+contains foreground and edge controls and uses the message body through
+string argument 2 at byte offset 18. It carries no code 0x11. The first
+chat tab selects the same format row for this message, with key wait
+disabled.
+
+The installed row is in definition `0x0B450082`, English data `0x0B4502B5`,
+enable `0x0B4502B6` and offsets `0x0B4502B7`. The framed row is data
+span `[19743,19781)`. The decoded 34-byte cell has SHA-256
+`5247959ebb8d9acf037440a4e6bba47ab2697bfda3f68e5f8e6f5ebee6ec92ef`.
+The [price row evidence](https://github.com/XIVLegacy/xivl-client-data/blob/44a4e89ea239b7be993426f0b2ad1f8a9e598e14/docs/impish-impositions-reward-price-text.md#installed-resources)
+pins the supplied message body separately.
 
 ## Copied controls
 
@@ -229,7 +251,6 @@ The italic advance does not change in the draw. In `0x00CAC330` the slant local 
 - The rendered result. No row break or shear was observed in a running client.
 - The string-to-vector parse of `Categories`, the default filter data, and the category values a server sends.
 - The formatter's rejection conditions and its output for a sender or text holding a byte `0x02` (LF-03).
-- The identity of the object at `ECX + 0x268` in `0x004B58B0`, and the values of K and the column selector there (LF-04).
 - Whether the `Categories` conversion accepts an empty first token (LF-05).
 
 ## Reproduction bounds
