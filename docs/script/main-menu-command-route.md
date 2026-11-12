@@ -128,6 +128,108 @@ that page. `Home` and `Subtract` are therefore the row defaults of
 `KeyMainMenu1` and `KeyMainMenu2`, and a configuration value for either key
 replaces the default.
 
+### Decide and chat input
+
+MEASURED. In `key_config`, profile 0, the first enabled range supplies
+rows 10 to 14 and 24 to 26 to the desktop binding group. Unmodified Enter
+matches the defaults for `LogControlPressKey`, `Operate`, and `MoveFocus`
+with argument 9 in rows 10 to 12. Control+Enter and Alt+Enter match the
+`Operate` defaults in rows 13 and 14. Chat entry is a separate command.
+
+| Sheet row | Data resource span | Default | Command and parameter |
+|---|---|---|---|
+| `key_config` 24 | `0x0103016A [7425,7642)` | `KeyStartChat1$=Space` | `RaptureCommands.Chat`, int 0 |
+| `key_config` 25 | `0x0103016A [7642,7834)` | `KeyStartChat2$` empty | `RaptureCommands.Chat`, int 0 |
+| `key_config` 26 | `0x0103016A [7834,7967)` | `/` | `RaptureCommands.Chat`, int 191 |
+| `key_config3` 11 | `0x0103055A [4974,5172)` | `KeyOperate1=NumPad0` | `ApplicationCommands.Operate`, none |
+| `key_config3` 24 | `0x0103055A [7430,7647)` | `KeyStartChat1$=Enter` | `RaptureCommands.Chat`, int 0 |
+
+The same defaults appear in columns 3 and 12 through 15 of these rows.
+The `key_config3` resources and both enabled ranges are pinned in
+[Retained source definitions](https://github.com/XIVLegacy/xivl-client-data/blob/4855dcebbf9531bf11ee777d303b3058badcee7b/docs/movement-binding-rows.md#retained-source-definitions).
+The active profile and substituted values remain conditions on a match.
+
+STATIC. In the `ffxivgame.exe` pinned by the
+[keyboard binding trace](../input/keyboard-movement-bindings.md),
+`0x00946CD0` scans name/value pairs at `0x012E2D68`. Ghidra and LLVM objdump
+confirm that matching `Return` and `Enter` at `0x012E2D88` and
+`0x012E2D90` returns the same code `0x0D` through `0x00946DD8`. For
+admitted `KeyDown` recipient chains, `0x0091E1C0` collects the recipient and
+its eligible ancestors, conditionally appending the Desktop interface. It
+reverses the collection at `0x0091E31D`, then `0x0091D210` dispatches kind 0
+backwards at `0x0091D238..0x0091D2BE`. This visits a collected descendant
+before its ancestor within that chain.
+
+OBSERVED. Standard `AskWidget` inherits `AskBaseClass.init`, whose
+`main/f0` PCs 20 to 22 request `IsModal=true` through `setModal`.
+`AskWidget.processAfterShow` requests focus on the default answer's
+`TemplateButton_Answer`. `client/sqwt/widget/AskWidget.tpl` line 4 names
+`UILuaCommands.Operate` as that Button's command. The template is 535 bytes
+with SHA-256 `e9ffd9acfb89498efd2ffac3e346e0f826082443cba64c6fc91e6b931e9189ad`.
+`AskWidget.initAsk` registers the exact template and control at priority 5,
+and `processUICommandEvent` `main/f4` PCs 0 to 15 sets the parsed answer
+number for the matching sender and command.
+[AskWidget bytecode and focus](https://github.com/XIVLegacy/xivl-client-scripts/blob/7d1a5ca6e9a06806243951c107f6796270049db2/docs/ask-widget-answer-focus.md#default-answer-and-focus).
+
+STATIC. Button Executed cell `0x01073C88` selects `0x0097EDB0`. After the
+base call, `0x0097EDE3..0x0097EDF7` requires an unhandled command and
+`ApplicationCommands.Operate` (`0x01357C88`). The handler sets command
+handled at `0x0097EE41` and raises Click with the Button as source and
+original source at `0x0097EE4D..0x0097EE90`. The Button's
+[default Click handler](../resource/sqwt-command-parameter-consumer.md#button-mouse-source)
+runs its retained command. This joins Layout0 Enter to the standard Ask
+answer when the command reaches its admitted focused Button.
+
+OBSERVED. The standard `LogWidget.form` `TextBox_ChatInput` at lines 78 to
+80 instead owns a local `Return` binding to `UILuaCommands.PressEnterTrigger`.
+Its selected `Style_TextBox` in `LogWidget.tpl` lines 264 to 267 dispatches
+`UILuaCommands.PressEnter` with `Text2` as the string operand. The
+[LogWidget assets](../resource/sqwt-tab-scroll-text-parts.md#logwidget-declared-hit-filters)
+pin the carriers. In `client/script/n1635q/yv3n1635q.le.lpb`, SHA-256
+`d99be24e3e64e9d105b25b722d119ee349c5f9244ddd4f2e1f048c32355ad7`,
+`setKeyboardFocusToChatInput` `main/f26` PCs 0 to 10 requires that the
+focused widget equals the receiver before requesting textbox focus.
+`processUICommandDefault` `main/f2` PCs 0 to 29 passes nonempty input to
+`DesktopWidget.processInputWordAnalyze` and requests `setDeactiveBatch`
+for either empty or nonempty input.
+
+STATIC. TextBox KeyDown cell `0x0106ED24` selects `0x0097A380`, which calls
+`0x0091F440` before its raw Return handling. The latter visits the element's
+own binding collection at `0x0091F4A5`. A successful ordinary KeyGesture
+execution with unchanged collection serial reaches slot 9 at
+`0x0092126D`. Table cell `0x00FC5AC8` selects `0x005584F0`, whose write at
+`0x005584F4` marks the keyboard event handled. The binding walker can then
+skip later ordinary bindings through `0x0092119F..0x009211AD`.
+
+OBSERVED. Both standard `AetheryteListWidget.form` lists select
+`Style_ListBox`. `AetheryteListWidget.tpl` lines 18 to 21 bind the native
+`SelectionChanged` event to `UILuaCommands.SelectionChanged` with the
+sender's `SelectedIndex`. The form and template SHA-256 values are
+`a2b0ea4f84f89b774c82de73e3458efab203f97456e2ae08210ffeb15b119751` and
+`28fa33aab46a8cac2213d4506ad87865e88dafff9022f71a5c58b8ff2c15a285`.
+`AetheryteListWidget.initAsk` `main/f0` PCs 12 to 19 registers
+`ListBox_AetheryteList_RegionSelection` and `ListBox_AetheryteList` for that
+command. The callback `main/f2` PCs 0 to 25 sets the ask result to index
+plus 1 for the region and for a destination with nonzero `AetheryteID`.
+`setAskParameter` `main/f3` PCs 16 to 20 requests the saved region focus
+index in mode 0.
+[Selection results](https://github.com/XIVLegacy/xivl-client-scripts/blob/7d1a5ca6e9a06806243951c107f6796270049db2/docs/aetheryte-list-widget-contract.md#selection-results).
+
+STATIC. The [ListBox Operate path](https://github.com/XIVLegacy/xivl-client-scripts/blob/7d1a5ca6e9a06806243951c107f6796270049db2/docs/reward-widget-result-contracts.md#rewardselectwidget-opening-and-keyboard-selection)
+requests the `SelectedIndex` write at `0x0096EC4E`. Callback `0x0096F440`
+case 0 checks list `+0x35C` at `0x0096F489` before calling `0x0096F080` at
+`0x0096F49F`. The reached notification branch at `0x0096F39E..0x0096F3E9`
+routes descriptor `0x0135B5CC`, initialized as `SelectionChanged` id
+`0x3C` at `0x00F24860`. This is distinct from the `Selection` event that
+`0x0096EC00` separately raises. Actual recipient and repeated equal index
+writes remain conditions outside this join.
+
+The conditional routes distinguish Decide on an admitted Ask answer and
+submit on the focused chat input. `LogControlPressKey` has the separate
+[CommonAskWidget trigger](../resource/logcontrol-key-wait.md#input-that-raises-the-press-commands).
+The active modal and input recipient when both surfaces are visible, and
+live dispatch under an overridden profile, remain UNKNOWN.
+
 ## Desktop branch
 
 STATIC. The executable registers static command objects for
