@@ -222,6 +222,78 @@ These observations used Ghidra CLI 0.2.2 and file-backed PE32 reads of
 the identified executable. The selected focus recipient, Window flag at
 click time, click eligibility and resulting Lua delivery remain UNKNOWN.
 
+### Ordinary ActionMenu slot hit and target
+
+OBSERVED. The authenticated [ActionMenu form and template](action-menu-timer-icon-style.md#inputs-and-method)
+place the visual page under `Grid_MenuSlotCenter` and the ten
+`Button_Command_N` under the later `Label_MenuSlot_Dummy` sibling
+(form lines 40-186). The Buttons select `ControlTemplate_Button_MenuIcon`,
+whose only visual declaration is an empty ContentPresenter (template
+lines 132-133). The ordinary visual slots select a separate Label template
+with a TimerIcon (template lines 149-153). The TimerIcon is outside the
+corresponding Button's subtree.
+
+STATIC. The ContentPresenter constructor `0x0099D650` requests local
+IsHitTestVisible false through `0x0093C300` at `0x0099D7C3..0x0099D7CB`.
+Its primary cell `0x0107A9EC` and Button cell `0x01073CE4` select
+the [ordinary self test](#local-hit-flags-and-child-first-query)
+`0x0092B640`. With admitted false retained and no attached hittable
+child, the presenter cannot win an ordinary point query. TimerIcon primary
+cell `0x010824EC` also selects that self test. Its constructor calls
+IconControl at `0x009C0DD3`, which reaches UIElement construction through
+`0x0092F640`. The fresh local hit bit is true at
+`0x0093C8B3..0x0093C8BF`. The ActionMenu TimerIcon and its selected
+local style omit a hit override. The Label's false bit alone cannot
+exclude its TimerIcon.
+
+STATIC. Grid's Panel cell `0x01074418` selects `0x00995650`, whose
+visual add reaches `0x00940B30` and then `0x0093FBE0`. With retained
+equal finite draw-order values, the later inserted child follows the
+earlier in the visual list. The [draw-order study](sqwt-keyframe-target-binding.md#observed-local-sqwtdraworder-paint-order)
+records the fresh zero and the dummy Label's empty literal conversion.
+The ordinary Window query `0x00923090 -> 0x00939B10` reaches
+`0x0097DE40`, which searches that list in reverse and returns the
+first admitted child result. Thus the ordinary Button branch can win
+before the painted page with its later attachment, both sibling values
+retained at zero, and an admitted hit in the Button branch. Current
+Window selection, attachment, clip and returned element remain
+conditions.
+
+STATIC. The mouse preview router `0x0091E980` clears the two source
+fields and passes the selected input interface to `0x0091E1C0`.
+The latter copies its `+0x64` to the unset original source at
+`0x0091E1FC..0x0091E20C`. The direct Button press focus arm
+`0x0092EB90 -> 0x0092EA10` requires that original source to equal the
+complete Button and the handled byte to remain zero. Its enabled,
+Focusable and IsTabStop gates select `0x00939E30`, `0x0091C3D0`
+and `0x00936F50`. Passing them requests focus through `0x0091E3E0`,
+whose admitted transition writes the current interface at
+`0x0091E75C`. A hit returned as the TimerIcon supplies that
+TimerIcon's source. This route provides no conversion from the
+visual slot's TimerIcon to the sibling Button.
+
+STATIC. With mode 2 and the pressed-bit and release gates admitted, the
+Button's default Click passes its stored kind-1 record. The no-target
+fallback at `0x0097ED47..0x0097ED5F` uses the same containing Window
+bit as the arrow path above. Button, StackPanel, Grid and Label cells
+`0x01073D5C`, `0x0107F3B4`, `0x01074604` and `0x01073964`
+select `0x0092B1F0` and follow logical parent `+0x240`. With the
+declared chain attached they reach Window's `0x00921BD0`.
+A clear Window bit supplies the Button interface. A set bit supplies
+null, so the command route uses the current keyboard focus through
+`0x0091F590 -> 0x0091EE90`. The kind-1 integer travels with the
+command independently of which named subscription the route visits.
+For a same-Button activation, either branch must reach the subscription
+on the current pressed Button. Callback mutations, delivery and live
+focus retention remain unresolved.
+
+Reproduce with the executable identified above. In addition to the Button
+source recipe, read `0x0099D650`, `0x009C0DA0`, `0x00995650`,
+`0x00940B30`, `0x0097DE40`, `0x0091E1C0` and
+`0x0092EB90` with Ghidra CLI 0.2.2 and cross-check the listed callsites
+and table cells against the original PE with LLVM 21.0.0. Compare decoded
+form and template line locations using the authenticated SQWT extraction.
+
 ### Click destruction notification
 
 The Click recipient uses a destruction notification pointer at I `+0x2FC`,
