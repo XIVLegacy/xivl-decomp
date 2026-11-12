@@ -283,6 +283,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [DamagePlate form rules](resource/damage-plate-form-rules.md) -
   Form path, row branches, slot ring, colour inputs, Canvas measure and Foreground.
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
+- [Sqwt TextBlock padding in EquipWidget](resource/sqwt-textblock-padding.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
 - [Sqwt name lookup cache](resource/sqwt-name-lookup-cache.md) -
   Per-form name cache of the script property lookup and the second log window.
