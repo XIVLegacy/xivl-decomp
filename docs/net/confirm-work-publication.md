@@ -88,6 +88,38 @@ clear packet, expiry, already-open question closure, or clearing the other
 sender/place fields. The linked offer-timeout finding owns the additional
 widget-close trace. Omission of a record is not shown to clear stored work.
 
+### Selected Raise completion and scalar mode
+
+STATIC. The [wrapped-actor dispatcher](combat-result-element.md#element-resolution)
+uses the normalized sub-event source key for the `0x0137` element lookup.
+The selected [SyncMemory path](actorimpl-receiver-dispatch.md#native-0x0137-syncmemory-route)
+forwards the admitted element's registered script identity to the actor
+work manager. A live confirmation publication still needs the initialized
+self-player context that owns the declarations above.
+
+The [actor completion parser](actor-work-completion-targets.md#selected-target-and-record)
+accepts an unindexed 30-byte target `playerWork/confirmRaiseCommand`
+under marker `0xA0` (`0x82 + 30`). This is a derived legal target, with no
+captured offer claimed. On the admitted path the registered property apply
+at `0x00775652` precedes the callback attempt at `0x00774156`, which can
+supply `_onUpdateWork` with struct `playerWork` and slot
+`confirmRaiseCommand`. The ordinary non-init context state is 2 and the
+resolver and readiness predicates still apply.
+
+The Integer32 factory at `0x00D2C260` can construct `0x00D2FC90`.
+At `0x00D2FCA7..0x00D2FCBF` the constructor reads `0x0134B368`, stores
+-1 to that global when initially zero, then sets the writer byte `+0x0E`
+only for a signed-positive mode. The Integer32 table `0x0111025C` selects
+apply `0x00D2F9B0`. That apply copies the offered bytes and reverses its
+four-byte store only when the mode byte is nonzero. Four-byte variation
+and sender-ID values therefore use the direct little-endian store when
+constructed under the nonpositive mode. Integer8 sex takes the first
+byte. The getter's nonzero sender-ID branch does not read the sender
+string. These are conditional inputs for a numeric-sender test. The actual
+retail offer transaction, string framing and server clear policy remain
+unobserved. Recheck the constructor, apply and completion sites in the
+pinned PE with LLVM objdump 21.0.0 and Ghidra CLI 0.2.2.
+
 ## Update target and consumer boundary
 
 `playerWork._tag` groups the five warp fields under `confirmWarpCommand`
