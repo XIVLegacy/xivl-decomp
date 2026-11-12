@@ -532,9 +532,13 @@ nonnull service from owner `+0x114` slot `+0x08`, and nonnull owner
 `+0x12F0`, the scheduling path supplies owner `+0xDC` as both caster and
 target. A nonnull result from the call at `0x007BB068` is retained in
 `S+0x348/0x34C/0x350` and chooses the corresponding phase. All misses set
-phase 5 at `0x007BB0A4` for a later update. The early scheduler phases can
-also reach 5 through their progression checks or the timer expiry at
-`0x007BAE3D..0x007BAE81`. The [scheduler evidence](ifrit-nail-action-banks.md#native-death-scheduler-route)
+phase 5 at `0x007BB0A4` for a later update. The phase-1 gate admits
+owner `+0xE0=0x7FFFFFFF` or both
+`0x007AD830(owner+0x4C0)==0` and
+`0x0065C3C0(owner,-1)!=0`. The latter reads action lanes 8 and 9
+through `0x00844320` and requires both zero. The update may visit
+this gate on the transition tick because the posture update precedes
+the death updater. The post is independent of SCB lookup success. The [scheduler evidence](ifrit-nail-action-banks.md#native-death-scheduler-route)
 records the three SCB names separately from the pose resources below.
 
 Phase 5 clears the retained scheduler pointers and skips pose and
@@ -563,6 +567,55 @@ literals in the pinned PE using Ghidra and LLVM disassembly. The death
 phase table is at `0x007BB71C`, the scheduler literals are at
 `0x00FE73B8..0x00FE73C8`, and the pose literals are at
 `0x00FE73E0..0x00FE7450`.
+
+### Fall progression and return to field
+
+STATIC. The death updater subtracts its supplied delta from `S+0x59C`
+in death phases 1 through 5. The setup value is float 2700.0 from
+`0x00FE7EC8`. A strictly negative finite remainder forces phase 5
+before dispatch in the same update (`0x007BAE3D..0x007BAE9C`).
+An owner gate that remains closed until this timeout can therefore
+skip the phase-1 `0x54` post. These durations are in the native
+update's delta units.
+
+| Death phase | Progression | Locators |
+| ---: | --- | --- |
+| 2 | Wait for retained `dead1` object's slot `+0x98` result to reach slot `+0x9C` minus 1. Attempt the SCB `dead2`. Only a nonzero new handle stores phase 3 and resets the timer. | `0x007BB108..0x007BB16B`, `0x007BB255..0x007BB26A` |
+| 3 | Wait for finite current floating offset `S+0x58C` to be nonpositive. Attempt SCB `dead`. Only a nonzero new handle stores phase 4 and resets the timer. | `0x007BB26F..0x007BB2AE`, `0x007BB398..0x007BB3AD` |
+| 4 | A null handle or slot `+0x98` reaching slot `+0x9C` minus 3 stores phase 5 for the next visit. | `0x007BB3B2..0x007BB3F3` |
+| 5 | Drop the three retained handles through controller slot `+0x10` when available. Choose phase 6 for visual category 1, otherwise 8. The desired 1/3 test gates the pose and `0x53` post after that cleanup. | `0x007BB3F8..0x007BB463` |
+
+The phase-2 and phase-3 SCB requests retain their phase on a missing
+resource, service, controller or request result, subject to the
+timer above. The [floating offset contract](chara-turn-and-field-consumers.md#floating-offset)
+owns the separate writer of `S+0x58C`. Phase 6 advances at accumulated
+delta greater than 450.0. Phase 7 writes
+`1.0 - accumulated_delta / 30.0` to owner `+0x153C` before
+accumulating the delta. When the result exceeds 30.0, it writes
+zero and advances to phase 8 (`0x007BB616..0x007BB6FC`,
+`0x0065BE30..0x0065BE3E`). Phase 8 has no death updater dispatch.
+
+STATIC. With committed 1 or 3 and an admitted changed desired byte,
+posture phase 0 chooses field state 0, requests `cbnm_id0` and
+enters posture phase 14 (`0x007C18CB..0x007C18F1`). Phase 14
+accumulates delta past 30.0 and looks up the retained pose token.
+A found motion whose byte `+0x60` differs from 2 reaches
+`0x007A9470` with argument 2, then the posture phase becomes 15
+(`0x007C1ABD..0x007C1B3D`).
+
+Phase 15 requires the motion-list check `0x007AD830` to return
+zero and the `cbnm_id0` check `0x007AC240` nonzero. It requests
+`0x00665140(0,1)`, sets mask `0x400` on the accepted arm and
+advances to phase 16 (`0x007C1B59..0x007C1BA8`). Phase 16 waits for
+finite `S+0x5A0 <= 0` and mask `0x400` clear. It calls
+`0x007B1420`, which releases and clears any remaining death
+scheduler handles and sets death phase 0 at `0x007B146C`.
+It then requests field installation and reaches `0x007BA850`
+to commit 0 and post `0x53`, then `0x54` (`0x007C1BC4..0x007C1CC0`).
+The selected network receive for a non-KO state can update the element
+earlier. The [revival magic bank](animation-bank-routing.md#arrival-type-and-revival-motions)
+is a separate asset path. These posture calls do not establish when that
+bank is selected or when a live server revives the actor.
 
 ### Installation readiness callback
 

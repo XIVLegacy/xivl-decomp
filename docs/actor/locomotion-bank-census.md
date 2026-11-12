@@ -174,6 +174,36 @@ The latter bank is 411472 bytes, SHA-256
 `52a366e7bb4eb4667cdbfd1dca3c2d0b839046e3ac956e3746e90756c68429c0`.
 The directory facts leave active root order and scheduler admission open.
 
+## Fall and revival entries
+
+MEASURED. Reading all 8,333 files under the installed
+`client/chara/pc/c001` through `c010` `act` directories yields 8,332
+PWIB RES banks and the one bare RES bank named above. A directory search
+for SCB entries with exact terminal names `dead1`, `dead2` and
+`dead` finds only the c001 club/shield `dead` SCB identified above.
+Its 44-byte MotionClip at SCB offset `0x2AC` selects RIDTBL index 0.
+That 16-byte name entry starts at SCB offset `0x360` and supplies
+`cbbm_ded`. The same bank holds MCB ordinal 20 and MTB ordinal 21 for
+that name. Its MTB Header has 30.0 and extent 120.0.
+[MotionClip name rule](../resource/combat-motion-name-provider.md#resourcereference-and-serialized-provider)
+
+The corresponding c003 banks supply motion pairs even though the
+bounded SCB search finds no matching scheduler for that model.
+
+| Bank relative to c003 `act` | Motion | MTB / MCB ordinals | Header rate / extent |
+| --- | --- | --- | --- |
+| `emp_emp/bid/base/0001` | `cbbm_ded` | 18 / 19 | 30.0 / 155.0 |
+| `cmn/fid/base/0001` | `cbnm_ded` | 9 / 10 | 30.0 / 155.0 |
+| `emp_emp/bid/base/0000` | `cbnm_revive` | 118 / 119 | 30.0 / 160.0 |
+
+The first two c003 banks have lengths 247392 and 185488 and SHA-256
+`f5d952f836616226cf1d491ab054c098b54628a71031b5d45d06d4bbcc38b948`
+and `e508186909796972acfc241ccdf809f94294a67a4f2a46366b512cf108ce63c0`,
+respectively. The third bank's identity is in [KO pose entries](#ko-pose-entries).
+These are name, type and local membership checks. Active root order,
+an SCB from a different resource root, and direct playback of a same-named
+fall or revival motion require separate evidence.
+
 ## The walk and run set outside `emp_emp`
 
 | Where | Count | Observation |
