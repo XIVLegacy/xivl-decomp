@@ -36,6 +36,7 @@ paths below use the numeric form `data/BB/BB/BB/BB.DAT`.
 | Decoded markup holds 1012 actions in 200 template files with file numbers 1 through 82 | OBSERVED | [Markup census](#markup-census) |
 | Two driver texts differ only in the VOICE bus number and the mode value picks one | STATIC | [Driver configuration](#driver-configuration) |
 | The meaning of the per-bus numbers | UNPROVED | [Driver configuration](#driver-configuration) |
+| OLD installs curve mode 3. The track scalar uses its bounded identity branch, and selected layout voices request a separate interpolation | STATIC | [Driver volume curve](#driver-volume-curve) |
 | Eight entry functions play sounds and their direct call and jump sites are enumerated by a rel32 scan | STATIC | [Entry points](#entry-points-and-callers) |
 | The role of each caller | INFERRED | [Entry points](#entry-points-and-callers) |
 | A drained result entry with message ID `0x846E` or `0x8475` plays category 0 index 55 or 56 when it passes the selector filter | STATIC | [Server-driven sound](#server-driven-sound) |
@@ -312,6 +313,49 @@ The numbers may be per-bus voice counts but that is UNPROVED. Which bus a given
 play request reaches, and the effect of the SCD priority switch, were not
 traced into the driver.
 
+## Driver volume curve
+
+STATIC. `llvm-objdump -d` and little-endian PE section reads identify the
+following paths in the executable pinned above. The configuration parser
+at `0x00B67D95` matches VOLUME_CURVE. The OLD branch
+`0x00B67E56..0x00B67E6E` stores 3 at configuration `+0x34`.
+`0x00B91967..0x00B9196B` reads it and calls `0x00B90CB0`. The
+nonnull SoundDriver at global `0x01367D74` receives the value through
+virtual `+0x108`, cell `0x0113D95C -> 0x00B8C710`. The setter
+writes driver `+0x08` at `0x00B8C714`. The adjacent getter at
+`0x0113D960 -> 0x007143E0` reads it. Diagnostic code at `0x00E38770`
+uses the same field for the `volumeCurveType` label.
+
+The scalar helper `0x00B91F00` takes a float, a flag and a selector.
+For finite inputs its early branches return 0 at or below 0 and 1 at
+or above 1. The constants are at `0x00FB7A64` and `0x00FB7A60`.
+Selector zero reads the current mode through `0x00B90D20`, which
+returns 1 when the singleton is absent. The jump table at
+`0x00B92070` maps mode 3 to `0x00B92067`, returning an interior
+input unchanged. This branch does not test the flag.
+
+The track scalar `0x00B6BB70` multiplies two virtual results from
+embedded members at `+0xE4` and `+0x54` with the float at
+`+0x1CC`. It rounds the product to float32 and passes it to the helper
+at `0x00B6BBB8` with selector zero and the flag returned by
+`0x00B6B570`. It then multiplies by the float at `+0x1C0` before
+returning. One caller at `0x00B6E36B..0x00B6E37A` forwards the
+result through a different object's virtual `+0x50`.
+
+The SurfaceSound setup entry `0x00B40840`, primary table
+`0x010AB7EC` slot `+0x38`, takes a distinct branch for current
+mode 3 or 5 at `0x00B40A64..0x00B40A8A`. It passes voice
+`+0x80` to the same helper with explicit selector 2 and flag zero,
+then submits the result at `0x00B40A97 -> 0x00B53920`. This
+selector interpolates over eleven float32 knots at tenths of the
+normalized input. The `0x00B91FCB..0x00B9202C` loads give
+ascending values `0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.16, 0.25,
+0.40, 0.64, 1`. The path at `0x00B92030..0x00B92066` scales
+by double 10 from `0x00F67848`, truncates with `0x009D6600`,
+interpolates and stores a float32 result. The mode 3 global default
+and this explicit voice gain use different branches. A complete route
+from a configured bus or resource to an output voice remains open.
+
 ## Configured bus gains
 
 The game-store change receiver is container interface slot 1,
@@ -342,9 +386,12 @@ of the driver text's bus order or any particular effect's bus choice.
 `0x00442430` stores the supplied gain in the second float of an
 8-byte record indexed by the bus. The publication calls
 `0x00B8FF10` for the bus and submits the product of the record's two
-floats to `0x00B52600` with a zero-duration argument. This is the
-observed input to the downstream driver. It does not establish the
-driver's `VOLUME_CURVE OLD` transfer function.
+floats to `0x00B52600` with a zero-duration argument. The latter
+calls `0x00B51B50`, which forwards under the driver lock to
+`0x00B57540`. That function resolves a bus through the table at
+`0x0136621C` or the master at `0x01366220` and calls its
+virtual `+0x0C` with the gain and converted duration. A join from
+that virtual target to a particular mixed output remains open.
 
 ### Temporary gain and restore
 
