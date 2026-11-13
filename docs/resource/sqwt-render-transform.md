@@ -101,6 +101,27 @@ each step. The product is `T(-C) * S * T(C)` in the row-vector convention the
 fourth-row translation implies, which scales about the point (CenterX,
 CenterY). INFERRED from the convention.
 
+## RotateTransform matrix
+
+RTTI places the matrix getter at slot 3 of `Sqwt::Media::RotateTransform`.
+The table entry at `0x01078168` selects `0x00990E20`. When its matrix-valid
+byte +0x18 is clear, the getter rebuilds the matrix.
+
+| Locator | Operation |
+| --- | --- |
+| `0x00990E5C..0x00990E96` | Read CenterX and CenterY from +0x10 and +0x14 and build the base translation. |
+| `0x00990EDC..0x00990EFC` | Read AngleZ from +0x0C, multiply by the double 3.1415927410125732 at `0x00F62F48`, divide by the double 180 at `0x00F62F40`, and pass the float result to `0x0042FEB0`. |
+| `0x0042FEB3..0x0042FF53` | Build the first two rows as `(cos, sin, 0, 0)` and `(-sin, cos, 0, 0)`. The calls at `0x0042FEB7` and `0x0042FECA` reach the cosine and sine helpers, with x87 instructions at `0x009D62ED` and `0x009D641D`. |
+| `0x00990F0F`, `0x00990F48..0x00990F5B` | Pre-multiply the rotation, then pre-multiply the translation by negative CenterX and CenterY. |
+| `0x00990F68..0x00990F73` | Mark the matrix valid and return the cached pointer when nonnull. Otherwise return the shared matrix. |
+
+The rows and multiplication order are STATIC. In the row-vector convention
+above, the product is `T(-C) * R * T(C)`. For the UI's x-right, y-down
+coordinates a positive AngleZ turns a vector on the positive x axis toward
+the positive y axis. It is clockwise on screen. This describes the geometry
+for an admitted transform. Markup admission and animation dispatch are
+separate paths.
+
 ## Default transform of an element
 
 The element caches one `ScaleTransform` at `+0x188` and one `RotateTransform`
