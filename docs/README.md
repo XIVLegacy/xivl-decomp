@@ -264,6 +264,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt desktop relative source](resource/sqwt-desktop-relative-source.md)
 - [Sqwt render transform](resource/sqwt-render-transform.md)
 - [Sub-target guide initialization](resource/sub-target-guide-initialization.md)
+- [Target cursor visual source](resource/target-cursor-visual-source.md)
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
 - [Sqwt CommandParameter consumer](resource/sqwt-command-parameter-consumer.md)
 - [Sqwt IsEnabled literal Setter contract](resource/sqwt-is-enabled-literal-setter.md)
