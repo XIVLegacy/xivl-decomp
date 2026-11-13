@@ -89,13 +89,13 @@ The selected dictionaries supply these collections.
 
 | Form owner | Selected resource and declaration | Event or command inputs |
 | --- | --- | --- |
-| Window_SubItemListWidget, template selected at line 28 | WINBasis_noGrayout, Window template lines 2 and 8-71 | Shown, Closing, Hiding, Activated, Deactivated, MouseEnter, GotKeyboardFocus, Click, Operate and Cancel |
-| TabControl_ItemList, line 69 | ItemListWidget, Style_TabControl lines 143-147 | SelectionChanged with SourceType TabControl |
-| ListBox_TabItem_1 through _5, lines 72, 85, 98, 111 and 124 | ItemListWidget, ControlTemplate_ListBox lines 64-80 | MouseEnteredItem, AnchoredItem, Selection and LostFocus |
-| Label_MateriaPossibleEffect, line 365 | ItemListWidget, ControlTemplate_Label_MateriaPossibleEffect lines 171-195 | UILuaCommands.MateriaPossibleEffectStart and UILuaCommands.MateriaPossibleEffectStop |
-| Button_Back, line 448 | ItemListWidget, ControlTemplate_ButtonHelp lines 83-91 | Button.MouseEnter and Button.GotAnchor |
-| CustomControl_NumberInput, line 411 | LABBasisNumberInputBox, Style_NumberInputBox lines 11-16 | ValueChanged with SourceType Slider, one Int from Value |
-| Label_NumberInput_2, line 422 | LABBasisNumberInputBox, ControlTemplate_Label_NumberInputBox lines 2-8 | ValueChanged with SourceType Slider, one Int from Value and sound 54 |
+| Window_SubItemListWidget, template selected at line 28 | WINBasis_noGrayout, Window template lines 2 and 8-72 | Shown, Closing, Hiding, Activated, Deactivated, MouseEnter, GotKeyboardFocus, Click, Operate and Cancel |
+| TabControl_ItemList, line 69 | ItemListWidget, Style_TabControl lines 143-149 | SelectionChanged with SourceType TabControl |
+| ListBox_TabItem_1 through _5, lines 72, 85, 98, 111 and 124 | ItemListWidget, ControlTemplate_ListBox lines 64-82 | MouseEnteredItem, AnchoredItem, Selection and LostFocus |
+| Label_MateriaPossibleEffect, line 365 | ItemListWidget, ControlTemplate_Label_MateriaPossibleEffect lines 171-198 | UILuaCommands.MateriaPossibleEffectStart and UILuaCommands.MateriaPossibleEffectStop |
+| Button_Back, line 448 | ItemListWidget, ControlTemplate_ButtonHelp lines 83-93 | Button.MouseEnter and Button.GotAnchor |
+| CustomControl_NumberInput, line 411 | LABBasisNumberInputBox, Style_NumberInputBox lines 11-18 | ValueChanged with SourceType Slider, one Int from Value |
+| Label_NumberInput_2, line 422 | LABBasisNumberInputBox, ControlTemplate_Label_NumberInputBox lines 2-10 | ValueChanged with SourceType Slider, one Int from Value and sound 54 |
 
 The installed form imports ItemListWidget and WINBasis_noGrayout at lines
 21 and 22. Their selected declarations were checked by the same round trip
@@ -107,6 +107,9 @@ and XML parse.
 | common/WINBasis_noGrayout.tpl | 4348, 1ad7fc27906b6225fadd056decde2dddebb2b9fa8bf120496ec3be91bd923440 | 4340, 970d2cfd635ebfb4529f204fbe9a1efbc57512210863f6f30cc88869f7ce0613 |
 
 The integer Slider raises bubbling ValueChanged from the numeric control.
+NumberInputBox input table 0x00FCB184 slot 13 at 0x00FCB1B8 selects
+0x00966B70. Its ValueChanged arm calls a primary callback first and
+then calls 0x00938BA0 at 0x00966BA0, which calls the base Style wrapper.
 The [selected Style pass](sqwt-window-trigger-order.md#conditional-event-passes)
 reads the receiver's own Style and invokes its collection through
 0x0092D142. The [SourceType and command path](sqwt-number-input-pointer-edit.md#conditional-hand-in-command-delivery)
