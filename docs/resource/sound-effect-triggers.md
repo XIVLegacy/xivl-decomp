@@ -312,6 +312,64 @@ The numbers may be per-bus voice counts but that is UNPROVED. Which bus a given
 play request reaches, and the effect of the SCD priority switch, were not
 traced into the driver.
 
+## Configured bus gains
+
+The game-store change receiver is container interface slot 1,
+`0x00F91180 -> 0x004DB800`. The gate at `0x004DB80C..0x004DB834`
+checks the game store at receiver+0x16F8C and admits group 3 or the
+all-group value -1 to the audio branch. This uses native group/key
+indices. The Lua indices and registered limits are listed in
+`xivl-client-structs:docs/user-config-store-contract.md`,
+"Group 3, Lua group 4".
+
+The audio branch at `0x004DB836..0x004DB98D` reads each volume via
+`0x00443E40` with a fallback of 0 and divides it by the double 100.0
+at `0x00F55AD0`. The calls to `0x00442430` use these numeric buses.
+
+| Native key | Value | Bus indices |
+| ---: | --- | --- |
+| 0 | music_volume | 1, 8 |
+| 1 | sys_volume | 4 |
+| 2 | se_volume | 2, 6, 7, 11 |
+| 4 | voice_volume | 3 |
+| 5 | env_sound_volume | 5 |
+
+The same branch reads key 3 at `0x004DB91C` and passes its equality
+to 1 to receiver+0x484's callback at offset +4. It issues no gain
+write for key 3 or 6. This proves the numeric bus writes independently
+of the driver text's bus order or any particular effect's bus choice.
+
+`0x00442430` stores the supplied gain in the second float of an
+8-byte record indexed by the bus. The publication calls
+`0x00B8FF10` for the bus and submits the product of the record's two
+floats to `0x00B52600` with a zero-duration argument. This is the
+observed input to the downstream driver. It does not establish the
+driver's `VOLUME_CURVE OLD` transfer function.
+
+### Temporary gain and restore
+
+`0x004D6820` skips the operation when argument 2 is zero and its
+state byte at +0x4FC is nonzero. An admitted negative gain takes the
+branch at `0x004D6845`, clears that byte when argument 2 is nonzero,
+and restores all five configured volume groups using the same division
+and bus map. A nonnegative gain sets that byte when argument 2 is
+nonzero at `0x004D699A`. It writes the supplied gain to buses 2, 6,
+7, 11, 3 and 4. It adds buses 5, 1 and 8 only when argument 4 is
+exactly 1 at `0x004D6A0D`. Argument 3 is unread in this body.
+
+The loading wrappers call it with (0.0, 0, 0, 0) at
+`0x004D7025` and `0x004D7088`. The paired wrappers use
+(-1.0, 0, 0, 1) at `0x004D704C` and `0x004D70CC`. The
+negative constant is the float at `0x00F62F80`. These callers
+leave the state byte unchanged, so a separate nonzero argument 2
+operation can block them. Further callers require their own event
+and lifecycle evidence.
+
+The no-character transition's `0x004D6A50` first invokes the music
+reset, writes 100 to group 3 keys 0, 1, 2, 5 and 4, and then writes
+1.0 to the nine corresponding buses. It does not reset the two
+other group 3 keys in this function.
+
 ## Entry points and callers
 
 Eight functions play sounds through the module. Together with the logo menu
