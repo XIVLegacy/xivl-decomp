@@ -453,6 +453,81 @@ An admitted `f114` route can request the same direct title, then call shared
 The selected template's actions have a separate target. Routed observers,
 reentry, setter preprocessing, and visible intermediate state remain open.
 
+##### Repeated materia Stop
+
+The installed standard Gear form, its three merged dictionaries
+(`common/WINBasisLight.tpl`, `widget/EquipWidget.tpl` and
+`widget/EquipItemListWidget.tpl`), `common/default.style`, and the Desktop
+form and its `common/Desktop.tpl` dictionary contain one matching Stop
+trigger. It is on the target Label's template at
+`EquipItemListWidget.tpl:161`. The checked markup has no
+`PreviewExecuted` or `Executed` EventTrigger. In the installed Equipment,
+Desktop and WidgetBase LPBs and their literal Widget module requirements,
+the exact command name occurs only in the shared item-detail emitter
+above. That census covers declarations and literal script references.
+The native handler store can still deliver both events to registered
+handlers. Form handlers require the exact sender template, sender control
+and command keys at `0x005365D3..0x005365DC`. The generic per-frame
+debounce at `0x00536601..0x00536659` covers six other command identities.
+
+LLVM objdump 21.0.0 and PE table reads of the identified 1.23b
+`ffxivgame.exe` show that an admitted named target takes
+`0x00538B4A` and routes through `0x0091F590`. This route follows the
+target's input-parent chain and appends Desktop. It passes all three
+route flags set to 1, which bypass the per-element filters at
+`0x0091E267..0x0091E286`. The null-target route has separate focus and
+modal gates. An explicit target can be admitted while
+`Grid_MateriaPossible` is collapsed. Preview still runs from Desktop
+toward the target, and its handled result at `0x00928099` can suppress
+Executed. Executed runs from the target outward, subject to the shared
+route stop byte and recipient checks. Desktop event map cells
+`0x0091ADE8` and `0x0091ADE9` both forward to the Window base route
+through `0x0091ACB3`.
+
+The named Stop resolves the first same-name Begin in the collection at
+`0x009B4270 -> 0x009C2530 -> 0x009B1740` and caches it. The Start
+declaration appears before the Stop declaration's separate Begin. The
+named Stop traverses Start's timelines even before Start has run
+(`0x009AF760..0x009AF7BB`). It disables their timers and clears the
+active byte at `0x009AC3D1..0x009AC3D6`. If Start has retained a collection,
+this Stop also clears its current Begin. The collection can stop a prior
+occupant first when its `+0x20` byte is 1. The byte starts at 0
+(`0x009C27C9`). The separate Begin installs itself as current and resets
+and enrolls its own clock at `0x009AF6FC`, `0x009AC4EB` and
+`0x009AC4F3`. A further admitted Stop can replace that clock's prior
+enrollment and move it in pending order. See
+[timer dispatch and lifetime](../resource/sqwt-double-animation-clock.md#timer-dispatch-order-and-lifetime).
+
+All three selected discrete frames omit KeyTime. The frame constructor
+at `0x009CB173` copies the zero TimeSpan at `0x013637C0`. On an admitted
+elapsed-zero sample the Stop storyboard requests Sequence `stop`.
+Start requests `stop` and then `start` on the same target during its
+group sample. The Sequence setter reaches the normalized-string
+comparison at `0x0098401B`. Equal text branches past the change callback
+at `0x0098405B`. Changed text reaches `0x00990280`, which requires a
+cached drawing proxy and a clear interface gate before forwarding. The
+proxy stages one current Sequence value, so two forwarded writes before
+an admitted flush can leave only the later value for scene submission.
+See [Sparkle Sequence staging](../resource/sparklecontrol-source-sequence.md#dirty-submission-and-code-domains).
+
+The selected Source, `common/polishMax.le.spk`, is 1656 bytes with SHA-256
+`c92e9ab6b96d8173290595a98cfabc5d2efdbd22a365881fdb0ffe583e2efc59`.
+Little-endian reads place its root section at file offset `0x94`.
+Exact `stop` selects record 0 at `0xCC`. Exact `start` selects record
+1 at `0xE4`. Both records set the root reader stop byte through selector 1
+at `0x008E369D`, then continue the current record. Stop selects track 0
+leaf section 2 at `0x108`. Start selects track 0 nested section 31 at
+`0x390`. A successful Sequence name lookup clears the reader stop byte
+and the renderer deadline through `0x008E3C30` and `0x008E3CF0`.
+An equal property sample alone leaves those renderer fields untouched
+by this path.
+
+A retained Sequence of `stop` is insufficient to omit an admitted Stop
+command. Its route, cached Begin lookup, cancellation and clock enrollment
+can still run. Runtime handler registration, property reentry, the relative
+order of clock visits and scene submission, and the first visible result
+remain unknown.
+
 #### Head-slot list filtering
 
 The standard `EquipWidget.form` line 267 binds `Button_Head` to
