@@ -301,6 +301,64 @@ with their basename Blowfish keys and checked by round trip.
 | `client/sqwt/widget/EquipWidget.tpl` | 4831, `a145e3147c423c771a9e6d8122169fa9316ebd70d0077037fc3fc4fc012ed266` | 4823, `1ca0e91d04372a2a81b7ea6116f52cebcd823d70ef49e3ea2b21745afc2d775b` |
 | `client/sqwt/widget/EquipItemListWidget.tpl` | 15765, `b42d268934e275c3242ec31f879617484a63b47a9a6104055f66a34285ee4a2a` | 15757, `ee6b5688a6cc67f1d623ac25cb91a01de371894df732709b0320483daf562461` |
 
+#### Head-slot list filtering
+
+The standard `EquipWidget.form` line 267 binds `Button_Head` to
+`UILuaCommands.Operate`. EquipWidget `main/f80` PCs 25-28 map it to Lua
+slot 9. In ordinary step 101, the Operate branch enters step 103 and
+calls `openItemList(9)` (`main/f1` PCs 186-215). The opener records that
+slot, initializes list 1, focus 0 and index 0, then requests the item
+mask (`main/f123` PCs 0-21). Its step-103 branch can look up the equipped
+item's source index and map it back to a filtered focus (`PCs 24-44`).
+
+List 1 is `TabItem_1_Maker` and `ListBox_TabItem_1` (`main/f86` and
+`main/f94`, PCs 0-3). The form declares the maker at line 7 and binds the
+list's `ItemsSource` to that maker with XPath `/TabItem_1` at line 351.
+The bag build sets `SourceFirstIndex=0`, `SourceCount` from package-1
+capacity and `FilteredSortKey=sorttype` (`main/f109` PCs 21-43).
+
+The step 103/104 mask tests `testEquipItemOnSlot(chosenSlot,1,i)` for
+one-based source item `i` and masks on exact false (`main/f107` PCs 1-23).
+Desktop connector `main/f403` PCs 0-30 checks package presence, capacity and
+item existence, then calls `isFitForEquipPoint(chosenSlot)` on that item.
+The widget writes the resulting Boolean visibility at source index `i-1`
+and updates the maker (`main/f108` PCs 0-24). Shared `main/f181` passes
+literal attribute `visibility` to the list writer. Its native Boolean
+branch `0x006EA6D0` writes the text `True` or `False`. This operation
+preserves the source rows. `Grid_List.VisualOpacity` reads the separate
+`opacity` attribute at `EquipItemListWidget.tpl` line 11.
+
+STATIC. The maker rebuild at `0x00943580` appends a row to its filtered
+vector only when the visibility text is empty or differs from `False`
+(`0x00943802..0x0094381C`). It then sorts that vector using the nonempty
+key at `0x0094388E`. For the constructed `XmlElement` object, `0x0099AB40`
+installs the DOM_Node table at complete `+8` and XmlElemenBase table at
+complete `+0xE4` (`0x0099AB90..0x0099AB96`). The latter's filtered-vector
+slot `+8` reads its `+4` field through `0x008D5570`. Its fallback slot
+`+0x0C` allocates and stores the vector in the same field at `0x0099AF41`.
+`ItemsControl` refresh calls DOM_Node slot `+0x20` at `0x009645D2`.
+Cell `0x01079F10` selects `0x0099AE00`, which returns DOM_Node `+0xE0`
+when nonnull. Both views therefore name complete `+0xE8`. The
+[slash XPath binding](../resource/sqwt-xpath-data-sources.md#evaluation)
+passes the maker's existing node handle to the list. The refresh also
+skips a row carrying exact `False` at `0x00964751..0x00964758`.
+These are conditional native joins for the admitted source and its retained
+XML object. Ghidra, LLVM objdump and PE table reads used the executable
+identified above.
+
+Filtered focus and backing index have distinct uses. `main/f96` reads
+`FilteredCount` (PCs 13-16). `focusToIndex` writes `FilteredIndex`, then
+reads `Index` (`main/f97` PCs 13-21). `updateListFocus` stores the mapped
+source index and requests `SqwtFocusedIndex` with the filtered place
+(`main/f89` PCs 40-63 and shared `main/f114` PCs 0-4). The template's
+`AnchoredItem` action passes `AnchoredIndex` and the list number at lines
+63-64. The widget stores the delivered place and remaps it before item
+help (`main/f5` PCs 244-259, 276-281). The ordinary detail fetch uses
+package 1 and source `work.index+1` (`main/f114` PCs 70-102). Thus a single
+eligible row can be display place 0 while its source index is nonzero.
+Exact live focus admission, same-count redraw timing, and sort direction
+for multirow ties remain open.
+
 ## Request and incompatible-class dialog
 
 `itemUICommandSelection` (`:1464-1494`) rejects a focus beyond the filtered
