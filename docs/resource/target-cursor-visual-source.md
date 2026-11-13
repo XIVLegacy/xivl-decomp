@@ -145,17 +145,84 @@ through slot 34. The same name resolver can also supply an ordinary
 skeleton joint or the provider's CDevDefault before returning a
 negative index.
 
-The [ElementId record layout and c001 carrier identity](../actor/nameplate-layout-and-attachment.md#installed-c001-example)
-apply to the body selector in the same two typed members. Each
-contains one exact EID_BODY_DYN record, at ordinal 6. The named
-joint is `n_hara` in both members. Values below are float32 local
-coordinates and rotations, measured by bounded little-endian
-record reads.
+### Installed standard player carriers
 
-| Carrier | Physical path | Record offset | Translation | Rotation offset and values |
-| --- | --- | ---: | --- | --- |
-| `pc/c001/skl/0001` | `[3,1,0]` | `0x5C10` | `(0, -0.03200000151991844, 0.03999999910593033)` | `0x6CF8`, `(0, 0, 0)` |
-| `pc/cmn/0001` | `[3]` | `0x0E20` | `(0, -0.03200000151991844, 0.03999999910593033)` | `0x1CC8`, `(0, 0, 0)` |
+MEASURED. The carriers below are under `client/chara/pc/`. The model
+scope is `c001` through `c010`, the same directory range as the
+[standard player motion banks](../actor/locomotion-bank-census.md#ko-pose-entries).
+The directory census does not establish character creation availability.
+
+Use the [ElementId record layout and PWIB directory framing](../actor/nameplate-layout-and-attachment.md#installed-c001-example).
+Read the first PWIB container and follow the physical RES slots.
+For the model ElementId, use `[3,1,0]` for `c001` through `c009`
+and `[0,1,0]` for `c010`. Each has member name `F00\\elementId`.
+The common bank uses `[3]` and member name
+`template\\elementid\\template_pc`. Verify the little-endian
+`0x00656C62` type word in the containing directory's RESOURCE_TYPE
+member. Keep every nested view inside its parent and all record
+arrays and names inside the typed member. The tables use absolute
+file offsets and half-open payload ranges.
+
+| Carrier | Bytes | Carrier SHA-256 | ElementId type cell | ElementId payload range |
+| --- | ---: | --- | ---: | --- |
+| `cmn/0001` | 113264 | `3f71c608e46d616e78883acd262190366085ef2bc587b8ae48cc4538f573c929` | `0x19C48` | `[0xD20,0x2AE7)` |
+| `c001/skl/0001` | 54672 | `d90a756fc1cba6f03bb8dc102b367feb905b5e57a00d209ff4fccddaa17cd031` | `0xD2C0` | `[0x5B10,0x7D56)` |
+| `c002/skl/0001` | 51280 | `527f5a0ef7453e1248ca2fd523fd5f6a1473ba23a3cf75800a073418fcfce599` | `0xC580` | `[0x5B10,0x6CD0)` |
+| `c003/skl/0001` | 51824 | `c24dd9910fb054095e26e980732b601ad54d3a01cabb964ef349950e990e8ef2` | `0xC7A0` | `[0x5C80,0x6E40)` |
+| `c004/skl/0001` | 51392 | `d297880a92ac6d137be12baa1eeb3ceb94060b105731f4376731799a8f4ab5e3` | `0xC5F0` | `[0x5C80,0x6E40)` |
+| `c005/skl/0001` | 51424 | `04416e95fdec41ccb76ddf31f7b0dc598f44f53b9ccf0011033f669f73ef8793` | `0xC610` | `[0x5C80,0x6E40)` |
+| `c006/skl/0001` | 51424 | `3cd2cc48950a021f2a76543b687c70d26570b5f4f79142af411e54a08b0c354e` | `0xC610` | `[0x5C80,0x6E40)` |
+| `c007/skl/0001` | 51456 | `8558b8e65e778c6239146d78071fc847c0434b2f60ad8d88308bfbd87fccbf92` | `0xC630` | `[0x5B10,0x6CD0)` |
+| `c008/skl/0001` | 53328 | `46d7a983e8be4215d2ea6d33cf7fa99d73ad61beda75df7c08a5c794d9826c06` | `0xCD80` | `[0x6310,0x74D0)` |
+| `c009/skl/0001` | 50432 | `5a33c61b6acf8bb1ae54f2a5be2ff673e8f6c39965ce048fc86e6dcc6fb64e6f` | `0xC230` | `[0x5B10,0x6CD0)` |
+| `c010/skl/0001` | 50064 | `633736c748e1c53ececef77f93306ec7ea7d93d1b9034de40f02b26022bab70c` | `0xB180` | `[0x4900,0x59C4)` |
+
+A bounded Python 3 read of each fixed record and its two names yields
+exactly one `EID_BODY_DYN` row at zero-based ordinal 6. Each row names
+`n_hara` and has zero X translation and zero rotation on all axes.
+The Y and Z columns are the IEEE 754 binary32 words from the
+translation triple in local coordinate units.
+
+| Carrier | Records | Record offset | Rotation offset | Translation Y | Translation Z |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `cmn/0001` | 121 | `0xE20` | `0x1CC8` | `0xBD03126F` | `0x3D23D70A` |
+| `c001/skl/0001` | 139 | `0x5C10` | `0x6CF8` | `0xBD03126F` | `0x3D23D70A` |
+| `c002/skl/0001` | 71 | `0x5C10` | `0x6478` | `0xBBA3D70A` | `0x3CE56042` |
+| `c003/skl/0001` | 71 | `0x5D80` | `0x65E8` | `0x3CCCCCCD` | `0x3D1374BC` |
+| `c004/skl/0001` | 71 | `0x5D80` | `0x65E8` | `0x3CF5C28F` | `0x3CF5C28F` |
+| `c005/skl/0001` | 71 | `0x5D80` | `0x65E8` | `0x3D3020C5` | `0x3CCCCCCD` |
+| `c006/skl/0001` | 71 | `0x5D80` | `0x65E8` | `0x3D3020C5` | `0x3CCCCCCD` |
+| `c007/skl/0001` | 71 | `0x5C10` | `0x6478` | `0x3B83126F` | `0x3D656042` |
+| `c008/skl/0001` | 71 | `0x6410` | `0x6C78` | `0x3C343958` | `0x3CFDF3B6` |
+| `c009/skl/0001` | 71 | `0x5C10` | `0x6478` | `0xBD03126F` | `0x3D23D70A` |
+| `c010/skl/0001` | 67 | `0x4A00` | `0x51E8` | `0x3CF5C28F` | `0x3CF5C28F` |
+
+Each model carrier has one `SEDBSKL ` member in its first PWIB
+container. Its physical path is `[3,0]` for `c001` through `c009`
+and `[0,0]` for `c010`, with type word `0x00736B6C`. The SKL
+record array and bounded name pool resolve one exact `n_hara`
+at joint ordinal 1, with parent ordinal 0. That row begins at
+`0x15B0` for `c001` through `c009` and `0x230` for `c010`.
+
+| Model | SKL type cell | SKL payload range | SKL joints |
+| --- | ---: | --- | ---: |
+| `c001` | `0xD3E8` | `[0x14B0,0x5A44)` | 95 |
+| `c002` | `0xC6A8` | `[0x14B0,0x5A44)` | 95 |
+| `c003` | `0xC8C8` | `[0x14B0,0x5BB8)` | 97 |
+| `c004` | `0xC718` | `[0x14B0,0x5BB8)` | 97 |
+| `c005` | `0xC738` | `[0x14B0,0x5BB8)` | 97 |
+| `c006` | `0xC738` | `[0x14B0,0x5BB8)` | 97 |
+| `c007` | `0xC758` | `[0x14B0,0x5A44)` | 95 |
+| `c008` | `0xCEA8` | `[0x14B0,0x6250)` | 106 |
+| `c009` | `0xC358` | `[0x14B0,0x5A44)` | 95 |
+| `c010` | `0xB2A8` | `[0x130,0x4838)` | 97 |
+
+STATIC. The [ordinary provider ordering](../actor/nameplate-layout-and-attachment.md#installed-c001-example)
+collects bank 0 before bank 1 and builds the provider list in reverse.
+When the common and selected model tables are both admitted, the
+model table's matching row precedes the common table's row. The
+installed model offsets vary across the directory range. Other
+model banks and auxiliary providers are outside this census.
 
 These records supply local offsets to the [joint transform composition](../actor/nameplate-layout-and-attachment.md#from-joint-space-to-the-nameplate-input).
 The active actor, winning provider, animated joint matrix, optional
