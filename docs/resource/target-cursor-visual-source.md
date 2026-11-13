@@ -53,6 +53,32 @@ Its handler at `0x007FA7F5..0x007FA831` can pass those bytes to
 `0x0061F4F0` on WindowActor +0x140. The setter copies up to 15
 characters and resets the cached selector index at +0x10 to -2.
 
-These joins identify the requested cursor anchor by name. The
-concrete resolved attachment, its world matrix, the projection and
-the fallback when a character lacks EID_BODY_DYN remain unknown.
+## Character attachment
+
+When the associated WindowActor processes the selected actor as a
+CharaActor, the [target producer](../actor/window-actor-anchor-producer.md#target-production)
+passes the selector at WindowActor +0x140 to actor slot 91 through
+`0x007CCAF0`. CharaActor slot 91 `0x007CCFC0` calls the guarded name
+lookup at slot 21 and passes the returned index to slot 92
+`0x007CCFF0`. A nonnegative index returns the selected attachment
+matrix translation. A negative index requests the actor position
+through slot 34. The same name resolver can also supply an ordinary
+skeleton joint or the provider's CDevDefault before returning a
+negative index.
+
+The [ElementId record layout and c001 carrier identity](../actor/nameplate-layout-and-attachment.md#installed-c001-example)
+apply to the body selector in the same two typed members. Each
+contains one exact EID_BODY_DYN record, at ordinal 6. The named
+joint is `n_hara` in both members. Values below are float32 local
+coordinates and rotations, measured by bounded little-endian
+record reads.
+
+| Carrier | Physical path | Record offset | Translation | Rotation offset and values |
+| --- | --- | ---: | --- | --- |
+| `pc/c001/skl/0001` | `[3,1,0]` | `0x5C10` | `(0, -0.03200000151991844, 0.03999999910593033)` | `0x6CF8`, `(0, 0, 0)` |
+| `pc/cmn/0001` | `[3]` | `0x0E20` | `(0, -0.03200000151991844, 0.03999999910593033)` | `0x1CC8`, `(0, 0, 0)` |
+
+These records supply local offsets to the [joint transform composition](../actor/nameplate-layout-and-attachment.md#from-joint-space-to-the-nameplate-input).
+The active actor, winning provider, animated joint matrix, optional
+second-actor contribution and final screen position remain runtime
+conditions.
