@@ -301,6 +301,52 @@ with their basename Blowfish keys and checked by round trip.
 | `client/sqwt/widget/EquipWidget.tpl` | 4831, `a145e3147c423c771a9e6d8122169fa9316ebd70d0077037fc3fc4fc012ed266` | 4823, `1ca0e91d04372a2a81b7ea6116f52cebcd823d70ef49e3ea2b21745afc2d775b` |
 | `client/sqwt/widget/EquipItemListWidget.tpl` | 15765, `b42d268934e275c3242ec31f879617484a63b47a9a6104055f66a34285ee4a2a` | 15757, `ee6b5688a6cc67f1d623ac25cb91a01de371894df732709b0320483daf562461` |
 
+#### Scalar text and icon requests
+
+The original `EquipWidget.update` (`main/f7` PCs 2-11) requests the
+current header, PC and battle parameters, and equipment slot refresh.
+Its text and icon requests include these named controls in the standard
+form and selected templates.
+
+| Control | Lua producer and operand |
+| --- | --- |
+| `TextBlock_PlayerName` (form line 59) | `main/f76` PC 4 supplies numeric text row 230 and the player name. |
+| `TextBlock_SkillRankTitle` (form line 70) | `main/f77` PC 29 supplies numeric row 231 and the skill, level and job operands when the skill is positive. |
+| `TextBlock_BaseParameter_HP/MP/TP` | `main/f22` through `f24` use `tostring` on the parameter and write the three direct controls. |
+| `Label_STR`, `Label_VIT`, `Label_DEX`, `Label_INT`, `Label_MND`, `Label_PIE` | `main/f25` through `f30` use `getTemplateControl` for `TextBlock_BaseParameter` under the named Label, then write the `tostring` result. |
+| `TextBlock_ElementValue_FIRE` through the six element controls | `main/f31` through `f36` write `tostring` results. |
+| Battle, craft and harvest Label instances, including `Label_MainPhysicsAttack` and `Label_PhysicsDefense` | `main/f37` through `f52` write `tostring` results to their `TextBlock_BaseParameter` children. |
+| Direct `TextBlock_Title` (form line 319) | `displaySlotItemHelp`, `main/f112` PC 8, writes numeric row 215 with the slot. `displayFocusedItemHelp`, `main/f114` PCs 134, 142, 150 and 158, also requests row 215. PC 166 supplies row 3612 on a separate branch. |
+| `IconControl_Skill` (form line 69) | `main/f77` PC 22 writes the selected skill icon through `setIcon`. The form initializes this control with scalar 203. |
+| `Button_Head:IconControl_EquipIcon` and `Button_Head:IconControl_EquipIconBase` | `main/f59` PC 5 calls `setEquipSlotIcon` with base icon 364. The corresponding PrimaryArm call in `main/f54` uses 359. `main/f53` PC 11 writes the positive icon. Its other arm writes live icon 0 and the supplied base icon at PCs 24 and 32. |
+| `Button_JobStone:IconControl_JobStoneIcon` | `updateImportantOpacity`, `main/f111` PC 123, writes the selected scalar icon, then requests visibility separately at PC 132. The maker's row updates in the same method use their own list-property path. |
+
+The static stat captions are a separate initialization request.
+`initParameter` (`main/f21` PCs 0-62) uses numeric row 214 for
+`TextBlock_Title_HP/MP/TP` and the six primary-stat template
+`TextBlock_Title` children. Those names and the dynamic numeric values
+occupy different controls. In `EquipWidget.tpl` line 9, the Label
+template title also declares a one-way Text binding from templated-parent
+Content. The first bag list has separate XML row bindings.
+
+Shared `setText` and `setItemText` (`widgetbaseclass_common` `main/f89`
+and `f91`) supply property `Text` to `setTextProperty`. The latter
+selects `_setTextProperty` for a numeric row (`main/f182` PCs 2-13).
+A nonnil string, including the ordinary `tostring` results above, uses
+`_setProperty` at PCs 15-20. A nil operand writes the empty string at
+PCs 22-27. Shared `setIcon` and `setItemIcon` (`main/f97` and `f98`)
+pass the icon operand to `_setProperty` with `IconDatas` at `f98` PC 5.
+The [icon text parser](../resource/sqwt-icon-control-textures.md) owns
+normalization and preservation of any existing trailing entries.
+
+The standard form and its three direct dictionaries declare no Setter
+or storyboard target of `Text` or `IconDatas`. `WINBasisLight.tpl` lines
+9-47 animate Window opacity, offsets and transform origin. The materia
+storyboards in `EquipItemListWidget.tpl` lines 149-168 target
+`SparkleControl_PolishMax.Sequence`. That declaration census leaves
+command-triggered Lua calls and ordinary binding observers possible.
+It does not establish replay frequency or runtime event order.
+
 #### Head-slot list filtering
 
 The standard `EquipWidget.form` line 267 binds `Button_Head` to
