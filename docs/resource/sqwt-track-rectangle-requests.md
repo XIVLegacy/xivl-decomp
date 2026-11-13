@@ -314,6 +314,46 @@ The final ordering between the attachment write, style publication
 and measurement, effective scale, first rectangle and first draw
 remain unobserved for this installed form.
 
+### Float adjustment and ValueChanged
+
+STATIC. Float Slider input table `0x010790C4`, installed at
+`0x009983FB`, selects Executed handler `0x010791C8 -> 0x00996DA0`.
+The handler calls the base event store at `0x00996DA9` and requires
+the handled byte to be clear at `0x00996DB1`. The command initializers
+`0x00F27DA0` and `0x00F27E20` pair Slider.IncreaseSmall and
+Slider.DecreaseSmall with `0x01360710` and `0x013607D0`.
+The matching branches add or subtract SmallChange from current effective
+Value at `0x00996DCF..0x00996DDB` and `0x00996DE4..0x00996DF0`.
+
+Both branches store the proposed float and mark Executed handled. The
+admitted path divides that proposal by SmallChange, calls the x87
+conversion helper `0x009D6600`, multiplies the returned integer by
+SmallChange and requests typed Value through
+`0x00996E55..0x00996E87 -> 0x00966C00`. The conversion helper has an
+SSE truncation path and an x87 path with a residual correction. On the
+stock whole-number ranges and small steps above, an exact integral
+quotient within the integer range is retained. The full nonintegral and
+exceptional conversion boundary is outside this join.
+
+Float Value setter `0x00966C00` supplies descriptor `0x0135ADF4`
+and callback `0x00966FF0` to `0x009B9320`. Callback slot 4 copies
+the request from E+0x35C to E+0x370 at `0x0096701C..0x00967028`
+and calls `0x00966CF0`. For finite comparable values, that path caps
+the request at Maximum, then floors it at Minimum. The prior effective
+value at E+0x36C gates the event. On a changed admitted value,
+`0x00966E43..0x00966EA1` updates the snapshot and routes descriptor
+`0x0135ADE8` through `0x0091F1E0` with the Slider as source and
+original source. The event holds both new and old floats. The descriptor
+initializer at `0x00F23F70` names it ValueChanged.
+
+The selected Style above requests a separate command without a
+declared parameter. The [inherited Lua
+dispatcher](https://github.com/XIVLegacy/xivl-client-scripts/blob/c0b3540cfd57f586ce0fbbb10868bac202851f4d/docs/config-sound-widget-contract.md#inherited-sound-control-dispatch)
+reads and floors the sender's effective Value before delivering it to
+ConfigSoundWidget. The routed event's floats are separate from that Lua
+read. Actual focused input, initial delivery and audio application remain
+conditional.
+
 ## Configuration Sound opener
 
 MEASURED. The standard `widget/ConfigWidget.form` container is 2930
