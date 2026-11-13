@@ -528,6 +528,78 @@ can still run. Runtime handler registration, property reentry, the relative
 order of clock visits and scene submission, and the first visible result
 remain unknown.
 
+##### Gear masking, detail opacity and enable requests
+
+EquipWidget `main/f82` (maskEquipSlot) calls `f83` for the 18
+ordinary buttons with a slot refresh PC in the table above. Its
+mask calls are at PCs 41-126.
+PCs 133-165 can re-enable a selected target, the four finger
+buttons or a second supplied target. PCs 175/190 write `Button_RepairEquipment.IsEnabled`.
+PCs 179/194 write `Button_JobStone.IsEnabled` before PCs 184/199
+call the common slot mask on that same soul button. The job mask
+`f84` writes Repair at PC 7 and masks the same set of ordinary buttons
+at PCs 12-97. Its soul-button child tab-stop requests at PCs 111
+and 124 use true and false respectively.
+
+An exact false mask in `f83` writes RGB 0.5/0.5/0.5 at PC 7 and
+requests IsEnabled false at PC 11. The other arm writes RGB 1/1/1
+at PC 18, requests IsEnabled true at PC 22 and requests IsTabStop
+true on the named button's `:Label_HoverEffect` at PC 29.
+WidgetBase common `main/f110` PCs 6, 13 and 20 issue the three
+separate `VisualOpacityRed`, `VisualOpacityGreen` and
+`VisualOpacityBlue` requests in that order. Equipment and soul
+templates declare the hover Label initially true at
+`EquipWidget.tpl:26` and `:54`, while their initial Setters on
+the owning Button specify false at lines 15 and 49. The ordinary
+selection command requests false on the selected child at
+`main/f1` PC 211 before opening the item list. The ordinary
+package-1 batch separately runs `updateItemMask`, which publishes
+row visibility and invokes the list update. See
+[Head-slot list filtering](#head-slot-list-filtering).
+
+The retained detail form has two additional overall opacity
+families. Shared Desktop item-detail `main/f70` PC 266 writes
+`IconControl_MateriaSlot_42` through `_79` (form lines 445-482).
+The default is 0.8, with 1 when the queried materia entry exists.
+The separate RGB request follows. Prototypes `f73`, `f75`, `f76`
+and `f77` request overall opacity 1 on `Label_ItemBonus5_1` through
+`_32` at PCs 28, 24, 326 and 285 respectively. The selected form
+declares that series at lines 525-556. A later conditional `f77`
+loop requests 0.5 at PC 488. These named control requests and
+`Grid_List`'s OneWay XPath `@opacity` binding have separate producers.
+
+Selected direct `SqwtStyle` writers include EquipWidget `f78`
+PCs 34/39 on `TextBlock_Rank_<suffix>` (`TBL_equippedItem` or
+`TBL_null`), `f136` PC 88 on `TextBlock_CurrentMoney` (form line 812)
+and `f137` PC 57 on `TextBlock_ItemInBag_1` through `_5`.
+The latter repair path also requests IsEnabled on `Grid_Item_1`
+through `_5` at PCs 19/28 based on whether the needed quantity
+is zero. Shared item-detail `f66` writes `TextBlock_ItemLife` at
+PCs 138/453 and the direct `TextBlock_Materialize` and
+`TextBlock_MateriaAttach` captions after the corresponding text
+requests (form lines 574, 587 and 588). The ordinary caption style
+calls are PCs 593/611 and 625/640.
+
+For these direct helpers, WidgetBase common `f68` PC 5 uses
+`_setProperty` with nil scope. The native setter resolves the
+current form part at `0x00537E4E` before the ordinary flag-0
+property call at `0x00537F63`. LLVM objdump 21.0.0 and PE table
+reads of the identified executable give these local comparisons.
+
+| Property | Ordinary admitted setter and notification |
+| --- | --- |
+| Overall opacity and RGB | Visual indices 4-7 use descriptors `0x0135988C`, `0x013598B0`, `0x013598D4`, `0x013598F8` at receiver offsets `+0x48/+0x50/+0x58/+0x60`. The float wrapper can update local precedence before the equal-finite branch at `0x009413B4`. That branch skips the changed callback. A changed lane can forward all four retained values through `0x0093FEE8` when the drawing proxy is available. |
+| SqwtStyle | Descriptor `0x01358958` uses receiver `+0x228` through `0x00930962 -> 0x009325E0 -> 0x009BA4E0`. Equal effective string bytes branch at `0x00984022` past the callback. The changed branch reaches `0x0092DAB0`, then the conditional style and drawing-context updates at `0x0092DD43..0x0092DDE2`. |
+| IsTabStop | Descriptor `0x01359268` uses Control `+0x332`, value bit `0x20`. The literal path `0x0093845A -> 0x009321D0` preprocesses and converts before `0x0099C780`. Equal effective bits at `0x0099C7DD` skip the callback at `0x0099C806` after wrapper admission. With a changed false value, `0x00937B71` can follow the current input state and request a focus operation. |
+| IsEnabled | Descriptor `0x01359490` uses UIElement `+0x134`. Even with no effective-bit change, an admitted notification-enabled request at `0x0093E1EB` reaches the owner prelude at `0x0093B732`. Button and Label primary tables `0x01073CAC` and `0x010738B4` both select `0x00934B60` for this prelude. The inherited-property metadata test at `0x00912B6E` can still reach child writes. The later change gate controls the IsEnabledChanged branch. See [IsEnabled literal Setter](../resource/sqwt-is-enabled-literal-setter.md). |
+
+These equality branches follow target resolution, value preprocessing
+and wrapper admission. The XML row maker instead issues SetAttr and
+Update actions, which reset their Action property after processing.
+Retained receiver identity, inherited and local flags, current focus
+and intervening updates remain conditions for replay. Equal final
+values alone do not establish equal behavior across those operations.
+
 #### Head-slot list filtering
 
 The standard `EquipWidget.form` line 267 binds `Button_Head` to
