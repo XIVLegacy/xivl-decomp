@@ -65,6 +65,41 @@ preservation, completion guarantees, backend predicate names, and audible
 pause/resume behavior remain unproved. The traced wrappers end at indirect
 driver calls. They are not a basis for a stronger seamless-resume claim.
 
+### Release and replacement handles
+
+The selected replacement at `0x004B76AD` calls receiver slot 6 before
+dispatching the new request through slot 4 or 5. On the current-handle
+branch `0x00441C6D..0x00441C83`, a successful handle check precedes
+`0x00B52C40` and the selected wrapper clears its requested resource ID.
+With a nonnegative resolved instance handle, `0x00B52CBB` forwards a
+state request only for a nonzero duration, then `0x00B52CC5` forwards the
+duration and handle to `0x00B5AB50`. Its lookup `0x00B59770` checks the
+indexed driver instance and its handle predicate before invoking the
+instance's virtual `+0x10` at `0x00B5ABB0`. The negative-handle branch
+uses a different operation and is outside this result.
+
+The `StreamSound` and `DynamixStreamSound` cells `0x010B1F2C` and
+`0x010B20F4` both select `0x00B75BE0` for that operation.
+`0x00B743B0` takes a nonzero-duration branch when instance `+0xE8`
+mask `0x10` is clear and the gain returned by the `+0x20` interface is
+nonzero. It requests gain zero with the same duration through instance
+`+0x30` at `0x00B743ED`, then passes that duration to `0x00B70330`
+at `0x00B743F2`. The latter submits an instance-addressed `0x10004`
+record carrying the duration. Zero duration or an ineligible instance
+takes the immediate branch at `0x00B743FE` and submits zero instead.
+
+When the replacement bank is ready, `0x00442A33 -> 0x00B8F6F0`
+requests a controller from the SoundDriver's `+0x34` cell
+`0x0113D888 -> 0x00E39910`. The wrapper can construct a driver instance
+through `0x00E39460`. On its free-pool path `0x00B5DDC0` takes a slot
+from the free list at `0x013670BC` and combines its index with the
+next handle value. At `0x00442A47`, `0x00443860 -> 0x00B527D0` copies
+the replacement controller's `+0x04` handle and `+0x08` context into
+the selected wrapper. The copy does not stop or destroy its old handle.
+The old instance's requested stop and the replacement wrapper update
+are therefore separate operations. Admission, backend fade curves,
+timing units and audible overlap remain conditional.
+
 ## Consumed mode values
 
 `0x004BBB30` and the original jump table at `0x004BBD78` establish this
