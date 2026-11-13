@@ -443,6 +443,46 @@ OBSERVED consequences:
   over-window stream is cut mid-record with no terminator. UNKNOWN: whether any
   caller bounds the list length before this point.
 
+### Item control runs
+
+OBSERVED in the 1.23b image. The completion serializer's index-4 route at
+`0x00790E86` enters `0x00792B70`, whose call at `0x00792BB3` passes the
+same writer through `0x00792060` to `0x0075AFA0`. The item arm calls
+`0x006F5260` at `0x0075B00E`. Its call at `0x006F5307` submits the
+resolved owner binding, native slot and package to `0x00790BA0`.
+
+That helper inspects the immediately preceding encoded record through
+`0x007906C0` at `0x00790C3C`. A matching owner binding after tag `07`
+calls `0x00791A30` at `0x00790C5B`. A matching owner after tag `08`
+calls `0x00791AA0` at `0x00790C78`. Any other preceding tag or a different
+owner selects the single-item writer at `0x00790C88`. Values omitted by the
+serializer leave the preceding encoded record in place.
+
+On the big-endian branch, a single item is `07 R:u32 S1:u16 P1:u8`.
+For a matching run of two through eight items the bytes are
+`08 R:u32 S1:u16 P1:u8 N:u8 [S:u16 P:u8]^(N-1) L:u8`.
+The initial rewrite sets count 2 and length 13 at `0x00791A44` and
+`0x00791A86`. Each extension increments the count at `0x00791AC2`,
+overwrites the old length with the next slot and package, and places the
+length plus three at `0x00791B0C`. Thus `L = 3*N+7` for this range.
+Repeated slots preserve their occurrences.
+
+OBSERVED. After the serializer returns, the completion route proceeds from
+`0x00894B49` through the byte-read helper `0x00892550` to send
+`0x00894090` at `0x00894B65`. The latter calls the `0x012E` builder at
+`0x0089410A`, whose 16-dword copy is at `0x0075E723`. The completion
+route calls the writer destructor at `0x00894B94`, and `0x0078F7F0` is
+an immediate return. This path leaves the terminator placed by the result
+writers. It has no call to the tag-`09` finalizer `0x00790400`, which is
+present on the player-command route described by
+`xivl-client-structs:docs/command-talk-native-contract.md`, "Server
+request natives".
+
+The local guildleve capture records integer supplied materials. The static
+chain establishes the encoding of adjacent returned item controls when
+they resolve to the same owner. The raw actor ID equivalence of the owner
+binding and an attended bag-selection capture remain unresolved.
+
 ## Preserved witness and materia boundary
 
 An existing observation demonstrates the wire shape:

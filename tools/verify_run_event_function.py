@@ -268,6 +268,91 @@ CHECKS: tuple[tuple[str, int, str], ...] = (
         "lea edi, [esi + 4]; push edi; lea ecx, [esp + 0x26]; call 0x790ce0; mov ecx, dword ptr [esi + 8]",
     ),
     (
+        "result_variant_dispatch",
+        0x00790E86,
+        "call 0x792b70; mov eax, dword ptr [esp + 0x20]",
+    ),
+    (
+        "result_control_variant",
+        0x00792BB3,
+        "call 0x792060; ret 8",
+    ),
+    (
+        "result_control_writer",
+        0x007920A3,
+        "call 0x75afa0; mov dword ptr [esp + 0x14], 0xffffffff",
+    ),
+    (
+        "result_item_arm",
+        0x0075B00E,
+        "call 0x6f5260; jmp 0x75b02b",
+    ),
+    (
+        "result_item_writer",
+        0x006F5307,
+        "call 0x790ba0; mov ecx, dword ptr [esp + 0x2c]",
+    ),
+    (
+        "item_previous_record",
+        0x00790C3C,
+        "call 0x7906c0; mov al, byte ptr [esp + 0x1c]; cmp al, 7; jne 0x790c62; mov eax, dword ptr [ebp]; cmp eax, dword ptr [esp + 0x20]; jne 0x790c7f",
+    ),
+    (
+        "item_previous_group",
+        0x00790C5B,
+        "call 0x791a30; jmp 0x790c8d; cmp al, 8; jne 0x790c7f; mov eax, dword ptr [ebp]; cmp eax, dword ptr [esp + 0x20]; jne 0x790c7f",
+    ),
+    (
+        "item_extend_or_single",
+        0x00790C78,
+        "call 0x791aa0; jmp 0x790c8d; mov eax, dword ptr [edi]; mov ecx, dword ptr [esi + 4]; push edi; push ebp; push eax; push ecx; call 0x791870",
+    ),
+    (
+        "item_pair_count",
+        0x00791A40,
+        "mov byte ptr [eax - 8], 8; mov byte ptr [eax], 2",
+    ),
+    (
+        "item_pair_length",
+        0x00791A83,
+        "add eax, 1; mov byte ptr [eax], 0xd; add eax, 1",
+    ),
+    (
+        "item_group_count",
+        0x00791AC2,
+        "add byte ptr [ecx + 9], 1; add ecx, 9",
+    ),
+    (
+        "item_group_length",
+        0x00791B04,
+        "mov byte ptr [eax], bl; add eax, 1; add dl, 3; mov byte ptr [eax], dl; add eax, 1",
+    ),
+    (
+        "completion_serialize_to_send",
+        0x00894B44,
+        "call 0x790ce0; mov ecx, dword ptr [esi + 8]; push 0x40; lea eax, [esp + 0x44]; push eax; push 0x134c3fc; lea edx, [esp + 0x23]; push edx; call 0x892550; push eax; push ebp; push edi; call 0x894090; mov esi, dword ptr [esi + 8]; add esp, 0x18",
+    ),
+    (
+        "completion_writer_cleanup",
+        0x00894B90,
+        "lea ecx, [esp + 0x18]; call 0x78f7f0; mov ecx, dword ptr [esp + 0x84]",
+    ),
+    (
+        "writer_destructor",
+        0x0078F7F0,
+        "ret",
+    ),
+    (
+        "completion_message_builder",
+        0x0089410A,
+        "call 0x75e670; mov byte ptr [esp + 0x20], 0",
+    ),
+    (
+        "completion_message_copy",
+        0x0075E723,
+        "rep movsd dword ptr es:[edi], dword ptr [esi]; mov ecx, dword ptr [ebx]",
+    ),
+    (
         "request_latch",
         0x00CCF9B3,
         "mov eax, dword ptr [esi + 0xc]; mov ecx, dword ptr [eax + 0x1cc]; cmp byte ptr [ecx + 8], 0; jne 0xccfa04; push ebx",
