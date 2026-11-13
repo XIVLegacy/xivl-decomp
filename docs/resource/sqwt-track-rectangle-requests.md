@@ -314,6 +314,26 @@ The final ordering between the attachment write, style publication
 and measurement, effective scale, first rectangle and first draw
 remain unobserved for this installed form.
 
+## Configuration Sound opener
+
+MEASURED. The standard `widget/ConfigWidget.form` container is 2930
+bytes with SHA-256
+`2029f43c19dd567ad11946553ba09520fe8f4860bfa85c57ae0f00409d972cbf`.
+The basename-keyed SQEX decode is 2922 bytes with SHA-256
+`6114add8a5e292997ae903575e7c73a044275826ad83cf2275b51f970381ad45`.
+Its root is Window_ConfigWidget. Lines 5 and 10 select
+`common/WINBasisWithTitle.tpl` and `ControlTemplate_Window_WINBasisWithTitle`.
+
+The childless Button_Sound at line 21 declares UILuaCommands.Operate,
+Content @1310 and SqwtStyle BTN_basis. It has no local CommandTarget,
+CommandParameter or Template. The [ConfigWidget
+script](https://github.com/XIVLegacy/xivl-client-scripts/blob/ad36e3b559f4bebf3e3d62a70f4ccc598818b5f3/docs/config-sound-widget-contract.md#configuration-menu-opener)
+installs a confirm condition on that name and requests the sound child
+when the matching Operate arrives. The [ordinary Button Click
+path](sqwt-command-parameter-consumer.md#button-mouse-source) qualifies
+the native command request. Actual pointer delivery and child lifetime
+remain conditional.
+
 ## Sound Configuration Dolby toggle
 
 MEASURED. The standard ConfigSoundWidget form at line 208 declares the
