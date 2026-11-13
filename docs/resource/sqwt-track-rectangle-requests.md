@@ -1,10 +1,10 @@
 # Sqwt Track and ScrollBar rectangle requests
 
 The native Track arrange override computes a Thumb rectangle from supplied
-Track fields, a final size and the child's desired size. Its desired-height
-branch recomputes the rectangle rather than enforcing a minimum height. This
-page owns those conditional requests and the ScrollBar requests that precede
-them. Final layout and rendering remain UNKNOWN.
+Track fields, a final size and the child's desired size. The desired-size
+branch recomputes the rectangle. This page records those requests and the
+ScrollBar and selected float Slider routes that precede them. Final layout
+and rendering remain UNKNOWN.
 
 The [Sqwt parts study](sqwt-tab-scroll-text-parts.md) owns the Control layout
 rules, style parts and unresolved-background questions. STATIC below means an
@@ -28,6 +28,8 @@ These are static observations, not target execution or live layout results.
 | Function | Inclusive VA range |
 |---|---|
 | Track arrange | `0x0099BD90..0x0099BFD9` |
+| Float Slider viewport refresh | `0x00997030..0x00997091` |
+| Float Slider horizontal style route | `0x0099759C..0x00997680` |
 | ScrollBar measure | `0x00989D60..0x00989EE4` |
 | ScrollBar arrange | `0x00989EF0..0x0098A0AD` |
 | Vertical part name assignment | `0x00970B30..0x00970D18` |
@@ -166,6 +168,97 @@ The requested thumb height then reduces to `L*viewport/extent` and `y`
 to `L*offset/extent`. With that flag set instead, the same other assumptions
 give `y=L*(extent-viewport-offset)/extent`. These substitutions are not a
 bit-exact floating-point model or evidence of an actual upstream state binding.
+
+## Width-axis Track request
+
+When the Orientation byte is zero, `0x0099BE2F..0x0099BEEE` uses
+the width-axis version of the same finite algebra. For supplied final size
+`(L,H)`, read the child's desired width `h` at `+0x128` in
+`0x0099BE35`. Compute `D`, `R`, `r` and `q` as above. At
+`0x0099BE64` the negative stored difference `r*L-h` takes the
+recomputation `T = (L-h)/(R/D)`. Otherwise `T=L`. With a
+nonzero `D`, `0x0099BE9F..0x0099BEB5` stores
+`x = T*((q-m)/D)`. The rectangle request at `0x0099BFB4` is
+`(x,0,T*r,H)`. The copy of the supplied final size is unchanged.
+The guards and x87 limitations above apply to the width branch as well.
+
+## Float Slider and its sound configuration styles
+
+The standard install's SQEX containers were decoded with basename-keyed
+Blowfish and their XML element and attribute locations checked. The table
+identifies the carriers used below. Decoded markup is outside this page.
+
+| Carrier under `client/sqwt` | Bytes | Container SHA-256 |
+| --- | ---: | --- |
+| `widget/ConfigSoundWidget.form` | 17417 | `c8f1bccce73ac9be0658a061bbbee94bccc70d07ff906ece6f78eae4fc542441` |
+| `widget/ConfigSoundWidget.tpl` | 802 | `1481a37ce413c31bf1cdc478c5a77cfa2606f703558d58acd60bd119d139de4e` |
+| `common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` |
+| `common/default.skin` | 141967 | `6788f2986d9cc8aeab83fcdbcf7a9115d3576ecfabf40529cc861f41f0df5640` |
+
+At form lines 59, 76, 97, 118 and 139, the five volume Sliders use
+Maximum 100, SmallChange 1 and LargeChange 10. The sound-position Slider at
+line 175 uses 80, 10 and 20 respectively. All six specify width 160,
+`SqwtStyle=SLD_basis` and select `Style_Slider`. They omit Minimum,
+Value, Orientation and direction reversal. Each has four self-targeted
+repeat bindings. Left and pad LLeft request `Slider.DecreaseSmall`,
+and Right and pad LRight request `Slider.IncreaseSmall`. The pad
+attribute has one trailing ASCII space in each row. The visible Dolby
+control at line 208 is a separate `TOG_config` ToggleButton.
+
+`Style_Slider` at template lines 2-15 targets Slider, has an empty
+`SqwtIsAutoSetSkin` and has no setters. A ValueChanged trigger requests
+`UILuaCommands.SliderValueChanged` without a declared parameter. The
+three command-trigger sound requests use numbers 20, 57 and 69 for
+`SE_SYS_TestSound`, `SE_TestSound` and `SE_VOICE_TestSound` respectively.
+The [Lua controls](https://github.com/XIVLegacy/xivl-client-scripts/blob/69b204159fcef6d69ae7eb247db48ce87a41c960/docs/config-sound-widget-contract.md#local-contract)
+supply the config consumers. Native delivery of the value to this command
+is outside this style trace.
+
+The `SLD_basis` parts at style lines 5649-5652 refer to
+`Button:BTN_basis_slidebarSlidingH` for HorizontalSlidingThumb and
+`Window:SLD_basis_bgH` for HorizontalBackground. The background Frame
+at lines 507-517 uses its N skin for Normal and Disabled and its H skin
+for Hover, Active and Focused. Their three stretch cells at skin lines
+1032-1041 have widths 18, 4 and 18, height 32 and HitMargin 4,0,4,0.
+The Thumb's Frame at style lines 1565-1575 uses the same skin for all five
+conditions. Its one stretch cell at skin lines 1029-1031 is 10 by 32 with
+no HitMargin. Neither part declares a SkinMargin.
+
+The float Slider's default template constructor `0x00997C50` calls
+`0x00996BD0`, which constructs a Track and names it `PART_Track` at
+`0x00996C28`. The Track constructor above constructs its Thumb.
+For Slider byte E+0x375 zero, `0x009975AF..0x009975D4` assigns
+`Slider:HorizontalBackground` to E. At `0x009975F4..0x00997635`
+the same helper receives target `PART_Track:PART_Thumb` and style
+part `Slider:HorizontalSlidingThumb`. The nonzero branch requests
+the vertical names. This joins the named styles to distinct owners.
+
+The float Slider's template attachment callback at table cell
+`0x010792F8 -> 0x00997390` stores the resolved Track at E+0x378.
+On the admitted path it writes Track ViewportSize 1.0 at
+`0x009974D6` and requests Thumb size (8.0, 8.0) at
+`0x00997519 -> 0x00929C40`. The latter call writes the raw
+size pair at Thumb+0x280 and +0x284.
+
+The horizontal refresh `0x0099703E` uses the Slider scalar
+at E+0x1B4 for the divisor. It reads range fields E+0x344 and
+E+0x34C, subtracts them and requests ViewportSize
+`(8.0 / divisor) * (maximum - minimum)` at `0x00997089`
+via `0x0099C1D0`, descriptor `0x01360F08`. The double
+constant is at `0x00F57E48`. The nonzero orientation branch uses
+E+0x1AC. The style route at `0x00997793` and table cell
+`0x01079278 -> 0x00997370` both reach the refresh.
+
+Thumb cells `0x01084928`, `0x01084954` and `0x01084978` supply
+the size accessor `0x008E92C0`, scale getter `0x0092B600` and
+resolved-skin callback `0x00938740`. They share the
+[skin-derived size path](sqwt-number-input-button-frames.md) with
+Button. The callback can replace the raw size pair after a successful
+style lookup. Desired width at Track arrangement also passes through
+[FrameworkElement measurement](damage-plate-form-rules.md#canvas-measurement).
+The final ordering between the attachment write, style publication
+and measurement, effective scale, first rectangle and first draw
+remain unobserved for this installed form.
 
 ## ScrollBar measure and Track request
 
