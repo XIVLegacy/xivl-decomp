@@ -53,6 +53,53 @@ Its handler at `0x007FA7F5..0x007FA831` can pass those bytes to
 `0x0061F4F0` on WindowActor +0x140. The setter copies up to 15
 characters and resets the cached selector index at +0x10 to -2.
 
+## Cursor image and visibility options
+
+The ordinary cursor child is constructed at `0x00564C5C..0x00564C62`
+with flag `1` at child `+8`. The ordinary nameplate child at
+`0x00564C9B..0x00564CA2` has flag `5`. The constructor `0x0055E910`
+stores those flags at `0x0055E941`. It initializes `+0x8C` to zero,
+`+0x8D` to one and `+0x94` to 0 for the cursor or 1 for the nameplate
+at `0x0055E97B..0x0055E98E`. STATIC.
+
+`_setTargetCursorImage` passes the requested image value to both
+children through `0x005623E0`. The child entry `0x00561F10` returns
+on an equal value and substitutes the prior `+0x9C` value for a zero
+request (`0x00561F3F..0x00561F5F`). With child flag bit `1` set,
+it writes visibility value `1` on five retained labels at
+`0x00561F6A..0x00561F8F`. Image value 3 selects entry 2 in the table
+at `0x0056226C`. The five-label lookup at `0x00564977..0x00564A19`
+resolves the third UTF-16 entry at `0x0126EFA8` to
+`Label_Target:Label_SubTargetScale` and stores it at child `+0x7C`.
+The arm writes value `2` on that label at `0x0056205A..0x0056206B`,
+then submits the command literal
+`RaptureCommands.DisplaySubTarget` at `0x00562077..0x00562093`.
+The command helper `0x00561E40` resolves the literal and submits it
+with the child `+0x70` control's `+0xB4` subobject when present. The
+setter stores the effective image at `0x00562242` and calls the child
+refresh at `0x00562248`. The refresh has a second image-3 arm at
+`0x00563048..0x00563080`. STATIC.
+
+The refresh `0x00562E90` takes its show path when `+0x8D` is nonzero,
+`+0x8C` is zero, the actor at `+0x0C` differs from `0xC0000000`, and
+`+0x98` equals `+0x94` or is `2` (`0x00562EBF..0x00562F01`). Its
+mask request at `0x00562F1D..0x00562F2D` ORs the child's base mask
+with `0x200`. The refusal path at `0x00563300..0x00563313` calls the
+alternate Window path and submits the base mask. `0x00563510` sets
+`+0x8C` on the children and refreshes them. `0x005635F0` sets `+0x98`
+on the ordinary pair and refreshes them. STATIC.
+
+On the admitted DrawingToolContext route, `0x00548510` calls `+0xB8`,
+which is `0x0055A580` in table `0x00FA28E4`. It stores the mask at
+record `+0x35C`, sets the dirty byte at `+0x364` and marks the record
+active. The [mask publication and handler](../actor/window-actor-anchor-producer.md#stock-nameplate-option-request)
+can send operation `0x1B` to the selected WindowActor. For the ordinary
+cursor the show path requests `0x202` and the refusal path requests `2`.
+If delivered to that owner, both select the depth-linear scale family.
+The show value also selects the second retention stage. Delivery and
+actual viewport placement remain conditional. The show comparison and
+the image value are separate inputs. STATIC.
+
 ## Character attachment
 
 When the associated WindowActor processes the selected actor as a
