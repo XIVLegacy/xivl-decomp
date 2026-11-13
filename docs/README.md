@@ -280,6 +280,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt DoubleAnimation Velocity](resource/sqwt-double-animation-velocity.md) -
   The span and per-sample value a set Velocity gives in place of Duration.
 - [Sqwt ProgressBar template style and indicator sizing](resource/sqwt-progress-template-style.md)
+- [Sqwt AnimationSkin frame clock and minimum size](resource/sqwt-animation-skin-clock.md)
 - [Sqwt CellSkins texture filename selection](resource/sqwt-skin-texture-filename.md)
 - [Sqwt IconControl textures](resource/sqwt-icon-control-textures.md)
 - [Sqwt TimerIcon Percent](resource/sqwt-timer-icon-percent.md)
