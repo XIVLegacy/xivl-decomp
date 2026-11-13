@@ -80,6 +80,58 @@ those keys for ComboBox and ComboBoxItem at lines 2 and 30.
 These declarations were checked by basename Blowfish round trip and XML
 parsing. Runtime style materialization and callback delivery remain separate.
 
+#### Standard SubItemListWidget trigger owners
+
+The namespace-local census of the whole standard form finds no direct
+trigger collection or trigger action. The five ListBox input-binding
+collections at form lines 73, 86, 99, 112 and 125 are separate declarations.
+The selected dictionaries supply these collections.
+
+| Form owner | Selected resource and declaration | Event or command inputs |
+| --- | --- | --- |
+| Window_SubItemListWidget, template selected at line 28 | WINBasis_noGrayout, Window template lines 2 and 8-72 | Shown, Closing, Hiding, Activated, Deactivated, MouseEnter, GotKeyboardFocus, Click, Operate and Cancel |
+| TabControl_ItemList, line 69 | ItemListWidget, Style_TabControl lines 143-149 | SelectionChanged with SourceType TabControl |
+| ListBox_TabItem_1 through _5, lines 72, 85, 98, 111 and 124 | ItemListWidget, ControlTemplate_ListBox lines 64-82 | MouseEnteredItem, AnchoredItem, Selection and LostFocus |
+| Label_MateriaPossibleEffect, line 365 | ItemListWidget, ControlTemplate_Label_MateriaPossibleEffect lines 171-198 | UILuaCommands.MateriaPossibleEffectStart and UILuaCommands.MateriaPossibleEffectStop |
+| Button_Back, line 448 | ItemListWidget, ControlTemplate_ButtonHelp lines 83-93 | Button.MouseEnter and Button.GotAnchor |
+| CustomControl_NumberInput, line 411 | LABBasisNumberInputBox, Style_NumberInputBox lines 11-18 | ValueChanged with SourceType Slider, one Int from Value |
+| Label_NumberInput_2, line 422 | LABBasisNumberInputBox, ControlTemplate_Label_NumberInputBox lines 2-10 | ValueChanged with SourceType Slider, one Int from Value and sound 54 |
+
+The installed form imports ItemListWidget and WINBasis_noGrayout at lines
+21 and 22. Their selected declarations were checked by the same round trip
+and XML parse.
+
+| SQWT path | Installed bytes and SHA-256 | Decoded bytes and SHA-256 |
+| --- | --- | --- |
+| widget/ItemListWidget.tpl | 16943, ba8b86dbf36558e6086721524833d17528be08b11bf72c062d0b76fd318de7d5 | 16935, 3a4e9869b456295bbf753b20ec433cee6702656139e705dac25cf712d2fee86b |
+| common/WINBasis_noGrayout.tpl | 4348, 1ad7fc27906b6225fadd056decde2dddebb2b9fa8bf120496ec3be91bd923440 | 4340, 970d2cfd635ebfb4529f204fbe9a1efbc57512210863f6f30cc88869f7ce0613 |
+
+The integer Slider raises bubbling ValueChanged from the numeric control.
+NumberInputBox input table 0x00FCB184 slot 13 at 0x00FCB1B8 selects
+0x00966B70. Its ValueChanged arm calls a primary callback first and
+then calls 0x00938BA0 at 0x00966BA0, which calls the base Style wrapper.
+The [selected Style pass](sqwt-window-trigger-order.md#conditional-event-passes)
+reads the receiver's own Style and invokes its collection through
+0x0092D142. The [SourceType and command path](sqwt-number-input-pointer-edit.md#conditional-hand-in-command-delivery)
+checks the Slider class component on the actual event source. It reads
+that source's effective Value and defaults the command target to that
+source. Thus the first numeric control selects its own Style collection.
+For CustomControl_NumberInput_Gil at line 423, the distinct template
+collection is selected on its parent Label_NumberInput_2. A bubbled
+event can reach that Label under the template pass guards. Neither
+numeric action supplies a separate source name or command target.
+
+Lua dispatch priority comes from the [subscription](sqwt-command-parameter-consumer.md#subscription-gate),
+including the condition byte at +0x55 and its read at 0x006F5737..0x006F5759.
+The [mode-400 ItemSelectWidget](https://github.com/XIVLegacy/xivl-client-scripts/blob/f5b05e5c71ff9d83edc162b61e404c18b564caf0/docs/item-select-widget-contract.md#complete-48-method-behavior-and-result-rows)
+does not register either numeric command, and its proto8 hides Grid_Edit.
+The separate [ItemDetailWidget](https://github.com/XIVLegacy/xivl-client-scripts/blob/f5b05e5c71ff9d83edc162b61e404c18b564caf0/docs/item-detail-widget-contract.md#direct-call-rows)
+registers the two named numeric controls for NumberInputBox.ValueChanged
+through setControlCommandCondition at proto0 PCs 168 and 172. The
+[common helper](sqwt-number-input-pointer-edit.md#conditional-hand-in-command-delivery)
+passes priority 5 at proto55 PCs 0-4. Trigger declarations alone establish
+no mode-400 callback. Live attachment, dispatch and sound remain unverified.
+
 ## Custom control factory
 
 At 0x00549735..0x00549769 the custom factory compares the type name with
