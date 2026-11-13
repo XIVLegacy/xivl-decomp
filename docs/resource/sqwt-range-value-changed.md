@@ -27,6 +27,28 @@ The caller replaces those positions with the cataloged ProgressBar tables
 at `0x009B6673..0x009B6683`. Table identities are in the
 [RTTI catalog](../../config/ffxivgame.rtti.json).
 
+## Constructor values
+
+In the RangeBase constructor, the float argument for `Maximum` at
+`0x009678C5..0x009678E3` comes from `FLD1`. The arguments for `Minimum`
+at `0x009678E8..0x00967906` and `Value` at `0x00967930..0x0096794E`
+come from `FLDZ`. Constructor helper `0x009C1FD0` loads the argument at
+`0x009C1FD4` and stores it to the scalar receiver at `0x009C1FE0`.
+At `0x009679BD..0x009679BF`, RangeBase copies stored Value `B+0x35C`
+into the comparison snapshot `B+0x36C`. This is a zero Value and zero
+comparison snapshot for the checked initialization. STATIC.
+
+After the base constructor, the ProgressBar constructor at
+`0x009B675E..0x009B676D` loads float `100.0` from `0x01042F88` and calls
+`0x00967500` on `B` with trailing arguments zero and one. The little-endian
+constant is `00 00 C8 42` at file offset `0x00C42F88`. The call forwards
+the value to the delegated scalar setter with receiver `B+0x344`,
+`Maximum` descriptor `0x0135ADC4` and the same callback and flag roles as
+the Value path below. This is a constructor request for Maximum 100.
+The observed call and scalar setup do not fix the effective range after
+markup or binding. STATIC from independent GNU objdump decoding and PE
+section mapping of the specified executable.
+
 ## Value descriptor and native callback
 
 The NUL-terminated string at `0x0106FDBC` is `Value`. Its five characters
