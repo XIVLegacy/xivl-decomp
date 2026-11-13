@@ -43,6 +43,23 @@ The Lua SubTargetGuideWidget class has a separate init body. The installed
 Decoding it with the manifest tool and listing the Lua 5.1 instructions
 with unluac gives `main/f0` PCs 0 through 7, which request text row 1025
 and hide the range toggle.
-The native IsChecked request supplies no Visibility value. Which path
-opens the guide for the active sub-target, when it closes and which
-requests reach the screen remain unknown.
+The native IsChecked request supplies no Visibility value.
+
+## Window lifecycle after factory creation
+
+| Locator | Static observation |
+| --- | --- |
+| `0x00511A1D..0x00511A1F` | The guide initializer calls the widget hide wrapper `0x004FFE90` before it looks up the named controls. |
+| `0x004FFE93..0x004FFED5` | The hide wrapper requires the retained Window at widget +0x1A0 and widget +0x224 bit 5 clear. It requests `SqwtIsEnableInput` false through `0x009245C0(0,0,1)`, calls Window Hide `0x00921F30` and calls widget virtual +0x1C. It clears bit 4 and sets bit 5 at +0x224. |
+| `0x005066AC..0x005066B8`, `0x00506761..0x00506770` | The form-ready callback stores the Window at widget +0x1A0 and dispatches widget virtual +0x10. With the guide table installed, that slot calls `0x005119D0`, whose successful return sets AL to 1 at `0x00511BC4`. The exact AL value 1 selects the show wrapper `0x004FFE30`. |
+| `0x004FFE33..0x004FFE79` | The show wrapper requires the retained Window and widget +0x224 bit 4 clear. It requests `SqwtIsEnableInput` true through `0x009245C0(1,0,1)`, calls Window Show `0x00925BB0(1,0)` and calls widget virtual +0x18. It clears bit 5 and sets bit 4 at +0x224. |
+| `0x0066F625..0x0066F65E`, `0x00506615..0x0050661C` | On a populated kind slot, the generic removal path clears the slot and calls `0x005065B0`. That routine calls the hide wrapper and sets widget +0x224 bit 30. |
+
+`0x009245C0` uses the [input-enable descriptor](../input/game-controller-startup.md#enable-properties-and-remaining-barrier).
+The Show wrapper passes `(1,0,1)` to `0x00925AA0` at
+`0x00925BB8..0x00925BBC`. The [Window routines](sqwt-anime-property.md#show-and-hide-routines)
+describe the Shown and Hiding guards and the resulting Visibility requests.
+This establishes the show request after successful native guide initialization
+and the hide request if the manager removes that widget. The caller that
+opens factory kind 7 during targeting and the condition that removes it
+remain unknown.
