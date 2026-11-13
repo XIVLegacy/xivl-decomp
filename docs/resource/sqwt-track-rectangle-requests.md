@@ -224,6 +224,22 @@ The Thumb's Frame at style lines 1565-1575 uses the same skin for all five
 conditions. Its one stretch cell at skin lines 1029-1031 is 10 by 32 with
 no HitMargin. Neither part declares a SkinMargin.
 
+The float Slider constructor calls float RangeBase at
+`0x009983CC -> 0x00967850`. Its x87 loads and calls to `0x009C1FD0`
+initialize the following float properties. The descriptor initializer
+range `0x00F23FA0..0x00F24083` associates the descriptors with the
+property-name strings. STATIC.
+
+| Property | Descriptor | Constructor call | Initial value |
+| --- | --- | --- | --- |
+| LargeChange | `0x0135AE1C` | `0x009678C0` | 1.0 |
+| Maximum | `0x0135ADC4` | `0x009678E3` | 1.0 |
+| Minimum | `0x0135ADA0` | `0x00967906` | 0.0 |
+| SmallChange | `0x0135AD7C` | `0x0096792B` | float bits `0x3DCCCCCD` at `0x00FA4968` |
+| Value | `0x0135ADF4` | `0x0096794E` | 0.0 |
+
+These constructor values precede markup and script property writes.
+
 The float Slider's default template constructor `0x00997C50` calls
 `0x00996BD0`, which constructs a Track and names it `PART_Track` at
 `0x00996C28`. The Track constructor above constructs its Thumb.
