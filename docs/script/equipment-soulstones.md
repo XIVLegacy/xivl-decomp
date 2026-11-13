@@ -359,6 +359,54 @@ eligible row can be display place 0 while its source index is nonzero.
 Exact live focus admission, same-count redraw timing, and sort direction
 for multirow ties remain open.
 
+#### Head-slot list publication order
+
+The standard form declares `Grid_ItemList` Collapsed at line 348.
+During initialization `main/f0` sets `equipStep=101` and `chosenSlot=0`
+(PCs 427 and 434) and requests `updateItemMask` at PC 457. The step-101
+mask (`main/f107` PCs 24-31) tests the first result of
+`getItemEquipPoint(nil,1,i)` and masks when it is at most zero.
+`main/f125` PCs 8-21 require an existing item with `isEquipment()==true`
+and PCs 29-54 search equipment points 1 through 27. The first returned
+point stays zero when none match. Step 101 can therefore show equipment
+from multiple slots. It has a filter before the Head-specific filter.
+`updateWindowDisplay` requests `setGridVisibility(4)` in step 101
+(`main/f88` PCs 0-6) and `setGridVisibility(1)` in step 103
+(PCs 16-22). Both values request `Grid_ItemList` Visible
+(`main/f90` PCs 13-29).
+
+For a Head Operate from step 101, `main/f1` sets step 103 at PC 200,
+updates the slot controls at PC 204, disables the selected slot's hover
+label tab stop at PC 211, and calls `openItemList` at PC 215. `maskSlot`
+(`main/f83` PCs 0-36) writes color, enabled state, hover tab stop or help
+and has no list-reveal request. `openItemList` invokes `updateItemMask`
+at `main/f123` PC 21. The mask completes its visibility loop before
+calling `updateListProperty` (`main/f108` PCs 9-24). Common `main/f174`
+PC 2 invokes the native `_updateList`, which writes maker `Action=Update`
+and [rebuilds the filtered view](https://github.com/XIVLegacy/xivl-client-structs/blob/422a2c832d53c0dff50aa49e66cce92969b8ee71/docs/stub-overload-native-contract.md#_updatelist).
+After that call, the Lua mask reads the filtered count and updates the
+empty-text control (PCs 25-38). There is no explicit Lua wait or animation
+request between the per-row writes and maker Update.
+
+The opener next remaps any equipped source index to filtered focus
+(`main/f123` PCs 24-44) and calls `updateWindowDisplay(true)` at PC 58.
+That display method requests the step-103 visibility at PC 22 and
+then `updateListFocus` at PC 104. The nonempty focus branch maps the
+filtered row to its source index, requests window focus when
+`listSelectStep==1`, writes the filtered focused index, then requests
+item detail (`main/f89` PCs 26-65). `setWindowFocus` requests logical
+focus before the conditional Desktop keyboard-focus check (`main/f91`
+PCs 4-14). The list template's focus/selection triggers do not declare
+a row-reveal animation. The form's `common/WINBasisLight.tpl` imports
+Window Shown, Closing and Hiding animations for opacity and offsets
+(lines 9-47), separate from this list transition.
+
+This is the order of the normal Lua requests and native maker rebuild.
+The preceding step can retain its broader equipment set while visible.
+The Head path requests no new unfiltered list state. Native render timing,
+notification-driven reentry during a property call, and realized-container
+refresh when the filtered count stays equal remain unverified.
+
 ## Request and incompatible-class dialog
 
 `itemUICommandSelection` (`:1464-1494`) rejects a focus beyond the filtered
