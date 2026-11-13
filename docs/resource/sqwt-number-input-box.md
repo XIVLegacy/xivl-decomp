@@ -53,6 +53,33 @@ from PropertyName1 Value. The selected form contains zero references
 to that Slider style. WINBasis declares the Window-target template
 ControlTemplate_Window_WINBasis at line 2.
 
+### Bazaar editor and reward selector declarations
+
+The standard `widget/SubItemListWidget.form` merges the common numeric
+dictionary at line 23. Its `CustomControl_NumberInput` at line 411 declares
+Type `NumberInputBox` and selects `Style_NumberInputBox`. The style's Slider
+target matches the factory inheritance below. The other NumberInputBox
+at line 423 has no Style attribute. Its parent `Label_NumberInput_2`
+selects `ControlTemplate_Label_NumberInputBox` at line 422.
+
+The standard `widget/BazaarEditWidget.form` merges that dictionary at
+line 7. Four Labels select `ControlTemplate_Label_NumberInputBox` at
+lines 83, 144, 166 and 179. Their NumberInputBox children at lines 84,
+145, 167 and 180 have no Style attribute. The form separately merges
+`common/COMBasisLabel.tpl` at line 5. `ComboBox_Select` at line 91 and
+`ComboBoxItem_1/2` at lines 92-93 select `ControlTemplate_ComboBox`
+and `ControlTemplate_ComboBoxItem` respectively. The dictionary declares
+those keys for ComboBox and ComboBoxItem at lines 2 and 30.
+
+| SQWT path | Installed bytes and SHA-256 | Decoded bytes and SHA-256 |
+| --- | --- | --- |
+| widget/SubItemListWidget.form | 44072, b2de27032e31b5266f9ddf593005630387a456257b8ec4bf0851c8881bf56c38 | 44064, 27830253fad101f41fdf6782666800bc7197e77769eae77e0d5231d9fadab283 |
+| widget/BazaarEditWidget.form | 20047, 2e51fc3bd2a2caa86293acca9f896afa413734ff4cec8f33e6c17ed1e90f4d92 | 20039, 658e4f7aecf96179f5f1512f100a4baf19c599ba80e10a386837425af0c19cfb |
+| common/COMBasisLabel.tpl | 3612, 06fceb84b53604b04a8c5f66c6e6899f425389d003795ddf9079081b9d940e83 | 3604, 88dc2e1de05802b80c478a2c0faacc3630fe14059e607855a4512cab22857a0b |
+
+These declarations were checked by basename Blowfish round trip and XML
+parsing. Runtime style materialization and callback delivery remain separate.
+
 ## Custom control factory
 
 At 0x00549735..0x00549769 the custom factory compares the type name with
