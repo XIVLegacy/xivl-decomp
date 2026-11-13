@@ -214,6 +214,44 @@ The [Lua controls](https://github.com/XIVLegacy/xivl-client-scripts/blob/69b2041
 supply the config consumers. Native delivery of the value to this command
 is outside this style trace.
 
+### Sound preview release declarations
+
+Three standard form Sliders add five targetless bindings each after their
+four adjustment bindings. MEASURED from the standard form pinned above.
+
+| Owner | Form lines | Command |
+| --- | --- | --- |
+| `Slider_SystemSE` | 82-86 | `SE_SYS_TestSound` |
+| `Slider_SE` | 103-107 | `SE_TestSound` |
+| `Slider_Voice` | 124-128 | `SE_VOICE_TestSound` |
+
+Each group declares KeyBinding Left and Right with `IsUp=True`, PadBinding
+LLeft and LRight with `IsReleased=True`, and MouseBinding LeftUp with
+`HandledEventsToo=True`. Five of the six PadAction strings end in one
+ASCII space. The exception is `Slider_SystemSE` LLeft. None declares a
+command parameter, target or repeat override. The other three Sliders omit
+these cue bindings.
+
+STATIC. The [ordinary key construction](sqwt-command-parameter-consumer.md#actionmenu-keyboard-aliases)
+passes IsUp to the gesture at `0x0094755D -> 0x0068C550`.
+The matcher `0x0068C5D0` compares the event phase at +0x2B with the
+gesture phase at +0x20 before key and modifier checks. The
+[pad reader and construction](sqwt-command-parameter-consumer.md#actionmenu-padbinding-source)
+pass IsReleased through `0x009488B6..0x009488C5` and
+`0x009477A5 -> 0x0068C730`. The pad mask reader uses
+`0x005557A0 -> 0x0097FC70`, which searches for each table name
+case insensitively and returns on the end of that name. The trailing
+space therefore leaves the matching LLeft or LRight bit available.
+
+STATIC. The MouseBinding reader `0x00948720` tests the release
+table at `0x00948853 -> 0x0094C1D0`. LeftUp maps to zero in
+that table, and a successful match sets markup +0x168 to 1.
+The common attribute reader at `0x009483B5..0x00948455` names
+the separate HandledEventsToo byte +0x16A. Current event recipient,
+actual matcher admission and cue playback remain open.
+
+### Horizontal style parts and construction
+
 The `SLD_basis` parts at style lines 5649-5652 refer to
 `Button:BTN_basis_slidebarSlidingH` for HorizontalSlidingThumb and
 `Window:SLD_basis_bgH` for HorizontalBackground. The background Frame
