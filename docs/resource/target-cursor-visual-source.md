@@ -100,6 +100,38 @@ The show value also selects the second retention stage. Delivery and
 actual viewport placement remain conditional. The show comparison and
 the image value are separate inputs. STATIC.
 
+## Active stance control
+
+STATIC. The lookup at `0x00564A2E..0x00564A59` uses the ASCII
+`IconControl_ActiveStance` at `0x00FA36C0` and retains the result at child
+`+0x88`. In the refresh at `0x00563233..0x005632E1`, the stance update
+requires that retained control and child flag bit 1. It passes visibility
+value 2 only when `+0x90` is positive, the effective image at `+0x9C`
+is 1 or 4 and the preceding actor predicate succeeds. Image 3 reaches
+`0x005632D1`, which passes visibility value 0 to the same setter
+`0x0093C2A0`. This is the stance control update for the ordinary cursor
+child. The separate guide has its own producer.
+
+## World Stretch cell submission
+
+STATIC. After storing its anchor offset, the WindowActor producer loads
+argument 1 at `0x007F8DD4` and passes it to `0x00CA3DF0` at
+`0x007F9131`. The setter writes render-global `0x013764A0`. The
+producer passes the [retained anchor and offset](../actor/window-actor-anchor-producer.md#retention-filters-and-publication)
+to `0x00CA3E10` at `0x007F91CD`. That helper copies four float lanes
+into `0x0130BBC4`.
+
+The [selected 1-by-1 Stretch cell](sqwt-keyframe-target-binding.md#observed-effective-opacity-at-the-selected-skin-quad)
+uses `0x00CA58A0`. With `0x013764A0` nonzero, the helper takes the
+arm at `0x00CA5910`. A change to batch mode 2 requests vertex selector
+5, pixel selector 1 and matrix selector 0 with the accumulated matrix
+at `0x013764A8`. At `0x00CA5958..0x00CA595D` it submits the cell to
+`0x00CBB1E0` with anchor `0x0130BBC4`. The position equations are shared
+with the [world IconControl shader](sqwt-icon-control-textures.md#world-iconcontrol-projection).
+This joins the retained WindowActor vector to the world cell input when
+the cell draws under that context. Live context admission, placement at
+the viewport edge and the final footprint remain open.
+
 ## Character attachment
 
 When the associated WindowActor processes the selected actor as a
