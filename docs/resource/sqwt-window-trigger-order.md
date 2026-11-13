@@ -631,6 +631,55 @@ requests a sound. The [selector subscriptions and close callbacks](https://githu
 require admitted command delivery. First keyboard focus, the first actual
 Escape recipient and parent focus restoration remain UNKNOWN.
 
+### ItemSelectWidget row Operate and Selection
+
+MEASURED. The standard first-bag ListBox declares four local input
+bindings at `SubItemListWidget.form` lines 73-78. Left and LLeft
+request Previous. Right and LRight request Next. Neither the ListBox
+nor its row template declares a local Enter binding. The first-bag row
+template in `ItemListWidget.tpl` lines 7-43 gives
+`TemplateButton_List` no local command or target. The [carrier pins and
+trigger census](sqwt-number-input-box.md#standard-subitemlistwidget-trigger-owners)
+identify both resources. The Window template separately declares a sound
+action for ApplicationCommands.Operate at lines 66-68.
+
+STATIC. The [default Layout0 Enter rows](../script/main-menu-command-route.md#decide-and-chat-input)
+include ApplicationCommands.Operate. When an ordinary binding reaches
+RoutedCommand with no target, the [focus scope route](sqwt-command-parameter-consumer.md#button-sourced-movefocus)
+uses the admitted pair's recipient as event source at
+`0x0091F10B..0x0091F115`. The [selector's focus
+selection](#itemselectwidget-modal-show-and-cancel) can supply a
+retained first-bag row. On an admitted bound ListBox focus request,
+`0x0096251A -> 0x0092E5F0` can also select the row's own input
+interface or an eligible descendant. The caller requests the index at
+`0x0096258F` before invoking its focus slot +0x38 at `0x0096259B`.
+The checked ListBoxItem and Button cells `0x0107AEC4` and
+`0x01073BBC` select the guarded focus routine `0x0091E3E0`.
+Actual recipient identity depends on these paths' admission and current
+scope.
+
+If Executed reaches the ListBox table cell `0x010721F0 -> 0x0096ED40`,
+its Operate branch reads event source +0x08 at `0x0096ED91` and calls
+`0x00960DE0` at `0x0096ED9B`. For nonnull ItemsSource, the helper
+searches the bound vectors at complete +0x3B4/+0x3B8 and
++0x3D4/+0x3D8. It checks direct identity and can also test row
+descendants through `0x00929800`. A negative index returns from
+the ListBox branch. A nonnegative result dispatches Selector.SelectIndex
+with kind 1 to the ListBox interface at `0x0096EE02`. The Operate
+branch has no local handled-byte test. Admission to the branch still
+depends on the outer route and its dispatch gates.
+
+The ListBox's SelectIndex branch checks that its command is unhandled
+and of kind 1 before calling `0x0096EC00` at `0x0096EE40`. That
+path requests SelectedIndex before raising the separate Selection
+event. The [stock Selection
+template](sqwt-number-input-box.md#standard-subitemlistwidget-trigger-owners)
+and [Lua callback](https://github.com/XIVLegacy/xivl-client-scripts/blob/69b204159fcef6d69ae7eb247db48ce87a41c960/docs/bazaar-reward-selection-flow.md#child-selection-and-cancellation)
+consume the selected row and tab number. This is a conditional join
+from a delivered Operate to the editor update. Earlier Enter handlers,
+the first actual focus recipient, live sound and settlement remain
+unobserved.
+
 ## Property Trigger and shared event flags
 
 Original Trigger primary table +8 cell 0x0107D0E0 selects 0x009B0620.
