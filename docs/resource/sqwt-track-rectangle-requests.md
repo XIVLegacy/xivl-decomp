@@ -21,7 +21,9 @@ base `0x00400000`. All addresses on this page are VA.
 The producing instruments are Ghidra through `ghidra-cli` for focused
 disassembly, cross-references and decompiler leads, and Node Buffer reads for
 independent PE section mapping, instruction-byte comparison, relative-target
-calculation and RTTI walks. The observations below derive from instructions
+calculation and RTTI walks. The pointer path uses `llvm-objdump -d` and
+little-endian table reads through the same PE section mapping. The
+observations below derive from instructions
 and data. Decompiled types and expressions are leads, not original source.
 These are static observations, not target execution or live layout results.
 
@@ -313,6 +315,51 @@ style lookup. Desired width at Track arrangement also passes through
 The final ordering between the attachment write, style publication
 and measurement, effective scale, first rectangle and first draw
 remain unobserved for this installed form.
+
+### Focus from the float Slider thumb
+
+STATIC. The float Slider, Track and Thumb input tables at `0x010790C4`,
+`0x0107A424` and `0x01084764` all select `0x0092EB90` in input slot
+`+0xAC`. It calls the base at `0x0092EB99`, then requires an unhandled
+event and the complete receiver equal to event original source at
+`0x0092EB9E..0x0092EBAF`. The admitted preview left-down calls
+`0x0092EA10` at `0x0092EBB7`.
+
+The Thumb constructor requests Focusable false at
+`0x009CA754..0x009CA75C -> 0x0093C3C0`, descriptor `0x0135975C`.
+Track construction at `0x0099C48C` takes the FrameworkElement
+base path and retains the
+[UIElement default](sqwt-qualified-property-lookup.md#actionmenu-stackpanel-focus-declarations).
+The float RangeBase constructor uses Control, which requests IsTabStop
+true at `0x00938F49..0x00938F53` and Focusable true at `0x00939063`.
+The installed BGM Slider at form line 59 has no local Focusable or
+IsTabStop attribute.
+
+Track inserts its Thumb at `0x0099C65F -> 0x009313C0`. The float
+Slider requests its default Track template at
+`0x00997CBB -> 0x00938170`. The admitted current-template branch
+at `0x00936EB9..0x00936ED7` calls the same attachment helper on
+the template root. The helper stores the complete logical parent
+at child `+0x240`, including at `0x0093145B`. With those links
+retained, the chain is Thumb, Track, Slider.
+
+When the Thumb fails the non-Window receiver checks in `0x0092EA10`,
+the branch at `0x0092EB0F` searches logical parents through
+`0x0092B150`. On the default chain, an eligible Slider can receive
+the input focus request at `0x0092EB25`. The
+[ancestor checks](sqwt-number-input-pointer-edit.md#focus-before-the-quantity-step)
+and subsequent focus admission still apply. This path requests focus
+during preview down.
+
+Thumb input slot `+0xC4` selects MouseDown handler `0x009CA380`.
+On the unhandled path it requests capture through input slot `+0x3C`
+at `0x009CA420`. The Slider's MouseDown subscriber `0x00996EA0`,
+bound at `0x00998478..0x0099848D`, requires original source equal
+to the current Track at `0x00996EF0..0x00996EF9`. Only that path
+can select the large adjustment commands at `0x00996F83..0x00996F94`.
+A Thumb original source fails the comparison. Drag deltas use the
+separate callback `0x00996C90`. Pointer containment, retained focus
+and actual delivery remain unobserved.
 
 ### Float adjustment and ValueChanged
 
