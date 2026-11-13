@@ -554,6 +554,42 @@ and `xivl-client-structs:docs/talk-native-contract.md#keyboard-focus`.
 The first-bag list declares `IsTabStop=False` at form line 72, and its
 row focus index is separate from the Window's keyboard focus.
 
+On the admitted WidgetBase initializer route, `main/f0` PC 95 calls
+ItemSelectWidget `init` before `processWidgetCreated` at PC 132. The
+selector initializer calls `setInitialData` at `main/f1` PC 267. Its
+mode-400 `changeList` and `updateWindowDisplay(true)` requests can reach
+the nonempty `LogicalFocus` writer before the creation callback requests
+show. When the native name lookup hits, `0x00922B04` registers the pair.
+`0x00922B23` then requests clearing the name with notification disabled.
+On the admitted string-store path, `0x00984039..0x00984040` skips the
+callback for that clear. The pair can therefore survive the name clear.
+
+On a new keyboard focus request, when the requested interface equals
+its derived route key, `0x0091E574..0x0091E5F9` consults a different
+existing recipient for that key before the Window's own mode-0x0F
+selector. That recipient must pass visibility and input eligibility
+through slots +0x5C and +0x0C. Its +0x68 selector runs at `0x0091E5B6`.
+If the retained pair points to `ListBox_TabItem_1`, the ListBox table
+cell `0x01072154` selects `0x00961760`. Its mode-0x0F row arm requires
+I+0xA8 mask 0x20 set, I+0x27E mask 0x20 clear, a focused index other
+than -1 at I+0x2D4, and nonnull ItemsSource at I+0x2A0. For a nonnegative
+index inside the row collection, `0x009617AB..0x009617CE` caps the index
+with the stored count and reads the retained row entry. The other index
+arm tries virtual lookup at `0x009617E4`. A nonnull row is returned as
+its input interface at `0x009617EC`. A null retained row on the first
+lookup arm returns at `0x009617D5`. Other fallback branches reach the
+generic selector at `0x00961801`. A returned interface still has its
+own focus guards. The live route pair, row
+materialization and actual first receiver remain conditional.
+
+For admitted `Anime="Show"`, the native focus selection call at
+`0x00925B23` precedes the native Shown raise at `0x00925B85`. Common
+`main/f40` calls `processBeforeShow` at PC 26 and `processAfterShow`
+at PC 40, on either side of its Anime request. The selected root
+template's Shown trigger begins `OpeningAnimation` at lines 10-14,
+with `UILuaCommands.Shown` as a storyboard completion command. That
+completion has its own clock and command delivery gates.
+
 Desktop `checkKeyboardFocused` (`main/f121` PCs 0-7) compares the
 argument with the result of `_getKeyboardFocusedWidget`. Native
 `0x006FDBF0 -> 0x0075BA10 -> 0x005359D0` reads the anchor recipient at
