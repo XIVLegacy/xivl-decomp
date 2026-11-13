@@ -1,4 +1,4 @@
-# Sqwt nonrepeat DoubleAnimation clock and capture
+# Sqwt DoubleAnimation clock and capture
 
 [Documentation index](../README.md) | [Conditional evaluator](damage-plate-numeric-presentation.md#conditional-native-doubleanimation-sample)
 
@@ -136,6 +136,55 @@ units. This finding does not assign an exact D to literal `0.7`. The atof
 path loads a stored double at `0x009DAB5D`, and the subsequent x87 multiply
 retains the incoming precision and rounding environment before truncation.
 Locale and that floating-point environment are not closed here. UNKNOWN.
+
+## Forward Forever sampling
+
+The installed `system/ingame/TargetCursor.tpl` has SHA-256
+`7aeb807c3c0d0c6cd2b828692434afa64186f61f374ac259b371743e9736cf14`.
+The decoded markup has SHA-256
+`dc2334014ce3a4e2d9521d80c55b09d1be39fa5f4b7e6d5304042cd3ea6ee1e0`.
+The DisplaySubTarget command trigger at decoded lines 198 through 207
+starts a group with three finite scale and opacity tracks and one
+DoubleAnimation targeting `Label_SubTarget.RenderTransform.AngleZ`.
+The latter declares From 0, To 360, Duration 1 second, BeginTime zero
+and RepeatBehavior Forever. It declares no AutoReverse.
+The separate CloseSubTarget group at lines 208 through 216 runs
+three finite scale and opacity tracks and requests ApplicationCommands.Close.
+
+The initializer at `0x00F29060..0x00F29079` names RepeatBehavior
+descriptor `0x013617E4`. The Timeline markup arm
+`0x009AD225..0x009AD243` passes that descriptor and Timeline +0x3C
+to the property path through `0x009ADA90`. The value parser
+`0x00915FF0` compares against the Forever literal at `0x01068B18`.
+The matching arm copies low flags from `0x012E7C2A`, whose initializer
+`0x00F28BB0` sets both bits. The admitted property store in
+`0x009AD9C0` copies the value and flags to the destination holder.
+
+On setup, `0x009AD028..0x009AD057` copies the repeat flags from
+Timeline +0x3E to the live byte +0xE6. At
+`0x009AD0D4..0x009AD11C`, bit 1 selects repeat limit 0x7FFFFFFF and
+the iteration counters +0x118 and +0x11C start at zero. The
+single-iteration duration is retained at +0xF8. An admitted group sample
+dispatches to its child at `0x009CACB7`.
+
+For the forward, finite-duration, non-reversing child path,
+`0x009ACA60..0x009ACAAC` tests the Forever bit and compares elapsed
+time with `(completed + 1) * duration`. Each crossed boundary calls
+the evaluator with the full duration at `0x009ACB5B..0x009ACB68`,
+then advances the count at `0x009ACB6A`. The later remainder path
+`0x009ACBCE..0x009ACBF1` divides elapsed by the duration through
+`0x009D9AB0` and skips a zero remainder. A nonzero remainder reaches
+the same evaluator as the sample's local elapsed lane at
+`0x009ACC79..0x009ACC86`. DoubleAnimation reads that lane at
+`0x009B4AA9` and selects the endpoint directly when it equals the
+duration at `0x009B4AE3..0x009B4AFD`.
+
+Thus an exact positive wrap boundary evaluates the endpoint and
+issues no second zero-time sample on that visit. A visit beyond a
+boundary also evaluates the remaining phase. These are conditional
+native samples for an admitted finite-duration child. Initial property
+presentation, loop restart callbacks, easing and order relative to
+other simultaneously writing tracks remain separate evidence.
 
 ## Timer dispatch order and lifetime
 
