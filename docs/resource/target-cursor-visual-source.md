@@ -155,9 +155,9 @@ The directory census does not establish character creation availability.
 Use the [ElementId record layout and PWIB directory framing](../actor/nameplate-layout-and-attachment.md#installed-c001-example).
 Read the first PWIB container and follow the physical RES slots.
 For the model ElementId, use `[3,1,0]` for `c001` through `c009`
-and `[0,1,0]` for `c010`. Each has member name `F00\\elementId`.
+and `[0,1,0]` for `c010`. Each has member name `F00\elementId`.
 The common bank uses `[3]` and member name
-`template\\elementid\\template_pc`. Verify the little-endian
+`template\elementid\template_pc`. Verify the little-endian
 `0x00656C62` type word in the containing directory's RESOURCE_TYPE
 member. Keep every nested view inside its parent and all record
 arrays and names inside the typed member. The tables use absolute
