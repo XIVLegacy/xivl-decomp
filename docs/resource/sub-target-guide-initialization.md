@@ -1,8 +1,9 @@
 # Sub-target guide initialization
 
 The native SubTargetGuideWidget factory entry opens the installed form and
-initializes the guide and range-toggle labels. The request that opens this
-widget during targeting remains unknown.
+initializes the guide and range-toggle labels. The native listener can
+remove the guide's manager slot on Cancel or WidgetClose. The request
+that opens this widget during targeting remains unknown.
 
 ## Input and method
 
@@ -60,6 +61,25 @@ The Show wrapper passes `(1,0,1)` to `0x00925AA0` at
 `0x00925BB8..0x00925BBC`. The [Window routines](sqwt-anime-property.md#show-and-hide-routines)
 describe the Shown and Hiding guards and the resulting Visibility requests.
 This establishes the show request after successful native guide initialization
-and the hide request if the manager removes that widget. The caller that
-opens factory kind 7 during targeting and the condition that removes it
+and the hide request if the manager removes that widget.
+
+## Guide-owned command removal
+
+| Locator | Static observation |
+| --- | --- |
+| `0x00529709`, `0x0066F738..0x0066F747` | The widget base constructs a callback at widget +4 with `0x0066E9E0` and the widget receiver. |
+| `0x005066D8..0x005066E1`, `0x0066EDEF..0x0066EE40` | The form-ready callback passes the retained Window to `0x0066EDB0`. That function uses descriptor `0x0133F8F4`, initialized with id `0x59`, and registers the widget +4 callback through virtual +0x24 on the Window +0xB4 interface. |
+| `0x00FC220C`, `0x0066FCC0..0x0066FCC8` | The callback's virtual +8 loads its stored widget receiver from +0x20 and jumps to the stored function at +0x24. |
+| `0x00F0F2F9..0x00F0F31B`, `0x00F0F379..0x00F0F39B` | The initializers pass `UILuaCommands.Cancel` and code 2 for command `0x0133B838`, and `UILuaCommands.WidgetClose` and code 3 for `0x0133B8D8`. Constructor `0x00928D90` stores the code at command +0x78 at `0x00928E18`. |
+| `0x0066E9E3..0x0066EA40` | The callback requires a nonzero result from widget virtual +4, a result other than 1 from `0x00919D30` and nonzero event +4 and +8. Event id `0x2A` takes the Executed arm. It reads event +0x20 and passes that command's +0x78 code to widget virtual +8. |
+| `0x00F9F86C`, `0x004FFF30..0x004FFF5B` | The guide's +8 cell selects `0x004FFF30`. If widget +0x22C is nonzero, codes 1 through 17 return AL=1 before the table dispatch. Otherwise codes 2 and 3 select the cells below. |
+| `0x00500150`, `0x004FFF7A..0x004FFF89`, `0x00F9F894` | Code 2 calls widget virtual +0x30. On the guide, this selects `0x004F5450`, which jumps through virtual +0x34. |
+| `0x00500154`, `0x004FFF92..0x004FFFA1`, `0x00F9F898` | Code 3 calls widget virtual +0x34 directly. Both codes select `0x004F5460` in the guide table. |
+| `0x004F5463..0x004F5474` | The selected handler calls widget virtual +0x28, a return at `0x006CE2E0` on the guide. It then calls manager removal `0x0066F620` with receiver widget +0x2C and the stored kind at widget +0x228. |
+
+The [handler store](sqwt-command-parameter-consumer.md#handler-registration)
+admits descriptor id `0x59` as a wildcard. This chain establishes a
+conditional removal request for the guide's own kind after a matching
+Executed event reaches its listener. The caller that opens factory kind 7
+and delivery of either command during ActionMenu sub-target selection
 remain unknown.
