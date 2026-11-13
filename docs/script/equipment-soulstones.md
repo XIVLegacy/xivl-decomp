@@ -347,6 +347,112 @@ storyboards in `EquipItemListWidget.tpl` lines 149-168 target
 command-triggered Lua calls and ordinary binding observers possible.
 It does not establish replay frequency or runtime event order.
 
+#### Standard equipment slots and detail commands
+
+The installed standard form selects `ControlTemplate_Button_EquipIcon` for
+each of the following 22 buttons. Every listed `setEquipSlotIcon` call is at
+PC 5 in its EquipWidget prototype. The last column is the call in
+`updateEquipItem` (`main/f17`). A dash means there is no call to that method
+in `f17`.
+
+| Button | Form line | Writer | Base icon | Refresh PC |
+| --- | --- | --- | --- | --- |
+| `Button_PrimaryArm` | 269 | `f54` | 359 | 4 |
+| `Button_SecondaryArm` | 271 | `f55` | 361 | 9 |
+| `Button_LargePouch` | 280 | `f56` | 360 | 19 |
+| `Button_SmallPouch` | 281 | `f57` | 362 | 24 |
+| `Button_ThrowingWeapon` | 283 | `f58` | 363 | 14 |
+| `Button_Head` | 267 | `f59` | 364 | 29 |
+| `Button_Body` | 273 | `f60` | 365 | 34 |
+| `Button_Undershirt` | 274 | `f61` | 366 | 39 |
+| `Button_Hands` | 276 | `f62` | 367 | 44 |
+| `Button_Waist` | 275 | `f63` | 368 | 49 |
+| `Button_Legs` | 277 | `f64` | 369 | 54 |
+| `Button_Undergarment` | 278 | `f65` | 370 | 59 |
+| `Button_Feet` | 279 | `f66` | 371 | 64 |
+| `Button_Accessories_RightEar` | 285 | `f67` | 372 | 69 |
+| `Button_Accessories_LeftEar` | 292 | `f68` | 372 | - |
+| `Button_Accessories_Neck` | 286 | `f69` | 373 | 74 |
+| `Button_Accessories_LeftFinger_1` | 291 | `f70` | 374 | 79 |
+| `Button_Accessories_LeftFinger_2` | 295 | `f71` | 374 | - |
+| `Button_Accessories_LeftBracelet` | 294 | `f72` | 375 | - |
+| `Button_Accessories_RightFinger_1` | 290 | `f73` | 374 | 84 |
+| `Button_Accessories_RightFinger_2` | 293 | `f74` | 374 | - |
+| `Button_Accessories_RightBracelet` | 288 | `f75` | 375 | 89 |
+
+Each writer addresses its button's `IconControl_EquipIcon` and
+`IconControl_EquipIconBase` via the `ButtonName:ChildName` target. The template
+initializes the base at line 19 with `IconDatas=365` and the live child at
+line 22 with `IconDatas=0` and `Visibility=Collapsed`. The positive `f53` arm
+writes the supplied live scalar and hides the base. The other arm writes
+live scalar 0 and, when both base operands are present, writes the listed
+base scalar and requests Visible. JobStone uses a different template and
+its icon follows the separate `f111` route above.
+
+The six direct element value controls at form lines 189-194 are
+`TextBlock_ElementValue_FIRE`, `TextBlock_ElementValue_WATER`,
+`TextBlock_ElementValue_THUNDER`, `TextBlock_ElementValue_WIND`,
+`TextBlock_ElementValue_EARTH` and `TextBlock_ElementValue_ICE`. EquipWidget
+`f31` through `f36` follow that order and each writes `tostring(value)` at
+PC 5. `setPCParameter` (`f14`) reads parameter IDs 7-12 at PCs 23, 26, 29, 32,
+35 and 38 and forwards them in fire, ice, wind, earth, thunder, water order
+at PCs 59, 62, 65, 68, 71 and 74.
+
+The following direct standard form TextBlocks declare no Text binding.
+Each `f66` and `f70` in this table belongs to the shared Desktop item-detail
+script. Other prototypes in the table belong to EquipWidget.
+
+| Direct TextBlock and form line | Selected requests |
+| --- | --- |
+| `TextBlock_Title`, 319 | `f112` PC 8 requests row 215 with a slot. `f114` PCs 134, 142, 150 and 158 request row 215 with a mapped equipment point, PC 166 requests row 3612, and repair mode uses rows 3661 and 3660 at PCs 24 and 32. |
+| `TextBlock_Help`, 381 | `f85` PCs 44 and 80 write the empty string. `f113` PC 4 forwards a row and optional argument. The empty-slot path through `f112` PC 76 requests row 3603. |
+| `TextBlock_ItemName`, 411 | `f70` PC 26 writes a packed name string. The ordinary packing path at `f27` PC 96 supplies row 3202, catalog ID and name index. An alternate branch at `f70` PC 53 requests row 4405 and a formatting operand after comparison with catalog 1000001. |
+| `TextBlock_ItemHelp`, 490 | `f70` PC 193 writes the empty string when `isDetail2Visible` returns exact true. The fallback at PC 283 requests row 3203 with the catalog ID. |
+| `TextBlock_ItemPolish`, 581 | The form initializes Text to `@3563`. `f66` PC 506 requests numeric row 3563. |
+| `TextBlock_Materialize`, 587 | `f66` PCs 589 and 607 request rows 3540 and 3541. The repair arm uses those rows at PCs 212 and 230. |
+| `TextBlock_MateriaAttach`, 588 | `f66` PCs 621 and 636 request rows 3542 and 3543. The repair arm uses those rows at PCs 244 and 259. |
+
+The other listed TextBlocks omit a literal Text attribute. `EquipWidget.tpl`
+line 9 binds a template child also named `TextBlock_Title` to its templated
+parent's `Content`, OneWay. `EquipItemListWidget.tpl` line 26 binds a list
+row child also named `TextBlock_ItemName` to `XPath=@name`, OneWay.
+
+Shared Desktop `setItemBonusOther` (`f66`) initially hides
+`Grid_MateriaPossible` at PC 4. In its ordinary fitness branch, a false
+fitness-display operand skips that branch at PCs 488-490. A truthy
+`canChangeFitness` result admits the polish caption at PC 506. A truthy
+`isItemNormal` result admits the progress value at PC 534 and the
+`_sendStoryboardCommand` request at PC 539 with nil item,
+`Label_MateriaPossibleEffect` and `UILuaCommands.MateriaPossibleEffectStop`.
+Truthy materialize permission and fitness equal to 10000 admit the Start
+request at PC 548. The ordinary materialize and attach caption requests
+follow these command sites.
+
+Form line 584 selects `ControlTemplate_Label_MateriaPossibleEffect` for the
+named Label. In `EquipItemListWidget.tpl` lines 145-172, Stop first requests
+`StopStoryboard` by name `MateriaPossibleEffectStart`, then begins a
+storyboard targeting `SparkleControl_PolishMax.Sequence` with `stop`. Start
+begins a storyboard of the same name with Sequence targets `stop` and
+`start` in declaration order. The template declares neither a Text or
+IconDatas read nor a completion command for these storyboards.
+
+On the native explicit-target route, named target lookup at `0x00538B04`
+and command lookup at `0x00538B25` precede the call at `0x00538B4A`.
+The Label event interface cell `0x010737C0` selects `0x00935380` and reaches
+the ControlTemplate collection via `0x00938BA0`. CommandTrigger virtual
+`0x009B11F0` requires `Executed` and the retained command identity. A clear
+preview handled result, the installed template and the collection's event
+gates are prerequisites. The [routed command dispatch](../resource/sqwt-command-parameter-consumer.md#executed-event-delivery)
+and [Sparkle Sequence property](../resource/sparklecontrol-source-sequence.md)
+cover the adjoining generic behavior.
+
+For steps 113 and 114, EquipWidget `f5` calls `displayFocusedItemHelp`
+at PCs 149 and 162 before its title row 215 requests at PCs 154 and 167.
+An admitted `f114` route can request the same direct title, then call shared
+`setItemDetailEquip` at PC 295, which can reach `f66` and its command request.
+The selected template's actions have a separate target. Routed observers,
+reentry, setter preprocessing, and visible intermediate state remain open.
+
 #### Head-slot list filtering
 
 The standard `EquipWidget.form` line 267 binds `Button_Head` to
