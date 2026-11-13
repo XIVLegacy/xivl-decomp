@@ -511,16 +511,36 @@ normal `ShowInactive` branch calls `0x00925AA0(1,1,1)` at `0x00926403`.
 The separate log-window branch tests for `Window_LogWidget`. The selector
 requests root name `Window_ItemSelectWidget`.
 
-After the attachment and visibility requests above, `0x009237D0` calls
-Window selection at `0x00923818 -> 0x00923020`. For a non-desktop Window,
-`0x00922E10` checks registered candidates using the current Window relation
-and order. The two scans require candidate E+0x3C8 mask 0x20 and visibility
-I+0x5C equal to 1 at `0x00922ED5..0x00922EF1` and
-`0x00922FD5..0x00922FF1`. They can select a different modal Window. The
-root focus request at `0x00923889` requires selection of E itself, incoming
-byte 1, `IsKeyboardFocusWithin` clear and `Focusable` set, as above. The
+After the attachment and visibility requests above, `0x009237D0`
+refreshes the registered Window when E+0x20 bit 0 is set. The path
+`0x009237E6..0x0092380D` removes it under the old key at E+0x438 through
+`0x00923690`, registers it under E+0x3EC with byte 1 through
+`0x009231F0`, then copies E+0x3EC into E+0x438. The Window property branch
+`0x00925A26..0x00925A47` supplies E+0x3EC and descriptor `0x01357328`
+to the setter. The descriptor initializer at `0x00F20D30..0x00F20D49`
+uses the literal `SqwtModalGroup` at `0x01069DE0`.
+
+The registration map at `0x01357094` is keyed by that integer.
+`0x009231F0` inserts Window records under the group key, using the
+Window's E+0x3D0 ordering value at `0x009232ED..0x00923321` for the
+byte-1 arm. The record constructor `0x00927280` stores that value in
+the first cell and E in the third. The insert helper `0x00927890`
+walks right for an equal first-cell value.
+
+Window selection follows at `0x00923818 -> 0x00923020`. For a
+non-desktop Window, `0x00922E10` first looks up key 0 at
+`0x00922E3A`, then looks up the Window's registered key E+0x438 at
+`0x00922F34` when the first scan supplies no candidate. Each scan
+starts at the group's end iterator, steps backward with `0x004E4020`,
+and returns its first candidate with E+0x3C8 mask 0x20 and visibility
+I+0x5C equal to 1 at `0x00922ED5..0x00922EF1` or
+`0x00922FD5..0x00922FF1`. The scan does not traverse form ancestors.
+It can return a different modal Window. The root focus request at
+`0x00923889` requires selection of E itself, incoming byte 1,
+`IsKeyboardFocusWithin` clear and `Focusable` set, as above. The
 focus routine `0x0091E3E0` can refuse, redirect or publish a keyboard-focus
-interface and then update the anchor recipient.
+interface and then update the anchor recipient. The stock route's final
+live registration order and recipient remain unobserved.
 
 The standard `SubItemListWidget.form` line 1 has no initial `LogicalFocus`,
 `Focusable` or `IsTabStop` override on the Window. Its selected Window
