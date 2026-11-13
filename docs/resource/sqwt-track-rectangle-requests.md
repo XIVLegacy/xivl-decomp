@@ -314,6 +314,35 @@ The final ordering between the attachment write, style publication
 and measurement, effective scale, first rectangle and first draw
 remain unobserved for this installed form.
 
+## Sound Configuration Dolby toggle
+
+MEASURED. The standard ConfigSoundWidget form at line 208 declares the
+childless `ToggleButton_DOLBY`, IsChecked True, command
+`UILuaCommands.ToggleButton`, SqwtStyle `TOG_config`, Width 120,
+Margin 0,2,0,2 and HorizontalAlignment Left. There is no local CommandTarget.
+The carrier hashes are in the [sound configuration styles](#float-slider-and-its-sound-configuration-styles)
+table above.
+
+In `default.style` lines 3448-3451, `TOG_config` redirects CheckedButton
+to Button style `TOG_config_leftOn` and UncheckedButton to Button style
+`TOG_config_rightOn`. Their Frame rows are at lines 1577-1600. For each
+prefix, Normal uses its N skin, Disabled its D skin, and Hover, Active,
+Anchored and Reserved use its H skin. Focused and Droppable use NULL.
+There is no SkinMargin or SkinOffset on either Frame.
+
+In `default.skin` lines 1042-1061 and 1584-1593, the six referenced
+CellSkins use a 3-by-1 grid. Their stretch cells are 24, 2 and 24 pixels
+wide, each 26 pixels high. HitMargin is 0,0,0,2.
+
+STATIC. The native [ToggleButton own-key and render selection](action-menu-timer-icon-style.md#conditional-initial-toggle-skin)
+uses UncheckedButton:Frame as group zero and CheckedButton:Frame as
+group one. Its [checked-state callback](../input/game-controller-startup.md#checked-state-callback-changes-the-image-part-index)
+requests the corresponding image-part index. With the current frame
+resources admitted, that selects one Frame row for the owner. It joins
+the named checked and unchecked art to the control without a separate
+visual child. Effective layout after HitMargin, first paint and routed
+Dolby command admission remain open.
+
 ## ScrollBar measure and Track request
 
 The custom branch of ScrollBar measure `0x00989D60..0x00989EE4` and
