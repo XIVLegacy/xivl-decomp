@@ -96,6 +96,73 @@ A client model of this handler may rely on the following.
 - Apply the 0x14 and 0x15 value exclusions and the flag byte as above. The
   0x15 value set equals the 0x14 value set.
 
+## Warp end release
+
+STATIC. Ghidra CLI cross references and disassembly of retail
+`ffxivgame.exe` 1.23b (15996808 bytes, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`, VAs at
+image base `0x00400000`). C is a CharaElement. Its state word is the s16 at
+`C+0xE4`, and bits 1 to 5 of the word at `C+0xE8` are the tick phase.
+
+The guard `0x00576020` has two direct callers: the 0x15 arm at `0x00578FBB`
+and `0x0058907F` inside `0x00589030`.
+
+| Routine | Observation |
+| --- | --- |
+| `0x00589000` | Returns when bit `0x40` of the byte at `C+0xE8` is set. Otherwise passes the sign-extended state word to `0x00574ED0` with ECX `[C+0x80]` (`0x0058900C..0x0058901A`) and sets the bit (`0x0058901F`) |
+| `0x00589030` | Returns when bit `0x40` is clear (`0x0058904D..0x00589054`). Otherwise passes the sign-extended state word to `0x00574EE0` with ECX `[C+0x80]` (`0x00589068`), takes the route state from `0x004D7470` on `[C+0x7C]` and calls `0x00576020` on it with the same state word (`0x0058906D..0x0058907F`), then clears the bit (`0x0058908A`) |
+| `0x0058A090` | The tick. `0x004D86B0` on `[C+0x7C]` is compared with C and the result kept in BL (`0x0058A0E2..0x0058A0F3`). Phase 1 calls `0x00589000` only with BL set (`0x0058A1DD..0x0058A1E7`). Phase `0xC` stores `0x14` at byte `C+0xEA` (`0x0058A684`). Phase `0xD` decrements that byte while it is nonzero and then calls `0x00589030` (`0x0058A6A0..0x0058A6BC`). Phase `0xF` stores `0xFFFF` in the state word (`0x0058A737`) and, with BL set, calls `0x00586FB0` (`0x0058A778`) |
+| `0x0058A7F0` | Called from the state setter `0x0058ADC0` (`0x0058AE62`) and from `0x0058E860`. When the state word is not `0xFFFF` it stores 1 at `0x01338D28`, stores `0xFFFF` in the state word (`0x0058A80D`) and posts internal message `0x27` with `{2, 0}`. With C equal to the `0x004D86B0` result it then calls `0x00589030` (`0x0058A8C6`), which therefore passes `0xFFFFFFFF`. It ends by clearing the phase bits (`0x0058A8CB`) |
+| `0x008A4410` | After the `_onPreWarp` firer `0x006FEDE0` it calls setup-all `0x0075B300` (`0x008A44B3`). That call is not conditional on the firer branch |
+| `0x008A44D0` | Calls teardown-all `0x0075B360` first (`0x008A450E`). When byte `+0x166` of the object at receiver `+0xC` is set it calls `0x0075B330` and clears bytes `+0x166` and `+0x165` (`0x008A4516..0x008A452E`). It then calls the `_onPostWarp` firer `0x006FEF10` and `0x00703F60`. For state 4 or `0x10` it calls `0x0075B4C0` with 0 (`0x008A4597..0x008A45A7`) |
+
+`0x00586FB0` is the c2s `0x0007` emitter in
+`xivl-client-structs:manifests/c2s_emit_sites.json`. The slot 41 and 42
+thunks `0x00574ED0` and `0x00574EE0` and the two gates are
+`xivl-client-structs:manifests/symbols.json` rows
+`OnPreWarpSlot41Dispatcher_FUN_00574ED0`,
+`OnPostWarpSlot42Dispatcher_FUN_00574EE0`,
+`PreWarpEngineGate_DesktopWidget_FUN_008A4410` and
+`PostWarpEngineGate_DesktopWidget_FUN_008A44D0`.
+
+Direct callers of the three group helpers:
+
+| Helper | Callers |
+| --- | --- |
+| setup-all `0x0075B300` | `0x008A4410`, `0x008A45D0`, `0x006E3260`, the 0x14 arm at `0x00578FAD` |
+| `0x0075B330` | `0x008A44D0`, `0x008A4720`, `0x006E32A0` |
+| teardown-all `0x0075B360` | `0x00576020`, `0x008A44D0` |
+
+INFERRED. The value of subopcodes 0x14 and 0x15 lies in the domain of the
+state word. With the flag byte set by a 0x14, the end routine `0x00589030`
+of a held warp state releases it through the same guard as 0x15 unless the
+state word is 0, 0x15 or 0x16. The phase-1 call to `0x00589000` runs before
+the phase-`0xF` call to the `0x0007` emitter, and so does the phase-`0xD`
+release. The pre and post warp gates pair one setup-all with one
+teardown-all around the warp.
+
+Not traced: the receiver class at `[C+0x80]` and which implementation its
+slots 41 and 42 reach at runtime, the conditions that move the tick from
+phase 1 to phase `0xC`, the object at receiver `+0xC` of `0x008A44D0`, and
+the meaning of `0x0075B330` and of the `0x0075B4C0` call.
+
+Reproduction:
+
+```text
+ghidra x-ref to 0x00576020
+ghidra x-ref to 0x00589000
+ghidra x-ref to 0x00589030
+ghidra disasm 0x00589000 -n 40
+ghidra disasm 0x0058A090 -n 80
+ghidra disasm 0x0058A600 -n 140
+ghidra disasm 0x0058A7F0 -n 80
+ghidra disasm 0x008A4410 -n 50
+ghidra disasm 0x008A44D0 -n 80
+ghidra x-ref to 0x0075B300
+ghidra x-ref to 0x0075B330
+ghidra x-ref to 0x0075B360
+```
+
 ## RaptureUserControl groups
 
 `0x0054e440` fills four adjacent 0x14-byte command records. The setup-all

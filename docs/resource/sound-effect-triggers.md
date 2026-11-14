@@ -675,8 +675,10 @@ pass 1.0, and the second play passes 1.0 there. The pure composers `0x004B5800`
 and `0x004B5830` compute the same two sums and have no rel32 caller. The
 installation holds 770 files below `data/08/07` and 45 below `data/1A/46`. The class names
 `RaptureFootstepTriggerClip` and `RaptureFootstepLoopTriggerClip` and the
-`Foot` bus name make a footstep role likely (INFERRED), and the argument roles
-were not decoded.
+`Foot` bus name make a footstep role likely (INFERRED). The caller, the foot
+contact detector and the source of each argument are on the
+[footstep detector and ground material](footstep-detector-and-ground-material.md)
+page.
 
 ## Consumer implications
 

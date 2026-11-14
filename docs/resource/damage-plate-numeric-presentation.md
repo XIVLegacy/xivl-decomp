@@ -128,3 +128,37 @@ The peer factory also requests operation `0x24` with payload `{K,P}`, where P is
 Interface flush `0x005527A0` passes a retained proxy P and its non-null cached record to `0x0054E890`. On the record's active send path with global interface `0x01336BA8` present, the first request is operation `0x22` carrying P. With handler admission and a map hit, case `0x007FA54C` selects the context at command receiver `+0x1A0`. Setter `0x0055A5F0` copies four floats to cached record `+0x398`, sets dirty bit `0x10` at `+0x5A` and activity byte `+0x5C`. If the flush reaches its offset branch after successful preceding requests, it sends these 16 bytes as operation `0x1F`. The handler's exact operation table selects `0x007FA84B`. With the handler global gate and non-null selected context and owner, `0x007FA84B..0x007FA869` follows receiver `+0x1A0 -> context+0x74` and copies the float4 to owner `+0x154`. These are publication, selection and store conditions, not observed successful processing. STATIC, conditional offset propagation.
 
 The later bounded use at `0x007F90BE..0x007F9128` reads owner `+0x154/+0x158` into a basis-vector calculation. It does not establish screen-pixel units. Actual DamagePlate parser and peer admission, poster and queue processing, current context selection, attachment resolution, full projection, clipping and final digit placement remain UNKNOWN.
+
+## Scatter basis
+
+STATIC, from Ghidra CLI disassembly of `0x007F8D20` on the executable above.
+The receiver is the owner of the previous section. Its only direct caller is
+`0x007F9D6F` in `0x007F9D00`.
+
+- The anchor at `+0x190..+0x19C` is refreshed from the actors whose IDs sit at
+  `+0x1AC` and `+0x1B0`, resolved through `0x007A0150` and read through
+  `0x007CCAF0` and `0x007CCBC0`, under the flags at `+0x1BC`
+  (`0x007F8D38..0x007F8F6E`).
+- With a nonnull object at `[[this+0x118]+0x64]` it calls that object's
+  virtual `+0x88` for a position P and forms `d = anchor - P`
+  (`0x007F8F7C..0x007F8FAE`). With a null object it skips to `0x007F9130` and
+  keeps the stored offset.
+- It forms `R = normalize(d x (0, 1, 0))` and `U = normalize(d x R)`
+  (`0x007F8FB1..0x007F90BA`). Each normalize is `RSQRTPS` and one Newton step
+  with the f32 1.0 at `0x00F54F70` and 0.5 at `0x00F62F60`. The up vector is
+  built on the stack as `(0, 1.0, 0, 1.0)`.
+- It stores `X*R - Y*U` at `+0x164..+0x170`, with X the f32 at `+0x154` and
+  Y the f32 at `+0x158` (`0x007F90BE..0x007F9128`).
+- After `0x00CA3DF0`, it adds the stored offset to the anchor, sets lane 3 to
+  1.0 and passes the sum to `0x00CA3E10` (`0x007F9136..0x007F91CD`).
+
+INFERRED. The object at `+0x64` is the camera and its `+0x88` returns its
+position, so the offset is in world units with X along R and Y along -U,
+the view's right and, for a camera above the horizon, up directions. What `0x00CA3E10` does with the point was not traced.
+
+Reproduction:
+
+```text
+ghidra disasm 0x007F8D20 -n 300
+ghidra x-ref to 0x007F8D20
+```
