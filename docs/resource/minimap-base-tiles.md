@@ -3,6 +3,8 @@
 The standard MiniMap control builds its base tile list from native sheet
 rows and maintains it against the viewport. This list is separate from the
 [XML marker lists](sqwt-xpath-data-sources.md#marker-wrapper-and-row-context).
+The control's north flag, north label, fixed images and view cone are in
+[MiniMap direction properties and view cone](minimap-direction-and-view-cone.md).
 
 ## Inputs and method
 

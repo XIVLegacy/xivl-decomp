@@ -184,21 +184,21 @@ record `D` at clip +0x14:
 | `0x03` | 1 | `u8` | `0x00a0b19f` | Actor ordinal, the argument of the actor lookup `0x00a1ffa0`, stored at clip +0x60. |
 | `0x08` | 2 | `s16` | `0x00a0b33e` | With `s16(D+0x1e)`, the arguments of `0x00a20070`. The byte that `0x00a1b7c0` returns for that result, compared with 0, is stored at clip +0x68 (`0x00a0b35d`), the form LocalCameraClip stores at clip +0x74. |
 | `0x10` | 4 | `u32` | `0x00a0a210` | Slot 8, the end tick. |
-| `0x14` | 4 | `s32` | `0x00a0b12a` | Camera resource index. A negative value formats the warning literal at `0x010956fc` (ASCII part `[WARNING][CameraClip]`, then `Resource`, then `index=%d`) with the value, logs it through `0x012651b4` and calls slot 18 with 1 (`0x00a0b17c` to `0x00a0b186`), which the timing page records as the abort route, and returns. A nonnegative value is pushed at `0x00a0b1c5` to the method at +0x10 of the table object `0x00a20040` returns, and at `0x00a0b1dd` to the method at +0xc of the stack object built from it. A null result formats the literal at `0x010956c0` (ASCII part `[WARNIGN][CameraClip]`, then `Resource`, then `index=%d`, as spelt in the image) with the value and takes the same abort route (`0x00a0b20a` to `0x00a0b257`). |
+| `0x14` | 4 | `s32` | `0x00a0b12a` | Camera resource index. A negative value formats the warning literal at `0x010956fc` (ASCII part `[WARNING][CameraClip]`, then `Resource`, then `index=%d`) with the value, logs it through `0x012651b4` and calls slot 18 with 1 (`0x00a0b17c` to `0x00a0b186`), which the timing page records as the abort route, and returns. A nonnegative value is pushed at `0x00a0b1c5` to the method at +0x10 of the object `0x00a20040` returns, and at `0x00a0b1dd` to the method at +0xc of that same object, see [Resource index and name table](#resource-index-and-name-table). A null result formats the literal at `0x010956c0` (ASCII part `[WARNIGN][CameraClip]`, then `Resource`, then `index=%d`, as spelt in the image) with the value and takes the same abort route (`0x00a0b20a` to `0x00a0b257`). |
 | `0x18` | 2 | `u16` | `0x00a0b37c` | Argument of `0x00a20040` together with the `std::string` at clip +0x44 (the SSO test `cmp dword ptr [esi+0x58], 0x10` at `0x00a0b360` selects the buffer), then the string is passed to the method at +4 of the owner object (`0x00a0b399`) and to the method at +0x14 (`0x00a0b3d7`). |
 | `0x1a` | 2 | `u16` | `0x00a0b3a9` | Read only when the class key entry byte `u8(key+4)` is at least 3 (`cmp byte ptr [ecx+4], 3` then `jc` at `0x00a0b39e`), otherwise the constant 0x10 (`0x00a0b3a2`). Passed with the string to the method at +0x14. |
 | `0x1c` | 1 | `u8` | `0x00a0b3e6` | Bit 0, read only when the key entry byte is at least 4 (`0x00a0b3dc`). When set, slot 1 asks the owner object's method at +0x24 for a listener (`0x00a0b3f1`). A null one logs the literal at `0x01095684` (ASCII part `[ERROR] Bind Camera`, then `CharactorListener`), and otherwise `D+0x22` (`add edi, 0x22` at `0x00a0b3fe`) is passed with clip +0x6c and clip +0x90 to `0x00a0a350`. |
 | `0x1e` | 2 | `s16` | `0x00a0b33a` | Second argument of `0x00a20070`, see `0x08`. |
 
-The object at +0xc of the stack object is the camera resource and the result
-of its +0xc method becomes the camera object at clip +0x3c (INFERRED from the
-update below, which evaluates clip +0x3c the way LocalCameraClip evaluates its
-own +0x3c, and from the warning text). The tables behind `0x00a20040` and
-`0x00a20070` were not traced here, as the
+The nonnull result of the owner method at +8 is the camera resource, and the
+object built from it becomes the camera object at clip +0x3c (INFERRED from
+the update below, which evaluates clip +0x3c the way LocalCameraClip evaluates
+its own +0x3c, and from the warning text). The table behind `0x00a20070` was not
+traced here, as the
 [third payloads page](cut-scheduler-clip-payloads-ranks-14-22.md) also leaves
-them. Whether the resource index selects a `CCB` container of the same file in
-file order, as the LocalCameraClip value is OBSERVED to do, was not measured
-(UNKNOWN). The bind record at `D+0x22` starts two bytes before the end of
+it. The object `0x00a20040` returns and the container the index selects are
+covered in [Resource index and name table](#resource-index-and-name-table)
+below. The bind record at `D+0x22` starts two bytes before the end of
 every 36 byte install record, so a bind record longer than two bytes reads
 past it (no install record sets the bit), and its layout is UNKNOWN.
 
@@ -215,3 +215,58 @@ with the same argument form as LocalCameraClip. The reads of
 the bind path of the update. The pose is handed to the owner object through
 its methods at +0x28, +0x18, +0x20 and +0x24 (`0x00a0ab01` onwards), which were
 not traced.
+
+### Resource index and name table
+
+STATIC, from the Ghidra CLI and a Capstone 5.0.7 x86-32 decode of the
+file-backed bytes of `0x00a0b1a6..0x00a0b208`, `0x00a27560..0x00a275ee` and
+`0x00a27600..0x00a27691`.
+
+`0x00a20040` returns `u32(u32(C+0x0c)+0x74)`, the scheduler's
+ResourceReference `R` of the
+[name provider page](combat-motion-name-provider.md#resourcereference-and-serialized-provider).
+Slot 1 stores it at clip +0x64 at `0x00a0b1bc` and keeps a copy in a stack
+slot at `0x00a0b1cb`.
+
+| Locator | Operation |
+| --- | --- |
+| `0x00a0b1c5..0x00a0b1db` | Call `R` slot 4 (vtable `0x01098604` cell +0x10, `0x00a27600`) with an output pointer and `s32(D+0x14)`. For an index below the u16 count at +0x0c of the second descriptor's base, it copies the dword at that index of the second descriptor's table to the output. Otherwise it logs and stores 0. |
+| `0x00a0b1dd..0x00a0b1f0` | Reload `R` from the stack slot and call its slot 3 (cell +0x0c, `0x00a27560`) with a 16-byte output and the same index. This is the name lookup that RaptureMotionClip uses: the 16-byte `RIDTBL` entry of that index. |
+| `0x00a0b1f2..0x00a0b204` | Call the method at +8 of the object that the clip +0x24 object's method at +0x30 returned, with the clip, the actor from `0x00a1ffa0`, `R`, the name and the dword. A zero result takes the abort route. |
+
+So a CameraClip asks its owner for a resource by the `RIDTBL` name of its
+index and by a dword from the same table object. The body of the owner
+method was not traced.
+
+OBSERVED on the install of the [cut camera page](cut-camera-ccb.md#identity-and-method),
+with the [scheduler parser](../../tools/scb_clip_scheduler.py) and Python
+standard-library reads. The `RIDTBL` entries were read with the lookup
+formula of the name provider page. The scene file's `RES ` directory and its
+nested directories were walked with the framing of
+`xivl-tools:docs/formats/sedb-res.md`, "RES subresource directory", to give
+each entry that starts with `SEDBCCB` its entry name.
+
+- 31 schedulers hold a CameraClip, with 1,154 records, as the census counts.
+  They hold 906 distinct pairs of scheduler and `s32(D+0x14)`.
+- Every one of the 906 indexes is below the `RIDTBL` entry count of its
+  scheduler.
+- For every one of the 906, the `RIDTBL` name equals the last path component
+  of the entry name of exactly one `CCB` container of the same scene file.
+- The 31 scene files hold 907 `CCB` containers, each one level below a top
+  entry such as `DataSet\cameraactor_roo`.
+- Pairing the ascending distinct indexes with the containers in file order,
+  the LocalCameraClip rule, gives the same containers as the name rule in 4
+  of the 31 schedulers.
+- Six of the 31 schedulers also hold a LocalCameraClip.
+
+In `client/cut/man0g000/man0g000` the `RIDTBL` holds 156 entries and 49 of
+them are camera names, at indexes 70 to 116, 144 and 145. Indexes 70 to 74
+name `man0g000_04xa`, `man0g000_01xa`, `man0g000_02xa`, `man0g000_03xa` and
+`man0g000_05xa`. The first containers in file order are `man0g000_01xa`,
+`man0g000_02xa`, `man0g000_03xa`, `man0g000_03xb` and `man0g000_03xc`. The
+name order and the file order differ from the first index on.
+
+The CameraClip resource index is therefore a `RIDTBL` index, and its camera
+container is the one whose entry name ends in that `RIDTBL` name. The name
+side is STATIC up to the owner method. The container side is OBSERVED as a
+one to one name match and is not traced through the owner method.

@@ -271,6 +271,35 @@ maps file number 3 to `0x035B0003`. The installed `data/03/5B/00/03.DAT`
 is a 2240-byte SSCF carrier. Live event admission, retention until the drain,
 and audible playback remain unresolved.
 
+### Main menu window
+
+MEASURED on the decoded `client/sqwt/widget/MainMenuWidget.tpl`, 13335
+bytes, SHA-256
+`82a503ee4f4faa7b6b329f4295a1158aa194a1dea530333935093e328902deb2`,
+decoded with `xivl extract-resource --materialize-payloads`. The template
+`ControlTemplate_Window_Mainmenu` holds seven `SoundPlayerAction` elements,
+each the last action of its trigger.
+
+| Trigger | Line | `FileNumber` | `Priority` |
+| --- | ---: | ---: | --- |
+| `EventTrigger RoutedEvent="Shown" Name="WindowOpen"` | 9 | 11 | 1 |
+| `EventTrigger RoutedEvent="Closing" Name="WindowClose"` | 24 | 10 | absent |
+| `EventTrigger RoutedEvent="Hiding" Name="WindowHide"` | 39 | 10 | absent |
+| `EventTrigger RoutedEvent="MouseEnter" SourceType="Button"` | 78 | 3 | absent |
+| `EventTrigger RoutedEvent="GotKeyboardFocus" SourceType="Button"` | 81 | 3 | absent |
+| `EventTrigger RoutedEvent="Click" SourceType="Button"` | 84 | 4 | absent |
+| `CommandTrigger Command="ApplicationCommands.Operate" SourceType="Button"` | 87 | 4 | absent |
+
+No element declares `Index` or `Volume`. The `Shown` action is one of the
+five markup actions with a `Priority` attribute. Under the
+[pending request](#pending-request) rule its priority 1 replaces a held
+priority 0 request of the same update, and a priority 0 request does not
+replace it.
+
+Which control raises `GotKeyboardFocus` when list navigation moves the
+focused row was not traced. That a row move plays file number 3 is INFERRED
+from the `SourceType="Button"` filter.
+
 ## Driver configuration
 
 The sound driver parses a configuration text with the parser `0x00B67B60`. The
@@ -312,6 +341,24 @@ otherwise. What the key holds was not traced.
 The numbers may be per-bus voice counts but that is UNPROVED. Which bus a given
 play request reaches, and the effect of the SCD priority switch, were not
 traced into the driver.
+
+### Bus of a container
+
+No argument of the module request names a bus. The category play and both
+footstep plays pass the same seven arguments, and they differ only in the
+resource ID, the volume, the position vector and the sixth float
+(`0x004B74A0..0x004B74ED`, `0x004B77A9..0x004B77F2`,
+`0x004B77F8..0x004B7826`). A bus choice therefore comes from the resource
+or from state the request does not carry.
+
+The installed containers carry a byte that takes exactly the nine bus
+numbers of the [configured bus gains](#configured-bus-gains) and whose
+majority value per bank matches the bank's role: 4 for category 0, 1 for
+songs, 3 for the voice banks and 6 for the footstep banks. The census is
+recorded in
+[Sound container bus byte](https://github.com/XIVLegacy/xivl-client-data/blob/ed860d7658e72c259ac3e3238cfcf29a16623926/docs/sound-container-bus-byte.md).
+The driver routine that reads the byte was not traced, so the reading that
+a container plays on the one-based bus line its byte names is INFERRED.
 
 ## Driver volume curve
 
@@ -657,7 +704,8 @@ A reimplementation of the UI sound path may rely on the following.
 
 - The event that fires each markup file number beyond the trigger kind counts.
 - The client unit of `Volume` 100 on two markup actions.
-- The bus a request reaches, 3D placement and the SCD priority switch.
+- The driver reader of the container bus byte, 3D placement and the SCD
+  priority switch.
 - Resource ID sources of the action table play and the clip play.
 - The footstep argument roles and the writers of the gate flag.
 - The meaning of the creation keys, the position 3 rule and any in-world voice
