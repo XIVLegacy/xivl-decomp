@@ -84,8 +84,11 @@ Immediate lookup in `0x00771C20` requires a ready, valid record and a resolvable
 nonempty `+8` key (`0x00758860` and `0x00771D5B`). It writes Name B from record `+0x8C` through
 `0x0078513C -> 0x00769B90`. The writer puts the id in typed global integer element 7 and an
 empty string in element 2. Id `0xFFFFFFFF` supplies integer zero and the captured string instead.
-It also writes element 5. These indices are zero-based and use the retained TextModule decoder
-vector. [Global context](../resource/battle-log-line-path.md#bl-07-global-context-elements) and
+It also writes integer element 5 at `0x00769C25..0x00769C30`. The numeric branch supplies zero
+(`0x00769BDC`) and the `0xFFFFFFFF` branch the zero-extended byte `+0x58` of the name structure
+(`0x00769C18`), the flag byte of the
+[name structure](../resource/display-name-id-zero.md#the-name-structure). These indices are
+zero-based and use the retained TextModule decoder vector. [Global context](../resource/battle-log-line-path.md#bl-07-global-context-elements) and
 [vector identity](../resource/rich-text-global-parameters.md#gp-01-vector-identity)
 
 CoreWork `+0xDC` supplies the adapter at `0x006EA251`. At `0x00771E32`, TextModule slot `+0x0C`

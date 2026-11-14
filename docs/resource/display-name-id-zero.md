@@ -214,6 +214,19 @@ treats `0` as a name. The request routines `0x00770F10` and `0x0076FD80` pass th
 id through (`0x00770F59..0x00770F64`, `0x0076FDFE`). The result handler
 `0x00777370` receives the request (`0x007899E0`), and its body was not traced.
 
+OBSERVED. The Lua native `_getLocalizedDisplayName` (`0x006FA3D0`) loads the
+dword at its receiver `+0x60`, adds 4 and passes that address to the string
+pusher `0x007487C0` (`0x006FA3D0..0x006FA3E3`). It tests neither the id nor
+byte `+0x59`. The result setter `0x006FB280` loads the same receiver field at
+`0x006FB2AE` and assigns its string argument to the address 4 past it through
+`0x00447450` (`0x006FB2B9..0x006FB2BC`). Both address the string of one name
+structure when their receivers are the same `CharaBase`. For a numeric id the
+native therefore pushes the string the structure held until the lookup
+completes and the resolved string afterwards. The
+[native contract](https://github.com/XIVLegacy/xivl-client-structs/blob/79b7404cf5852f7c35fd26ae2b34762089357f7a/docs/chara-desktop-native-contract.md#area-and-display-name-natives)
+owns the binding. That the script receiver and the setter receiver are one
+object for a given actor is INFERRED from the shared `+0x60` field.
+
 ## Row 222 and the text context
 
 OBSERVED. `0x0076FB10` resets the text context with `0x00769CC0`
