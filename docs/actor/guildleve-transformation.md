@@ -100,6 +100,9 @@ The reverse ACTIVE 2 to PASSIVE 0 transition enters phase 5 at `0x007BD120`,
 requests transition ID `0x1E` through `0x007AC400`, and maps it at `0x008A8DD0`
 to `cbbm_deact`. Actor flag `0x40` selects `cbbp_u_deact` instead.
 
+The [posture page](locomotion-selection.md#battle-activation-and-deactivation-phases)
+owns the subphases of both handlers.
+
 ### Request helper and pair filter
 
 Capstone 5.0.7 x86 decoding of the pinned executable shows that

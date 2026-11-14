@@ -370,6 +370,69 @@ Subphase 6 waits for bit `0x2000`, calls `0x007BA850` at
 returns through the dispatch epilogue after its current subphase.
 Advancing the byte alone does not execute the next subphase there.
 
+### Battle activation and deactivation phases
+
+STATIC. Phase 4 `0x007BCC80` and phase 5 `0x007BD120` are the handlers the
+[transformation study](guildleve-transformation.md#native-state-bridge)
+reaches for the 0-to-2 and 2-to-0 transitions. Both read owner flag
+`C+0x2B74 & 0x40` on entry and dispatch on subphase byte `S+0x5AE`. Phase 4
+uses table `0x007BD058` for subphases 1 through 6, where subphases 3 and 4
+return. Phase 5 uses table `0x007BD594` for subphases 1 through 7, where
+subphases 3, 4 and 6 return. The rows below hold for the flag clear unless
+they name the flag.
+
+Phase 4, activation:
+
+| Subphase | Entry | Checked work |
+| --- | --- | --- |
+| 1 | `0x007BCCB4` | Returns while `C+0xDA8 == 1`. A false `0x00660510(C)` calls `0x0065C470(C)` and `0x0065C360(C,-1)` and returns. Otherwise it calls `0x007B42F0(S,0)` and `0x007B42F0(S,1)` at `0x007BCCE4` and `0x007BCCED`, runs the level reset below, installs through `0x007AC5A0(S,0)` at `0x007BCD41`, sets `C+0x56B = 1`, sets bit 31 of `C+0x474` and stores subphase 2 at `0x007BCD69` |
+| 2 | `0x007BCD76` | Calls `0x007AD830(C+0x4C0)`, or `0x007ADBE0` with the flag set, then `0x0065C470(C)` and `0x0065C360(C,-1)`. It continues when `C+0xE0 == 0x7FFFFFFF`, or when that list call returned false and `0x0065C3C0(C,-1)` returns true. It then requires `0x007AC240(C+0x438, "cbbm_activ")` true at `0x007BCDE8`, or the same call with `cbbm_id0` true at `0x007BCDFE`. The strings are at `0x00FE7330` and `0x00FE733C`. With the flag set it calls `0x007B4330(S)` in place of both probes. It sets `C+0x56B = 1`. For selected `S+0x5A8` equal to `0x02` or `0x51` it calls `0x007A3E00(S,1,b)` at `0x007BCE3C`, where `b` is 1 with the flag clear and 0 with it set, and a true result sets `S+0x5B4` bit `0x400`. It stores subphase 5 at `0x007BCE4F` |
+| 5 | `0x007BCE5C` | Waits for bit `0x400` clear, clears bit 31 of `C+0x474` at `0x007BCE6C..0x007BCE7B`, calls `0x0065AA70(C,n)` with the constant below and stores subphase 6 |
+| 6 | `0x007BD02F` | Waits for `S+0x5B4` bit `0x2000`, calls `0x007BA850(S)` at `0x007BD03D` and clears `S+0x5AE` and `S+0x5AD` |
+
+The level reset of subphase 1 runs only with the flag clear
+(`0x007BCCF2..0x007BCCF4`). It repeats the guards of SetLevel
+`0x007AA570` inline with level 0: `H+4` bit 3 clear at `0x007BCCFF`, a
+nonnull object at `H+0x2D4` at `0x007BCD05..0x007BCD11`, and a nonzero
+output byte from that object's vtable `+4` call at
+`0x007BCD1D..0x007BCD23`. With all three it writes requested level
+`H+0x1A0 = 0` at `0x007BCD25`. It then calls `0x007AFD90(H)` at
+`0x007BCD37` whatever the guards gave. Both precede the battle
+installation at `0x007BCD41`. So an actor that requests a level when this
+subphase runs has its requested level set to 0 before the battle machine
+is installed, subject to those guards.
+
+Phase 5, deactivation:
+
+| Subphase | Entry | Checked work |
+| --- | --- | --- |
+| entry | `0x007BD15A` | Calls `0x0065B190(C)` and keeps a byte that is 1 only with the flag set and a false result |
+| 1 | `0x007BD18B` | Calls `0x0065C470(C)` and `0x0065C360(C,-1)`. It continues when `C+0xE0 == 0x7FFFFFFF`, or when `0x007AD830(C+0x4C0)` returns false and `0x0065C3C0(C,-1)` returns true. With the flag set it calls `0x008C0850(S+4)`, `0x007B42F0(S,0)` and `0x007B42F0(S,1)`. It sets `C+0x56B = 1`, calls the deactivation request `0x007AC400(S)` at `0x007BD1F9` and stores subphase 2 |
+| 2 | `0x007BD217` | Waits for the signed sum `C+0x464 + C+0x44C` to be at most 1, or with the flag set for a false `0x007ADCB0(C+0x4C0)`. It calls `0x007A3E00(S,0,b)` at `0x007BD26B` with the same `b`, sets bit `0x400` on a true result and stores subphase 5 |
+| 5 | `0x007BD297` | Waits for bit `0x400` clear, calls `0x0065AA70(C,n)` and stores subphase 7 |
+| 7 | `0x007BD515` | Waits for `S+0x5B4` bit `0x1000`, calls `0x007BA850(S)` at `0x007BD523`, builds a delegate over `0x007A3D80` through `0x007C4630` and installs the field machine through `0x008C0910` on `S+4` at `0x007BD54E`. A set entry byte then sets `H+4` bit `0x40`. It clears `S+0x5AE` and `S+0x5AD` |
+
+No instruction of `0x007BD120..0x007BD591` stores to `H+0x1A0`. The
+deactivation handler leaves the requested level as it finds it.
+
+The `0x0065AA70` constant comes from selected `S+0x5A8` through byte map
+`0x007BD0B4` and table `0x007BD070` in phase 4, and through `0x007BD5F4`
+and `0x007BD5B0` in phase 5. Both pairs give the same constants. A state
+above `0x5C` or one the map sends to its last entry makes no call.
+
+| Selected state | Constant |
+| --- | --- |
+| `0x00` | `0xCF` |
+| `0x02` | `0xE7` |
+| `0x46` | `0xE3` |
+| `0x51` | `0xE5` |
+
+What `0x0065AA70` posts, the meaning of `C+0x474` bit 31 and of
+`C+0x56B`, and the argument roles of `0x007A3E00` are UNKNOWN. That the
+battle machine plays `cbbm_activ` to its end before a move state replaces
+it was not traced. Reproduce with `ghidra disasm` at the two handler
+entries and raw reads of the four tables and two strings from the PE image.
+
 ### Player KO movement and committed callback
 
 STATIC. The shared clientbound dispatcher resolves `0x0134` through the
