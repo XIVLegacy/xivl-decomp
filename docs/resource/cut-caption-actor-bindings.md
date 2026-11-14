@@ -121,6 +121,124 @@ completion and the retained callback binding, the resulting Lua frame is:
 The native route does not itself resolve the actor-class word to a visible
 speaker name or select a quest's text bank.
 
+## Caption end and hide route
+
+STATIC, from Ghidra CLI disassembly and reads of the original table cells on
+the executable above. The `RaptureCaptionClip` table `0x00FFBAFC` holds:
+
+| Slot | Cell value | Body |
+| ---: | --- | --- |
+| 2 | `0x00A20F90` | base update |
+| 3 | `0x008140B0` | class override, the end routine below |
+| 7 | `0x00A21070` | base start word |
+| 8 | `0x008140A0` | class override, `MOV EAX,[ECX+0x14]` then `MOV EAX,[EAX+0x14]` and `RET` |
+
+Under the [clip timing](cut-scheduler-clip-timing.md) rule, slot 7 is the
+start tick and slot 8 the end tick, so a caption clip runs from `u32(D+4)` to
+`u32(D+0x14)`.
+
+The end routine `0x008140B0(F)` calls `0x00A21000` with F, then resolves M
+through `0x00A20030`, `0x0060B360` and the word at `+0x68`, and requires M and
+M+`0x164` to be nonzero, as the begin does (`0x008140BE..0x008140E3`). It
+requires key-entry byte 0 or 1 (`0x008140E5..0x008140F5`). When `u8(D+0x20)`
+is nonzero it passes M and a pointer to `u32(D+0x1C)` to `0x008143F0`
+(`0x008140F7..0x0081410B`). With a zero byte nothing is posted.
+
+`0x008143F0(M, &actorClass)` returns for a null M. Otherwise it calls
+`0x007CE7B0` with ECX=M and the words `[0xC, Q, 8]`, where Q is a stack block
+of literal 2 and the actor-class word (`0x008143FB..0x00814416`).
+
+In the CutManagerElement consumer `0x00566740`, the jump table at `0x00566854`
+is indexed by the selector less 4. Its cell for selector `0xC`, at
+`0x00566874`, holds `0x00566831`. That arm passes the payload pointer to
+`0x0055FCE0` (`0x00566836`). `0x0055FCE0` returns when `u32(I+0x80)` is zero
+and otherwise calls `0x00574E20` with ECX `I+0x80` and the two payload words
+(`0x0055FCE0..0x0055FCF5`). `0x00574E20` jumps through slot 31 (`+0x7C`) of the
+implementation table. The nominal `LuaActorImpl` slot 31, cell `0x00FDFBA8`,
+holds `0x0075D8D0`, which forwards both words with the script control at
+implementation `+8` and the handle at `+4` to `0x008A3A40`
+(`0x0075D8E5..0x0075D8F3`). After its cast succeeds, `0x008A3A40` calls
+`0x006FC260` (`0x008A3A70`), the only direct caller of that body.
+
+`0x006FC260` appends the tag object at `0x0134B564 + kind*0x54` through the
+string appender `0x00748C80` (`0x006FC2F2..0x006FC30C`) and the actor-class
+word through `0x00585020` (`0x006FC31D`). It builds the lookup name from
+`_onHideUIClip` at `0x00FD468C` (`0x006FC328`, the only data reference to that
+literal) and requests the call through `0x00CC7A90` (`0x006FC350`).
+
+With the same binding conditions as the show route, the resulting Lua frame
+for a caption record is:
+
+```text
+(self, "Caption", actorClass)
+```
+
+Reproduction:
+
+```text
+ghidra disasm 0x008140A0 -n 4
+ghidra disasm 0x008140B0 -n 40
+ghidra disasm 0x008143F0 -n 14
+ghidra disasm 0x00566740 -n 8
+ghidra disasm 0x00566831 -n 6
+ghidra disasm 0x0055FCE0 -n 10
+ghidra disasm 0x00574E20 -n 4
+ghidra disasm 0x0075D8D0 -n 18
+ghidra disasm 0x008A3A40 -n 16
+ghidra disasm 0x006FC260 -n 90
+ghidra x-ref to 0x00FD468C
+```
+
+Read the cells `0x00FFBAFC + 4*slot`, `0x00566854 + 4*index` and
+`0x00FDFB2C + 4*31` from the file-backed sections.
+
+## Install caption census
+
+MEASURED. `tools/scb_clip_scheduler.py` parsed every scheduler that
+`tools/verify_scb_clip_classes.py` walks below `client/cut` of build
+`2012.09.19.0001`, keeping only `RaptureCaptionClip` records:
+
+| Observation | Count |
+| --- | ---: |
+| records | 174 |
+| schedulers holding one, one per file | 22 |
+| records of 40 bytes | 174 |
+| key-entry byte 1 | 174 |
+| `u32(D+0x10)` zero | 174 |
+| argument mask `D+0x24` zero | 174 |
+| `u8(D+0x20)` equal to 1 | 174 |
+| end word `u32(D+0x14)` below the start word | 0 |
+| distinct actor-class words `u32(D+0x1C)` | 58 |
+
+Actor ordinals are 0 in 135 records, then 2 (11), 1 (10), 10 (8), 34 (5),
+28 (3), 6 (1) and 3 (1). The most frequent actor-class words are 1000009
+(17), 19000 (12), 1000037 (11) and 1000011 (10).
+
+`client/cut/man0g000/man0g000` holds three records, all with actor-class word
+10000: block 7 from tick 1330000 to 2030000 with text operand 48, and block 8
+from 980000 to 1800000 with operand 49 and from 1890000 to 2650000 with
+operand 50.
+
+So every installed caption clip posts the selector `0xC` hide at its end.
+Whether retail ends a running clip when its block ends is outside this page.
+
+## Caption widget markup
+
+MEASURED with `xivl extract-resource` on `client/sqwt/widget/CaptionWidget.form`,
+720 bytes, SHA-256
+`c369c0e81601b8f7a5009df80cb211392ae07c1dee137a86dff552b45a2f8171`. The
+decoded markup is 712 bytes, SHA-256
+`f72c4c4b0d1a83a07d3d47ac376f9324fd17074ae9170849a448a3e31c0ed06b`.
+
+The root `Window` is named `Window_CaptionWidget`, with `SqwtStyle="NULL"`,
+`HorizontalAlignment="Center"`, `VerticalAlignment="Bottom"`,
+`Margin="7.5%"`, `Width="816"`, `FontEdge="True"` and
+`IsHitTestVisible="False"`. It holds a `Grid` with `Margin="4"` around one
+`TextBlock` named `TextBlock_Caption`, with `TextAlignment="Center"`,
+`FontSize="@226"`, `SqwtStyle="TBL_caption"` and
+`VerticalAlignment="Bottom"`. The script route that writes that block is in
+`xivl-client-scripts:docs/cutscene-caption-script-route.md`.
+
 ## Actor-class clip
 
 The nominal evaluator `0x00825FA0` obtains the same typed context and M
