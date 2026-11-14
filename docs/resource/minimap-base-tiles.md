@@ -836,7 +836,14 @@ at step 6. Elapsed-time cadence and transition rounding remain UNKNOWN.
 `PlayerPosX/Y` are position readbacks on the checked update path.
 `0x00675840` derives their integer values from `(position-offset)/100`,
 or requests -1 for navigation row 1. The checked callback keeps their tags `0x1C/0x1D` on the integer
-readback path. A general writable center property remains UNKNOWN. With explicit layout/page overrides, other center choices
+readback path. Each conversion widens the input lane and the offset
+at control `+0x638` or `+0x63C` to binary64 (`CVTPS2PD`), subtracts, divides
+by the binary64 at `0x00F55AD0` (100.0) and converts with `CVTTSD2SI`
+(`0x0067586A..0x0067588C` for X, `0x00675890..0x006758A4` for Y). That
+instruction truncates, so each readback is the quotient rounded toward zero.
+The compare of control `+0x9F0` with 1 at `0x0067584A` is consumed by the
+branch at `0x006758B6`, after both conversions. A quotient outside the
+signed 32-bit range was not examined. A general writable center property remains UNKNOWN. With explicit layout/page overrides, other center choices
 include the sheet focus pair selected by `FocusPointColumn` and the retained
 map midpoint (`0x00679DCE..0x00679E21`). Those are separate from the
 nonzero-Function automatic actor arm.
