@@ -100,6 +100,54 @@ Catalog citation:
 `sha256=7DA8241400530885E0A28DED04A03ACF2771B0580A79C1F49F46EE0861010611`;
 `extraction=2012.09.19.0001`.
 
+### Row columns and record dwords
+
+The resolver fills all 29 dwords of the 116-byte record. This table was
+read from a Capstone 5.0.7 x86-32 decode of the file-backed bytes of
+`0x0055d2b0..0x0055d979`. For each column the routine pushes the column
+number to the sheet handle's virtual `+0x40`, and only on a nonzero answer
+reads the value through `0x00c9a4a0` with the same number. A column that
+answers zero leaves its lanes at the value they had, which is 0 for the
+packed dwords 2, 3 and 4.
+
+| Dword | Record offset | Columns | Locator |
+| ---: | --- | --- | --- |
+| 0 | `0x00` | 6 | `0x0055d37b..0x0055d39f` |
+| 1 | `0x04` | 7 | `0x0055d3a2..0x0055d3c0` |
+| 2 | `0x08` | `0x16` as the start value. `0x15` shifted left 10 under mask `0xfff003ff`. `0x17` shifted left 20 under mask `0xc00fffff`. | `0x0055d3c3..0x0055d433` |
+| 3 | `0x0c` | `0x0e` shifted left 27 as the start value. Then `0x0f` at 26 under `0xfbffffff`, `0x10` at 23 under `0xfc7fffff`, `0x11` at 20 under `0xff8fffff`, `0x12` at 18 under `0xfff3ffff`, `0x13` at 16 under `0xfffcffff`, `0x14` at 14 under `0xffff3fff`, `0x0b` at 8 under `0xffffc0ff`, `0x0c` at 0 under `0xffffffe0` and `0x0d` at 5 under `0xffffff1f`. | `0x0055d436..0x0055d5eb` |
+| 4 | `0x10` | 8 shifted left 10 as the start value. Then 9 at 0 under `0xffffffe0` and `0x0a` at 5 under `0xfffffc1f`. | `0x0055d5ee..0x0055d65b` |
+| 5 | `0x14` | `0x18` | `0x0055d65e..0x0055d67c` |
+| 6 to 12 | `0x18..0x30` | `0x19..0x1f`, one per dword | stores `0x0055d69d..0x0055d763` |
+| 13 to 27 | `0x34..0x6c` | `0x20..0x2e`, one per dword | stores `0x0055d784..0x0055d952` |
+| 28 | `0x70` | none. Bit 0 takes bit 0 of the result of `0x00443e40(7, 0x1e, 0)` on the object that `0x004d73b0` returns, before any column is read. | `0x0055d364..0x0055d380` |
+
+The mask is the complement of the lanes the shifted value replaces, and the
+shifted value is not masked itself, so a column value wider than its lane
+reaches the neighbouring bits. Column `0x14` is tested and merged twice
+with the same shift and mask (`0x0055d531..0x0055d54d` and
+`0x0055d55a..0x0055d576`).
+
+The lanes of dword 3, from the masks: `0x0c` in bits 0 to 4, `0x0d` in
+bits 5 to 7, `0x0b` in bits 8 to 13, `0x14` in bits 14 to 15, `0x13` in
+bits 16 to 17, `0x12` in bits 18 to 19, `0x11` in bits 20 to 22, `0x10`
+in bits 23 to 25, `0x0f` in bit 26 and `0x0e` from bit 27. Dword 2 holds
+`0x16` from bit 0, `0x15` in bits 10 to 19 and `0x17` in bits 20 to 29.
+Dword 4 holds 9 in bits 0 to 4, `0x0a` in bits 5 to 9 and 8 from bit 10.
+
+The column numbers are the header labels of the `actorclass_graphic` sheet.
+Their tracked names are in `xivl-client-data:tools/mappings/actor_appearance.py`:
+6 `base`, 7 `size`, 8 `hairStyle`, 9 `hairHighlightColor`, 10
+`hairVariation`, 11 to 20 the face, characteristics and ear columns, 21
+`hairColor`, 22
+`skinColor`, 23 `eyeColor`, 24 `voice`, 25 to 31 the weapon and pack
+columns and 32 to 44 the gear columns. Columns `0x2d` and `0x2e` are the
+two trailing columns that mapping leaves unnamed. The names are catalog
+labels. The instructions establish only the column numbers and lanes.
+
+This is the resolver's own packing. Whether a server-supplied appearance
+record uses the same lanes is not established by it.
+
 The [bank population and publication order](../resource/attribute-resource-and-scene-binding.md#bank-initialization-and-pending-rows)
 distinguishes pending row requests, successful replacement and later dirty
 submission. A successful replacement returns before the flush in that updater

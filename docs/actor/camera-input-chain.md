@@ -316,8 +316,11 @@ result and sets ctx `+0x10` to 1 (`0x007F5653`). When the actor pointer at
 `+0x4` is null or the predicate fails, the tick sets `+0x10` to 0
 (`0x007F565C`) and skips the blend. In both cases it then adds `+0x424 * dt /
 10.0` to slot 0. The predicate is the one named `ctl` on the
-[locomotion selection](locomotion-selection.md) page. Whether it holds during
-ordinary walking is unresolved, so the auto-follow condition is unresolved.
+[locomotion selection](locomotion-selection.md) page. The
+[auto-run page](auto-run-latch.md) records that the actor command `0x20`
+arm sets that bit through `0x007B04A0` and that the movement update clears
+it, so the predicate is the auto-run flag. A second setter that would hold
+it during ordinary walking was not found there and is not excluded here.
 
 Client consequence. Only the blend form and rate are known, so this section
 adds nothing to implement beyond the drag gate above.
@@ -453,7 +456,8 @@ The manifest lists these as `unresolved`.
 - The camera effect of the script natives above.
 - The argument values of `MoveCamera` for held keys or a pad, and the key 0
   rates.
-- Whether the predicate `0x007A4610` holds during ordinary walking.
+- Whether any writer other than the [auto-run](auto-run-latch.md) command
+  arm makes the predicate `0x007A4610` hold during ordinary walking.
 - The consumers of commands 0x2E, 0x2F and 0x30. The lens arm sends command
   0x2E with two floats for keys 0 and 2 (`0x00619A22`).
 
