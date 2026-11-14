@@ -854,6 +854,78 @@ Live actor readiness, selected row, property overrides, later writes,
 rotation, frame delivery and painting remain UNKNOWN. Mapping from SetMap region or zone values to the native layout key
 remains UNKNOWN.
 
+### Load centre choice
+
+STATIC. After an admitted piece result, `0x00679940` sets EDI to -1 at
+`0x00679D75` and hands one centre pair to `0x00672D30` at `0x00679E21`:
+
+| Condition, in test order | Centre pair |
+| --- | --- |
+| `QuestMapIndex` `+0x56C` is not -1 | `+0x630` |
+| `Layout` `+0x470` and `Rect` `+0x478` are both -1 | `+0x968`, the retained actor X and Z |
+| otherwise, `FocusPointColumn` `+0x53C` is not negative | `+0x628` |
+| otherwise | `+0x620` |
+
+When `FocusPointColumn` is not negative, `+0x628/+0x62C` are first copied from
+checker `+0x08/+0x0C` at `0x00679DE0..0x00679DEC`. Piece materialization
+`0x006780D0` repeats the same choice at `0x006783CD..0x006784CC`.
+
+The checker `0x00670210` (request `0x006712B0` stores `FocusPointColumn` at
+checker `+0x14`) forms that pair when its `+0x14` is not negative
+(`0x006703B5..0x006703BE`). Let `res` be checker `+0x10` at that point, the
+converted `_layout` column 1 byte above. It reads `mapNavi_data` columns 3
+and 4 and forms `Ox = -0.0 - col3` and `Oy = -0.0 - col4` with the f32 `-0.0`
+at `0x00F62FA0`. It then reads columns `F` and `F + 1`, with `F` the stored
+column:
+
+| Columns `F`, `F + 1` | Stored at checker `+0x08`, `+0x0C` | Locators |
+| --- | --- | --- |
+| both 0 | `f32(col10 / res * 0.5 + Ox)`, `f32(col11 / res * 0.5 + Oy)`, binary64 0.5 at `0x00F59898` | `0x00670453..0x006704E5` |
+| otherwise | `f32(colF / res + Ox)`, `f32(colF1 / res + Oy)` | `0x006704EA..0x0067052E` |
+
+The arithmetic widens to binary64 before the f32 stores. The column 5
+override of checker `+0x10` follows at `0x00670545..0x00670573`, after the
+pair is stored.
+
+### Load scale with Function 0
+
+STATIC. When `Function` `+0x448` is 0, materialization takes the branch at
+`0x0067841A` to `0x006784D1` instead of the actual scale 1 above. With `Dx,Dy`
+the sheet extent:
+
+- `sx = f32(+0x1B4 / Dx)` and `sy = f32(+0x1AC / Dy)`, divided in binary64,
+  and `cover` the larger of the two (`0x006784D1..0x00678529`)
+- the start value is the f32 at `0x012BAAF8`, which reads 1.0 in the image
+- the value is raised to `MinScale` `+0x460` when that is larger, then to
+  `cover` when that is larger, then lowered to `MaxScale` `+0x458` when it is
+  larger (`0x0067852C..0x00678576`)
+- the result is stored at actual scale `+0x60C` and written back to
+  `0x012BAAF8` (`0x0067858A..0x00678592`), the centre is reclamped through
+  `0x00672A80`, and the `Scale` holder `+0x450` is updated subject to its flags
+
+The cell `0x012BAAF8` has three references: this read and write, and the
+store of the direct scale update `0x00673640` at `0x00673661`. It is shared by
+every MapScreenControl.
+
+INFERRED. `+0x1B4` and `+0x1AC` are the control's arranged width and height.
+With the constructor `MinScale` 0.5 and `MaxScale` 1 and the shared cell at
+1.0, every Function 0 load takes actual scale 1, whatever `cover` is.
+
+### Installed navigation form
+
+MEASURED, owner install. `client/sqwt/widget/MapNavigationWidget.form`
+(22,356 decoded bytes) and `widget/MapNavigationWidget.tpl` (7,090 decoded
+bytes) were decoded with the `xivl-tools` `tools/blowfish.py` cipher, keyed
+by the file name, as in `tools/census_sqwt_tab_scroll_text.py`. The map
+control `CustomControl_MapNavigation` declares `Function="0"`,
+`FocusPointColumn="15"`, `Filter="1"`, `DirectionRadiusRatio="1000"`,
+`DirectionPositionRatio="0.5"`, `DefaultSparkleFile="common/mapMarker.le.spk"`,
+`DefaultSparkleSequence="m00002"` and `Focusable="False"`. It declares no
+`MaskImageId`, `Width`, `Height`, `Scale`, `MinScale` or `MaxScale`. The form's
+`type_data` reader names `Row="0-12"`. `widget_c/MapNavigationWidget.form` is a
+separate 13,161-byte document, the one the native MainMenuWidget slot
+constructs ([Navigation form and scheduled update](#navigation-form-and-scheduled-update)).
+
 ## Viewport and draw
 
 The active viewport update at `0x006762F0` walks retained pieces and calls

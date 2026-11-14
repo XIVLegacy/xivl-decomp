@@ -243,6 +243,23 @@ switch is 1 in 2,061 and 0 in 1,320 records, and the hold value is nonzero in
 install. The start mode word is 0 in 1,659 and 1 in 1,722 records. The track
 index is within 0 to 159 and takes 158 values.
 
+OBSERVED, install scan of every file under `client/cut` with
+`tools/scb_clip_scheduler.py` and the
+[FCURVE entry lookup](weather-light-curve-container-shape.md#fcurve-entry-lookup-v)
+layout: each of the 3,381 records sits in a scheduler that has an `@FCURVE`
+resource, its track index is below that resource's count, and the entry it
+selects is named `FCurveNNNN.fcr`. Each selected container fits its stated
+size, starts with the `SEDBmtb` signature and holds the group name `TracePoint`.
+The curve sampling of `tx`, `ty` and `tz` was not checked by this scan.
+In `client/cut/man0u005/man0u005` the two records are on actors 13 and 14,
+take track indices 0 and 1 (entries `FCurve0009.fcr` and `FCurve0007.fcr`),
+and carry a point count of 4 and a speed of 1.8.
+
+INFERRED: the record that `0x00a20090` returns for the track index is that
+entry of the scheduler's `@FCURVE` resource, the same lookup the weather light
+clips use. The binding of scheduler `+0x0c` and `+0x50` to that resource is
+not traced.
+
 ## RaptureBlackFadeClip
 
 Slot 1 calls the base begin and obtains the owner through `0x00a20030` and

@@ -44,6 +44,49 @@ conditional insertion into the owner's resource lookup vector. The request
 record index is separate from that vector's insertion position; actual
 delivery and retained bank/actor state remain required.
 
+## Effect bank path
+
+STATIC. For a category below `0x6F` other than `0x0B`, `0x00798470` splits
+the selector at `0x00798510..0x0079851A` into the character bank
+`(selector >> 12) & 0xFFF` and the effect bank `selector & 0xFFF`. For
+category `0x0B` the effect bank is the low 24 bits and the character bank is 0
+(`0x00798490..0x00798497`). Categories from `0x6F` up take other branches.
+Both admitted forms call the row reader `0x007982D0` at `0x007984B3`. The
+reader returns three fields of the 12-byte row at `0x00FE32D8 + 12 * category`:
+the character flag byte at row `+4`, the effect flag byte at `+5` and the
+route kind dword at `+8` (`0x007982F2..0x00798320`). A category above `0x22`
+returns both flags clear and route kind `0x12`. When the character flag is
+set the router calls visual slot `+0x54` with (category, character bank,
+route kind), and when the effect flag is set it calls slot `+0x58` with
+(category, effect bank, route kind) (`0x007984BB..0x007984F0`).
+
+On the `CharaActionVisual` vtable `0x00FE4544`, slot `+0x58` (cell
+`0x00FE459C`) is `0x00799C90` and slot `+0x5C` (cell `0x00FE45A0`) is
+`0x00798640`. `0x00798640(category)` returns the row name pointer at
+`0x00FE32D8 + 12 * category` for a category up to `0x22` and 0 otherwise.
+
+`0x00799C90(category, bank, kind)` returns false for a category or bank that
+is not positive (`0x00799CCB..0x00799CE5`). Route kinds 10 and 11 go to the
+`gl%1d` builder `0x007997B0` instead (`0x00799CF2..0x00799CFE`,
+`0x00799FB6`). Otherwise the path is built from these literals and calls:
+
+| Part | Source |
+| --- | --- |
+| `/client/vfx/` | `0x00FE3C00`, at `0x00799D23` |
+| folder | `itm` (`0x00FE3C10`) for route kinds 6 and 7, `abl` (`0x00FE3C14`) for kind 12, otherwise the slot `+0x5C` name, and false when that name is null (`0x00799D5B..0x00799E25`) |
+| `/` | `0x00FE3C18`, at `0x00799E5B` |
+| bank | `%04d` (`0x00FE3C1C`) of the bank argument, formatted at `0x00799EB4` |
+| `.bin` | `0x00FE3C24`, at `0x00799F16` |
+
+Row 1 holds the name `mgc` (`0x00FE3254`), both flags set and route kind 9.
+Row 15 is the `pop` row recorded under
+[Arrival type and revival motions](#arrival-type-and-revival-motions). So
+selector `0x01000066` (category 1, effect bank `0x066`) forms
+`/client/vfx/mgc/0102.bin`, and category 15 effect bank 7 forms
+`/client/vfx/pop/0007.bin`. The installed files are `client/vfx/mgc/0102`
+and `client/vfx/pop/0007`. The mapping from the `.bin` request name to the
+installed path is outside this trace.
+
 ## Posture source and snapshot
 
 STATIC. The kind-7 loader `0x00798BF0` reads the retained dword
@@ -320,6 +363,38 @@ and `bf1aa7bcbe63840a1c98c0d2497e962a39e9d0a80c9ff3898ebd8f3553991ac8`.
 The previously proposed `0x01001094` loads `cmn/mgc/base/0001` and effect
 bank `mgc/0148`; the latter contains no `MotionClip`. It is not evidence for
 the recovered `cbnm_revive` bank.
+
+### Revival scheduler records
+
+MEASURED, install read of `client/vfx/mgc/0102` with
+`tools/scb_clip_scheduler.py` and the SEDBRES directory fields of the
+[GTEX and PWIB loader](../resource/gtex-pwib-loader.md). The SEDBRES
+directory has five entries: `main\bin\main` (an `SEDBSCB` of 1,856 bytes),
+`abi2reis1tar\bin\abi2reis1tar` (an `SEDBSCB` of 1,296 bytes),
+`sch_effect_data\reise02` (a nested `SEDBRES` of 67,145 bytes),
+`RESOURCE_TYPE` and `RESOURCE_ID`. The clip records of `main`, in record
+order with their start words:
+
+| Clip class | Start word |
+| --- | ---: |
+| BindActorClip, RaptureServerMoveStopClip, RaptureClientMoveStopClip, RaptureActionSelectClip | 0 |
+| RaptureCasterSchClip | 20,000 |
+| RaptureCasterManagedSchClip | 120,000 |
+| MotionClip | 170,000 |
+| RaptureActionSubStatusSchKickClip | 1,100,000 |
+| ClipSyncClip | 1,480,000 |
+
+The MotionClip index `s32(D+0x10)` is 1, and entry 1 of the `RIDTBL`
+resource of `main` is `cbnm_revive` by the
+[RIDTBL lookup](../resource/combat-motion-name-provider.md). The
+`abi2reis1tar` scheduler holds BindActorClip, two RaptureCharaColorFadeClip
+(start words 0 and 170,000), RaptureSoundClip and ActionClip (180,000) and
+RaptureActionSelectDamageMccClip (1,030,000). The start words are scheduler
+ticks. Their conversion to frames is in
+[Cut scheduler clip timing](../resource/cut-scheduler-clip-timing.md).
+`client/chara/pc/c001/act/emp_emp/bid/base/0000` also holds the name
+`cbnm_revive`. The c003 entry and its MTB extent are in
+[Fall and revival entries](locomotion-bank-census.md#fall-and-revival-entries).
 
 ## Ferry steersman motion assets
 

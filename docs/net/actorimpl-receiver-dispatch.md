@@ -296,7 +296,7 @@ receiver involvement - it just no-ops the packet.
 | `SetPushEventConditionWithCircleReceiver` | Unknown |
 | `SetPushEventConditionWithFanReceiver` | Unknown |
 | `SetPushEventConditionWithTriggerBoxReceiver` | Unknown |
-| `SetTalkEventConditionReceiver` | Unknown |
+| `SetTalkEventConditionReceiver` | NullActorImpl slot 50 `0x00761B90` constructs it, see [talk condition receiver](../event/talk-condition-receiver.md) |
 
 All 7 are **event-condition configurators** - they set "when this
 condition fires, kick this event". The receiver itself doesn't
