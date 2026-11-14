@@ -211,6 +211,53 @@ retaining -1,000. This is arithmetic. Initial or reset carry,
 intervening writes through the count pointer, actual callback cadence,
 stall recovery, and final movement remain UNKNOWN.
 
+## Target-facing update
+
+STATIC, from the disassembly of `0x007B1BB0`, which the movement step calls
+with the helper `H` as receiver. `C` is the owner actor at `H+0x00` and `T`
+the context at `C+0x118`.
+
+| PC | Observation |
+|---|---|
+| `0x007B1BC9` | Calls the selected-actor predicate `0x0065A500` on `C` and returns when it is false |
+| `0x007B1BD8..0x007B1BE6` | Returns when byte `C+0xB3D` is in 1 to 13 |
+| `0x007B1BEC..0x007B1BF8` | Returns when bytes `C+0xB39` and `C+0xB3A` differ |
+| `0x007B1BFE` | Returns when bit `0x08` of byte `C+0xB7D` is set |
+| `0x007B1C0D` | Returns when `0x007AA710(H)` answers true |
+| `0x007B1C1A` | Returns when bit 0 of the flag dword `H+0x04` is set |
+| `0x007B1C24..0x007B1C33` | Passes the dword `H+0x08` as the key to the lookup `0x007A0150` on `T+0x54` and returns on a null result |
+| `0x007B1C40..0x007B1C5B` | Calls virtual `+0x88` of the found object for a four-float position and subtracts the helper position `H+0x10` |
+| `0x007B1C60..0x007B1C68` | Loads the x lane, then the z lane, and calls the CRT entry `0x009DAEBA`, the two-operand arctangent of the [motion callback inputs](locomotion-selection.md) |
+| `0x007B1C75..0x007B1CA7` | Multiplies the heading by the binary64 at `0x00FE7FA8` (-16777216.0), divides by the float at `0x012C4D20` (bits `0x40C90FDB`, two pi), truncates with `CVTTSD2SI`, subtracts the result from the negated dword `H+0x1AC` and masks with `0xFFFFFF` |
+| `0x007B1CAC..0x007B1CB6` | Adds `0xFFC71C71` and returns when the unsigned result is above `0x8E38E2` |
+| `0x007B1CB8..0x007B1CD4` | When the pointer at `H+0x2C0` is nonnull, calls its virtual `+0x04` with the address of a zeroed byte |
+| `0x007B1CD8..0x007B1D10` | When the float `H+0x24` is above 0, adds `H+0xF8` to `H+0x20`, stores the sum, and returns while the sum is below `H+0x24` |
+| `0x007B1D12..0x007B1D22` | Returns when the byte is zero. Otherwise calls `0x007B14E0(H, heading, 0)` with the heading in radians |
+
+`0x007B14E0` calls the [turn start](chara-turn-and-field-consumers.md)
+`0x007B0530(heading, mode, 0)`. When that returns nonzero it sets bit 0 of
+`H+0x04` and stores the float at `0x00F62F80` (-1.0) in `H+0x20` and
+`H+0x24`.
+
+The masked value is the gap between the heading of the keyed object and the
+current angle `H+0x1AC` in units of a 24-bit circle. The compare admits a gap
+from `0x38E38F` to `0xC71C71`, which is 80 to 280 degrees and symmetric about
+the half turn. A null pointer at `H+0x2C0` leaves the byte zero, so the turn
+then never starts.
+
+INFERRED: the selected actor starts a turn to the exact heading of the object
+keyed by `H+0x08` once that heading is 80 degrees or more from its current
+angle, subject to the delegate byte and the timer.
+
+UNKNOWN: the writer of `H+0x08` and which target it names, the object at
+`H+0x2C0` and what its byte answers, the writers of `H+0x24`, where bit 0 of
+`H+0x04` is cleared, and the bytes `C+0xB39`, `C+0xB3A` and `C+0xB7D`.
+
+Reproduce with `ghidra disasm 0x007B1BB0 -n 100`, `ghidra decompile
+0x007B14E0`, `ghidra memory read 0x00fe7fa8 8`, `ghidra memory read
+0x012c4d20 4` and `ghidra memory read 0x00f62f80 4`. The tool is `ghidra` CLI
+`0.2.2` driving Ghidra `12.1.4`.
+
 ## Boundaries
 
 The ordinary write is an intermediate helper position. Later

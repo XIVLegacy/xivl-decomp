@@ -204,6 +204,44 @@ These are name, type and local membership checks. Active root order,
 an SCB from a different resource root, and direct playback of a same-named
 fall or revival motion require separate evidence.
 
+## Seat entries and nested schedulers
+
+MEASURED, with the directory read described above. No resource bytes or
+hashes are recorded for these banks.
+
+`client/chara/pc/c001/act/cmn/gid/base` holds the single file `0001`. Its
+directory names three motions, `cbem_jmn`, `cbem_jmn_st` and `cbem_jmn_ed`,
+each as one MTB entry under an `emot\miga` path and one MCB entry under an
+`emot\mcc` path. The `gid/base/0001` banks of c001 through c009 name the
+same three motions. This is the idle kind 5 bank of the
+[idle bank finding](idle-bank-selection.md).
+
+The five `cbem_sit*` motions of `client/chara/pc/c001/act/cmn/sid/base/0001`
+are `cbem_sit`, `cbem_sit_ed`, `cbem_sit_st_b`, `cbem_sit_st_l` and
+`cbem_sit_st_r`.
+
+`client/chara/pc/c001/act/cmn/em2/base` and `em3/base` each hold the eight
+files `0007`, `0013`, `0015`, `0017`, `0020`, `4001`, `4002` and `4003`.
+
+A bank can hold an entry that is itself a `SEDB` `RES ` directory. In
+`client/chara/pc/c001/act/emp_emp/bid/base/0001` the entry named
+`sch\pc\c001\emp_emp\s_bid00` is one. Its own directory names four SCB
+entries, `dead`, `cas90`, `cas00` and `sht_can0`. The outer directory of the
+same bank names the motion `cbbm_ded`. The scheduler search of the previous
+section read outer directories only.
+
+Of the 97 directories under `client/chara/mon`, 80 hold at least one
+`act/<set>/bid/base/0000` bank. In 71 of the 80 an outer directory names
+`cbbm_dedpose` or `cbnm_dedpose`, and in 48 it names `cbbm_ded`. In 60 of
+the 80 a nested directory names an SCB entry whose last path component is
+`dead`. `mon/m002/act/emp_emp/bid/base/0000` names `cbbm_ded`,
+`cbbm_dedpose` and `cbnm_dedpose` in its outer directory and `dead` in the
+nested directory of `sch\mon\m002\emp_emp\s_bid00`.
+
+The role split of the `_st` and `_ed` suffixes, the choice among the three
+`cbem_sit_st_*` motions, and the edge from a nested `dead` scheduler to a
+motion are not established by these names.
+
 ## The walk and run set outside `emp_emp`
 
 | Where | Count | Observation |

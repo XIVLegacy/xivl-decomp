@@ -69,6 +69,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Ciba constructor and source pointer](actor/ciba-pointer-source.md)
 - [Cibw receiver and source pointer](actor/cibw-pointer-source.md)
 - [WeaponVisual row attributes and ShapeWeight values](actor/weapon-visual-row-attributes.md)
+- [Weapon slots, class tags, attach lookup and the sheathe flag](actor/weapon-slot-attach-and-sheathe.md)
+- [Weapon set directories and battle bank paths](actor/weapon-set-directories-and-battle-banks.md)
 - [Thornmarch Moogle action contract](actor/moogle-action-contract.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
