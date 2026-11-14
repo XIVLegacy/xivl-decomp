@@ -23,7 +23,7 @@ Executable `ffxivgame.exe`, build `2012.09.19.0001`, 15996808 bytes, SHA-256
 |---|---|
 | `0x00A52C50` | Per-frame present function. It copies the scene target of the post-effect object to the back buffer. |
 | `0x00A52F51..0x00A52F5D` | Full-size path. Pushes the mode word 3 and calls the blit `0x0041F020`. |
-| `0x00A53124..0x00A53136` | Second call with mode 3 on the other path of the same function. When the target is not 16 by 9 it clears the target and blits into a centred rectangle first (I for the selection test, which reads `0x00A47140`). |
+| `0x00A53124..0x00A53136` | Second call with mode 3 on the other path of the same function. When the target is not 16 by 9 it clears the target and blits into a centred rectangle first (I for the selection test, which reads `0x00A47140`, see [the cut viewport flag](cut-begin-viewport-and-clock.md#viewport-flag)). |
 | `0x0041F020` | Blit. Modes 0 to 2 are `StretchRect` with the filter table at `0x00F59764`. Mode 3 draws a quad with the gamma programs. |
 | `0x0041D9E0..0x0041DB41` | Registers the two programs, a vertex program of `0x140` bytes at `0x00F58528` and a pixel program of `0x390` bytes at `0x00F58668`, and resolves the constant `s_gammaCalibration` (string `0x00F5937C`, also `$s_gammaCalibration` at `0x00F586D8`) into renderer `+0x198`. |
 | `0x0041F58B..0x0041F5C5` | Reads the float at renderer `+0x17C`, copies it to all four lanes of a 16 byte constant and submits it through the handle at renderer `+0x198`. |

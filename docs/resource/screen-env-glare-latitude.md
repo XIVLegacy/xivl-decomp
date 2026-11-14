@@ -12,7 +12,8 @@ statements come from decoding the Direct3D 9 shader token streams embedded in
 the image: the version token, constant table names, register indices and
 operations. All addresses are VAs unless marked RVA. No retail values are
 recorded, only addresses, offsets, counts, shapes and code immediates, and no
-shader bytecode. Tiers: V = verified from cited instructions, data or file
+shader bytecode. File enum and flag bytes are recorded where they select a
+code path. Tiers: V = verified from cited instructions, data or file
 bytes, I = inferred, U = unknown.
 
 Owners of the neighboring facts:
@@ -371,23 +372,161 @@ Each push setter loads the chain from post-effect `+0x08`, then the
 function calls `0x00C85F30` on the `GlareFilter`, then calls `GlareFilter`
 slot 2 (`0x00C88420`).
 
-- `0x00C85F30` requests scratch render targets at 1/8, 1/16, 1/32, 1/64 and
-  1/128 of the size given by the virtual calls at `+4` and `+8` of its input
-  object, two per scale and ten in all. Every request carries the constant 4 in
-  its last field, read as the format enum (I). The results are cached in the
-  globals `0x01375F40..0x01375F64`.
+- `0x00C85F30` takes 16 dword arguments and returns with `RET 0x40`. When
+  arguments 7 to 16 are all nonzero (`0x00C85F56..0x00C85F9F`) it stores
+  argument 1 at `GlareFilter+0x48`, argument 2 at `+0x4C`, argument 3 at
+  `+0x50` and arguments 5 to 16 at `+0x54..+0x80`, and does not store argument
+  4 (`0x00C86643..0x00C86695`). Otherwise it requests scratch render targets at
+  1/8, 1/16, 1/32, 1/64 and 1/128 of the size given by the virtual calls at
+  `+4` and `+8` of argument 1, two per scale and ten in all. Every request
+  carries the constant 4 in its last field, read as the format enum (I). The
+  results are cached in the globals `0x01375F40..0x01375F64`.
 - Slot 2 calls `0x00C87F60`, then `0x00C88320` when the `GlareFilter` byte
   `+0x44` is nonzero, then `0x00C880A0`. The constructor clears `+0x44` and its
   writer is U.
 - `0x00C87F60` loads the float `C+0x1B4`, calls the bright pass setter
   `0x00C870A0`, and then calls `0x00C866C0`, six times `0x00C86930` and six
-  times `0x00C87990`. The roles of those three are U.
+  times `0x00C87990`. Their roles are in
+  [Glare pass sequence](#glare-pass-sequence-v).
 - `0x00C880A0` is the composite setter.
 
 The `GlareFilter` constructor registers six program pairs through
 `0x004194E0` (vertex, token version `vs_3_0`) and `0x00419590` (pixel, version
 `ps_3_0`), and resolves the constant handles by name from the strings at
-`0x01105B88..0x01105D30`.
+`0x01105B88..0x01105D30`. The constructor stores the program handles at
+`GlareFilter+0x88..+0xB4`:
+
+| Fields | Vertex program | Pixel program | Pixel size |
+| --- | --- | --- | --- |
+| `+0x88/+0x8C` | `0x011045B8` | `0x01104688` | `0x2C0` |
+| `+0x90/+0x94` | `0x01104948` | `0x01104A18` | `0x360` |
+| `+0x98/+0x9C` | `0x01104D78` | `0x01104E48` | `0x3A0` |
+| `+0xA0/+0xA4` | `0x011051E8` | `0x011052B8` | `0xC0` |
+| `+0xA8/+0xAC` | `0x01105378` | `0x01105448` | `0x290` |
+| `+0xB0/+0xB4` | `0x011056D8` | `0x011057A8` | `0x3E0` |
+
+The pixel sizes are the size arguments pushed at `0x00C86B8F..0x00C86D79`.
+Every vertex size argument is `0xD0`.
+
+### Filter chain order (V)
+
+`0x00C4D070` runs the members in this order, each gated by a chain byte:
+
+| Order | Chain byte | Member | Call |
+| ---: | --- | --- | --- |
+| 1 | `+0x2E` | `+0x08` AmbientOcclusionFilter | `0x00C84680` at `0x00C4D55C` |
+| 2 | `+0x2D` | `+0x00` GlareFilter | `0x00C85F30` at `0x00C4D5EB`, then slot 2 |
+| 3 | `+0x2C` | `+0x10` VolumetricLightFilter | from `0x00C4D635` |
+| 4 | `+0x34` | `+0x24` | from `0x00C4D69A` |
+| 5 | `+0x2F` | `+0x04` DepthOfFieldFilter | `0x00C4DA10` at `0x00C4D73B` |
+| 6 | `+0x30` | `+0x14` ColorCorrectionFilter | `0x00C813C0` at `0x00C4D794` |
+| 7 | `+0x31` | `+0x18` | from `0x00C4D7DF` |
+| 8 | `+0x33` | `+0x1C` | `0x00C80060` at `0x00C4D889` |
+| 9 | `+0x32` | `+0x20` | from `0x00C4D8CA` |
+
+The chain byte tests are at `0x00C4D545`, `0x00C4D5A1`, `0x00C4D62F`,
+`0x00C4D694`, `0x00C4D714`, `0x00C4D785`, `0x00C4D7D9`, `0x00C4D832` and
+`0x00C4D8C4`. Work before the first test is not described here.
+
+### Glare targets (V)
+
+The post-effect target setup `0x00A578F0` requests three targets at
+post-effect `+0x10`, `+0x14` and `+0x18`, then two chains of seven targets in
+the loop at `0x00A579B4..0x00A57A2B`. The outer loop starts at `+0x1C` and
+then `+0x20`, the inner loop steps by 8, and each level takes
+`(x & 1) + (x >> 1)` of the previous width and height, starting from the
+base size. Each request passes the format global `0x012EFCEC`. So
+`+0x1C + 8k` and `+0x20 + 8k`, for k from 0 to 6, are the two targets of
+level k + 1, from 1/2 to 1/128, each half rounding up.
+
+`PostEffect::Draw` `0x00A57D70` copies post-effect `+0x10`, `+0x14` and
+`+0x1C..+0x50` into a local array, replaces an entry by the corresponding
+dword from `+0x60` onward when that dword is nonzero
+(`0x00A57E1D..0x00A57E56`), and passes the 16 entries to `0x00C4BDE0` at
+`0x00A57EAB`. That setter stores arguments 1 and 2 at chain `+0x70/+0x74` and
+arguments 3 to 16 at chain `+0x38..+0x6C` (`0x00C4BDE0..0x00C4BE50`). Without
+overrides, chain `+0x38 + 8k` and `+0x3C + 8k` are the two level k + 1
+targets.
+
+The `0x00C85F30` call at `0x00C4D5EB` passes two targets of the draw
+followed by chain `+0x38..+0x6C` (`0x00C4D5AB..0x00C4D5EA`). With the stores
+above, `GlareFilter+0x50` is a level 1 (1/2) target, `+0x54/+0x58` the level 2
+(1/4) pair and `+0x5C..+0x80` the pairs of levels 3 to 7 (1/8 to 1/128). The
+second level 1 target is not stored. Which target holds the scene before the
+call and which receives the composite depend on the ping-pong state of the
+chain, which is not traced.
+
+### Glare pass sequence (V)
+
+Let `G` be the `GlareFilter`. `0x00C87F60` runs:
+
+1. Bright pass `0x00C870A0(C, C+0x1B4, G+0x50, G+0x48)`
+   (`0x00C87F63..0x00C87F7D`). It sets the render target from its third
+   argument and the texture from its fourth, and binds programs
+   `G+0x88/+0x8C`.
+2. `0x00C866C0` binds programs `G+0xA0/+0xA4`.
+3. Six calls `0x00C86930(dst, src)` with (`+0x54`, `+0x50`), (`+0x5C`,
+   `+0x54`), (`+0x64`, `+0x5C`), (`+0x6C`, `+0x64`), (`+0x74`, `+0x6C`) and
+   (`+0x7C`, `+0x74`) (`0x00C87F89..0x00C87FDE`). Each sets the first
+   argument as render target and the second as texture stage 0, and draws
+   through `0x00C86800`.
+4. Six calls `0x00C87990(w, A, B)` with `A = G+0x54 + 8i`, `B = G+0x58 + 8i`
+   for i from 0 to 5 (`0x00C87FE3..0x00C8808E`). The weight `w` is
+   `table[t][i]` with the table of six-float rows at `0x01106580` and
+   `t = G+0x0C`, replaced by 2 when it is 3 or more (`0x00C87FE3..0x00C87FEB`).
+   A negative type is not clamped.
+
+| Type row | Weights |
+| --- | --- |
+| 0 | 1.4, 1.3, 1.2, 1.2, 0.0, 0.0 |
+| 1 | 1.3, 1.2, 1.2, 1.2, 1.5, 0.5 |
+| 2 | 1.0, 1.1, 1.2, 1.4, 1.6, 2.0 |
+
+`0x00C87990` caches the f32 31.0 from `0x01106578` in `0x01375F38` and
+computes in binary64 with `D = 31.0`: `s_blendFactor0` (handle `G+0x110`) =
+`(16w/D, 4w/D, 2w/D, w/D)` with the doubles 16.0 `0x00FC3320`, 4.0
+`0x00FEE2A0` and 2.0 `0x00F63028`, and a second vector `(0.5w/D, 0, 0, 0)`
+through `G+0x114`. It then draws twice. The first draw binds A as texture and
+B as render target and writes `s_texelOffset0` (`G+0x118`) = `(1/W, 0, 2/W, 0)`
+and `s_texelOffset1` (`G+0x11C`) = `(3/W, 0, 4/W, 0)`, with W from A's virtual
+`+4`. The second binds B as texture and A as render target and writes
+`(0, 1/H, 0, 2/H)` and `(0, 3/H, 0, 4/H)`, with H from A's virtual `+8`. The
+constants 1.0, 3.0 and 4.0 are the doubles at `0x00F598A0`, `0x00F62FF0` and
+`0x00FEE2A0`. Both draws bind programs `G+0xA8/+0xAC`.
+
+Slot 2 `0x00C88420` sets stage 0 sampler state before `0x00C87F60` through
+`0x004183C0(0, 2, 2, 0, 0)` and `0x00418300(0, 2, 2, 0, 7)`
+(`0x00C88468..0x00C884A9`). Each downsample calls `0x004183C0(0, 2, 2, 0, 0)`
+and `0x00418300(0, 2, 2, 2, 7)` (`0x00C8699E..0x00C869EA`). `0x00418300`
+reaches `0x0041CC60`, which maps its second, third and fourth arguments
+through the table at `0x00F59750` (1, 2, 3, 4, 3, 1) and writes sampler states
+1, 2 and 3 (address U, V and W). Index 2 maps to 3, `D3DTADDRESS_CLAMP`, so U
+and V clamp. `0x004183C0` reaches `0x0041CD00`. With filter arguments
+2 and a zero mip argument it writes magnification filter 2 (linear),
+minification filter 2 or 3 (linear or anisotropic, chosen by the value of
+`0x004181C0`), and then mip filter 0 (none) with maximum mip level 0 and a
+zero bias. The blur draws set no sampler state of their own.
+
+The composite `0x00C880A0` sets render target `G+0x4C`, binds `G+0x48` on
+stage 0 and the levels from `G+0x54` stepping by 8 on the following stages,
+and binds programs `G+0xB0/+0xB4`.
+
+### Decoded pass programs (V)
+
+Decoded with `tools/d3d9_shader_decode.py --listing` at the file offsets of
+the program VAs:
+
+- `0x011052B8` (downsample) is one `texld` of `s0` at the texture
+  coordinate.
+- `0x01105448` (blur) declares `s_blendFactor0` c0, `s_texelOffset0` c1 and
+  `s_texelOffset1` c2. It sums the centre tap times `c0.x`, the taps at
+  `+-c1.xy` times `c0.y`, at `+-c1.zw` times `c0.z` and at `+-c2.xy` times
+  `c0.w`. `c2.zw` is unused, so the weights sum to `30w/31`.
+- `0x01104688` (bright pass), on the `s_ldrScale >= 1` path: with
+  `L = (rgb, max(r, g, b))` of the sampled colour, it forms
+  `f = sat((L / s_threshold)^32 - 0.1)` per lane by four squarings and a
+  `mad`, takes `k = f.w` and writes
+  `(s_saturation * (f - L * k) + L * k) * s_latitudeRCP`.
 
 ### Programs and constants (V)
 
@@ -515,23 +654,41 @@ The `Glare` group of the curve container has 7 properties of which 4 are type 2
 curves (see the curve container page). Which of the seven handle names are the
 four curves is U.
 
+A second throwaway scan read the `lyb` node records of the same 16 DATs. A
+node was located by a dword equal to the LYB offset of its name string at node
+`+0x08`, with LYB offsets counted from the `SEDBlyb` frame plus its header
+length at frame `+0x0E`. With `tools/scb_clip_scheduler.py` for the clips:
+
+- Each DAT has nine `glare_NN` nodes, 144 in all. The eight lane nodes
+  (`glare_00 10 20 11 21 12 22 01`) have bit 0 of `+0x25` set in all 128. The
+  ninth, `glare_0001`, has it clear in all 16. Byte `+0x24` is 2 in all 144.
+- Each lane `scev_NN` node holds the LYB offset of `glare_NN` at `+0x18`, and
+  `scev_0000` holds that of `glare_0001`. Byte `+0x10` of all 144 `scev` nodes
+  is 7, above the version 5 test of `0x00A73BE0`.
+- All 113 `LayRaptureScreenEnvGlareClip` records are `0x60` bytes and carry 2
+  at record `+0x5C`, the byte the clip writes to the section type each tick.
+
+INFERRED. The runtime Glare section at ScreenEnv record `+0x18` is the
+`glare_NN` node of the layout, read at the section getter offsets above. On
+that reading every lane Glare section is enabled and every lane type is 2, so
+the blur takes weight row 2. The runtime binding of the record pointer at
+`this+4` to the LYB node is not traced.
+
 ## Unknowns
 
 - The setter of bit 2 of DrawableObject byte `+0x2B0`, and so which pass kinds
   run with `C+0x77C` set. Slot 2 of the tag vftable does not set it.
 - The writer of `C+0x1C0` after the context constructor. Two byte stores with
   displacement `0x1C0` at `0x00A5B97C` and `0x00A74423` were not traced.
-- Which of the three bright pass programs a draw uses, and the values the
-  `GlareFilter` type at `+0x0C` takes. The floats that follow the `GlareFilter`
-  vftable from `0x01106574` have no direct cross-reference at `0x01106580`, so
-  their consumers are untraced. The composite applies the one `s_blendFactor`
-  to all six levels.
+- The callers of the depth bright pass programs `G+0x90..+0x9C`. The pass
+  sequence of `0x00C87F60` binds only `G+0x88/+0x8C`. The composite applies
+  the one `s_blendFactor` to all six levels.
 - Which target the scene colour is drawn into and which target is bound to
   `sourceSampler`, the owner of the post-effect target slots `+0x54` and
   `+0x58`, and whether a cleared post-effect byte `+0x01` can leave `R+0x1E4`
   at 0.75 with no composite.
-- The roles of `0x00C866C0`, `0x00C86930`, `0x00C87990` and `0x00C88320`, and
-  the writer of the `GlareFilter` byte `+0x44`.
+- The role of `0x00C88320`, called with `G+0x4C` and `G+0x5C` on ECX
+  `G+0x12C`, and the writer of the `GlareFilter` byte `+0x44`.
 - The unit of `elapsed` in controller slot 7 and so the duration of the lane
   fade, the roles of controller `+0x28`, `+0x2C`, `+0x30` and `+0x86`, and the
   source of the objects at `+0x18` and `+0x1C`.
@@ -539,7 +696,5 @@ four curves is U.
   consumer of `P[0x4D]`.
 - The multi-direction latitude path (`P[4] != 0`) and its effect on `C+0x1B8`
   and `C+0x1BC`.
-- The values of the Glare section fields at `+0x24` and `+0x25` and the Latitude
-  section pointer in the ScreenEnv records of the weather DATs. Both are file
-  facts that this page does not derive.
+- The Latitude section pointer in the ScreenEnv records of the weather DATs.
 - The consumers of the globals written by `0x00BF7530`.

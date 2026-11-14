@@ -185,6 +185,29 @@ vertical fog and glare of lane 00 read entries 3, 2 and 6 and the two Attr
 containers belong to `diffuseColor_00` and `lightMapOcclusionColor` through
 entries 4 and 5.
 
+### FCURVE entry lookup (V)
+
+`0x00A20090` loads `u32(ECX+0x0C)`, pushes its index argument and calls
+`0x00A1CA20`, then calls `0x00A220A0` on the returned object. `0x00A1CA20`
+returns with a plain `RET`, so the pushed index stays on the stack as the
+argument of `0x00A220A0`, which returns with `RET 4`. `0x00A1CA20` returns
+`u32(ECX+0x50)+0x1C`, or the static empty table `0x0136510C` when that word
+is zero (`0x00A1CA35..0x00A1CA84`). With `T` that table,
+`0x00A220A0(i)` returns `(u16(u32(T)+2+2*i) << 4) + u32(T+4)`
+(`0x00A220A0..0x00A220B1`). So `u32(T)` addresses the u16 count and the offset
+list, and `u32(T+4)` addresses the first entry. The index is not compared
+with the count here.
+
+File layout, from an install scan with `tools/scb_clip_scheduler.py` and a
+throwaway directory walk. In each SCB directory resource whose tag is
+`@CRES` and whose name at `+0x10` is `@FCURVE`, the u16 count is at resource
+`+0x20` and the u16 offsets follow it. The first entry starts at the first
+16-byte boundary after the offsets, counted from resource `+0x20`. An entry
+is a 16-byte NUL-terminated name, a u32 container size at entry `+0x10` and
+the container from entry `+0x20`. Every RaptureAutoMoveClip of the installed
+cut tree resolves through this layout, see
+[RaptureAutoMoveClip](cut-scheduler-clip-payloads-ranks-14-22.md#raptureautomoveclip).
+
 ## Open
 
 * The scheduler frame rate in effect for the weather timelines, which sets the
