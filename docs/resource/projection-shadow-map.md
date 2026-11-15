@@ -309,8 +309,8 @@ clamps the result to 0 and 1.0.
 
 INFERRED. O is the DrawEnv at the queried position and `0x009D6090` is a
 substring search, so the byte is set for a DrawEnv whose name lacks
-`dwev_0`. No reader of `+0x1A0` in the shadow path
-was found.
+`dwev_0`. The readers of `+0x1A0` are not traced here, so no link from
+this value to the shadow settings is established.
 
 Reproduce with `ghidra disasm 0x007dce53 -n 30`, `ghidra memory read
 0x00fee454 8` and `ghidra disasm 0x007e91d0 -n 400`.
