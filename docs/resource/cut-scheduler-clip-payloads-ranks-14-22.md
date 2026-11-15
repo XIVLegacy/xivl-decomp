@@ -335,6 +335,13 @@ vector when it is shorter (`0x007cf2f5`). With slot 0 and bit 0 set the entry
 scans the vector at +0xcc for an element for which `0x00b52b70` returns false
 and plays through it (`0x007cf159`).
 
+The selector zeroes the index at `0x0081ad48`, tests bit 1 at `0x0081ad3f`
+and returns from that branch, and tests bit 2 at `0x0081ad74` only when bit 1
+is clear. So bit 1 wins when both are set. The bit 1 index is compared with
+the count and the bit 2 index is not. For voices 1 to 18 the table bytes at
+`0x0100aa34..0x0100aa45` are 6, 6, 5, 5, 4, 4, 3, 3, 1, 1, 0, 0, 2, 2, 7,
+7, 8 and 8.
+
 The constructor increments the global counter `0x0134e2a8` through
 `InterlockedIncrement` when the key entry byte is 2 and bit 3 of `u32(D+0x14)`
 is set (`0x0081ae0f` to `0x0081ae29`).

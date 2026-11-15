@@ -4,7 +4,9 @@ The main light shadow of the pinned client is one depth map that a caster
 pass fills and the receiver pixel programs sample through `shadowMap0`. This
 page records the values behind the receiver driver's operand blocks, the
 settings reset and the setters it applies, the cascade setup of the shadow
-effect, the default map size, the two caster programs with their depth
+effect, the default map size, the shadow transform with its cascade
+ranges, light box, trapezoid fit and receiver sampler, the two caster
+programs with their depth
 bias, the weather ScreenEnv Shadow section that the applier copies into the
 settings, the caster selection mask and its bit setters, the serialized
 byte behind a BG model's caster bit, and the DrawEnv name test of the
@@ -138,6 +140,150 @@ configuration object that `0x01323914` points to into its own `+4`
 
 INFERRED. The default shadow map is 1024 texels square, and the client
 starts with one cascade.
+
+## Shadow transform update
+
+STATIC. `ShadowTransform::Update` is `0x00C621D0`, named by the assert
+string `SQEX::CDev::Engine::Dw::Renderer::ShadowTransform::Update` at
+`0x010F6AE8`. It takes the context C as its argument and writes into its
+receiver T.
+
+- It calls `0x00C47F50(0)`, which writes byte C `+0x77B`.
+- With byte C `+0x684` set (`0x00C47E30`) the light direction is C `+0x664`
+  (`0x00C47E40`). With it clear the direction is C `+0x674`
+  (`0x00C47E70`), and the normalized copy is also stored at T `+0x230`.
+  Either is normalized through `0x0042EAD0` and stored at T `+0x220`.
+- It copies the 32 bytes at C `+0x738` (`0x00C47E80`) to T
+  `+0x200..+0x21F`, the view matrix C `+0x20` (`0x00C47930`) to T `+0x180`
+  and the projection C `+0x60` (`0x00C47940`) to T `+0x1C0`.
+- With `m` the projection copy, `T+0x244 = m[14] / (m[10] - 1.0)` and
+  `T+0x248 = m[14] / (m[10] + 1.0)` (`0x00C62346..0x00C62384`, double 1.0 at
+  `0x00F598A0`).
+- The second byte of C `+0x51C` (`0x00C47C30`) selects the next call: 0
+  calls `0x00C61260` once (`0x00C623A2`), 1 calls `CalcCascadeMatrix`
+  `0x00C61F00` (`0x00C623C5`), and any other value asserts.
+
+`0x00C47C00(0x100)` in the [cascade setup](#cascade-setup-and-map-size)
+writes that dword, so the cascade path is the one the setup selects.
+
+INFERRED. T `+0x244` and `+0x248` are the camera near and far distances of
+a GL-style projection.
+
+## Cascade ranges
+
+STATIC. `CalcCascadeMatrix` `0x00C61F00` asserts
+`renderState.GetMultiShadowCount() > 0` (`0x010F6C28`) on the count C
+`+0x520` (`0x00C47DE0`). For cascade i the near distance is T `+0x244` for
+i = 0 and split i - 1 otherwise, and the far distance is split i, the
+splits being C `+0x634 + 4i` (`0x00C47DF0`). The last far distance adds the
+fade range C `+0x70C` (`0x00C47FF0`, `0x00C61FC4..0x00C61FCD`).
+
+When C `+0x65C` (`0x00C48100`) is at least 0.0 (`0x00FB7A64`) it replaces
+the first near distance (`0x00C61FFD`). When that value also exceeds the
+first far distance the client logs `Shadow Warning near=%f, far=%f`
+(`0x010F6C50`). The settings reset stores -1.0 at S `+0x558`, whose apply
+call `0x00A590A0` is listed under
+[Settings reset and apply](#settings-reset-and-apply).
+
+The loop at `0x00C62090..0x00C620B7` stores each range in T `+0x244` and
+`+0x248` and calls `0x00C61260(out, i, C)`.
+
+## Light box and fit modes
+
+STATIC. `ShadowTransform::CalcShadowMatrix` is `0x00C61260`, named at
+`0x010F6B50`.
+
+- The centre c of the bounds T `+0x200..+0x21F` comes from `0x00BE5980`
+  and r is the length of max minus c. d is r, or 200.0 when r is below the
+  double 200.0 at `0x010F6E10` (float `0x00FD25CC`). The box call is
+  `0x0043A080(out, -r, r, -r, r, -d, 2d)` (`0x00C61402`, double 2.0 at
+  `0x00F63028`).
+- The light view comes from `0x007DF590` (`0x00C6169F`). Its up vector
+  changes when the absolute y of the direction exceeds the double
+  0.9999899864196777 at `0x010F6E08` (`0x00C61623`).
+- The low byte of C `+0x51C` is the mode. Mode 0 takes the branch at
+  `0x00C6174C`. Mode 1 takes `0x00C61912`, which scales by the double 0.8
+  at `0x00FA55D0` and calls `0x00C8B530`. Mode 2 calls the fit
+  `0x00C60BE0` (`0x00C61E22`) with the near and far distances T `+0x244`
+  and `+0x248`, the focus fraction C `+0x700 + 4i` (`0x00C47FE0`) and an
+  out byte. When the out byte is 1 it calls `0x00C47F50(1)`. Any other
+  mode asserts at `0x00C61E4A` with line `0xD8`.
+- `0x0043A080` calls the orthographic builder `0x004393B0` at
+  `0x0043A1A0`, which loads the double -2.0 at `0x00F66328` for its z
+  scale (`0x00439457`).
+
+The [reset table](#settings-reset-and-apply) writes 2 to S `+0x538`, whose
+apply `0x00A58EF0` reaches `0x00C48060`, the writer of that low byte. The focus fraction setter `0x00C47FA0` writes C
+`+0x700 + 4i`, and its only caller is `0x00A58E7A` in `0x00A58E60`, the
+apply of S `+0x540` (i = 0) and `+0x544` (i = 1) whose reset default is
+0.2 (`0x00FA4978`).
+
+## Trapezoid fit
+
+STATIC. `0x00C60BE0` clears its out byte (`0x00C60C0C`) and calls
+`0x00C5C350` (`0x00C60C6F`) with the projection, the view, the focus
+fraction and the near and far distances, then `0x00C5C6B0` (`0x00C60C7C`).
+The out byte is set to 1 when `0x00C5C6B0` returns 0 (`0x00C60EFF`,
+`0x00C60F14`). With the out byte 1 it calls `0x00C5D1C0` (`0x00C60F45`),
+otherwise the box fit `0x00C5C8F0` (`0x00C60F58`). `0x00C5D1C0` has this
+one caller.
+
+`0x00C5C6B0` takes a vector through the matrix twice (`0x0042F210` at
+`0x00C5C6C9` and `0x00C5C7A6`) and compares each result with 0.0
+(`0x00F62F70`).
+
+In `0x00C5D1C0`:
+
+- the float 4.0 at `0x00FC3328` (`0x00C5D43D`) averages four points and
+  the float 2.0 at `0x00F62F64` (`0x00C5D7FA`) halves a sum
+- the floats -1e16 at `0x010F6DF8` and 1e16 at `0x010F6DFC` seed the
+  minimum and maximum searches (`0x00C5DCE8`, `0x00C5DCF0`, `0x00C5DF92`,
+  `0x00C5DFC7`, `0x00C5E330`)
+- with lambda the stored extent and delta the focus value minus the stored
+  minimum, `0x00C5DDF3..0x00C5DE46` computes
+  `lambda * delta * (1.0 + 0.0) / ((1.0 - 0.0) * lambda - 2.0 * delta)`
+  (doubles `0x00F598A0`, `0x00F63028`) and adds it and the absolute value of
+  the minimum to the translation float at `+0x34` (`0x00C5DE75`)
+- the double -0.5 at `0x00F599C8` scales a shear term (`0x00C5E179`)
+
+After the fit, `0x00C60BE0` computes `mid = min + (max - min) * 0.5` over
+its points (`0x00C6100E`, double `0x00F59898`) and calls
+`0x0043A080(out, 1, -1, 1, -1, -500 - mid, 500 - mid)` (`0x00C61074`,
+doubles -500.0 at `0x010F6E00` and 500.0 at `0x00FF1318`, -1.0 at
+`0x00F62F80`). Four `0x0042EC50` calls at `0x00C61108..0x00C61153` combine
+that matrix with the fitted one.
+
+INFERRED. `0x00C5C6B0` returns 1 when the light direction projects inside
+the view, so the trapezoid fit runs while the light is outside the view
+and the box fit runs otherwise. The expression above is the trapezoid warp
+parameter with the focus point mapped to 0. The depth of the fitted map is
+linear along the light over 1000 units centred on the fitted points, with
+the z row of the depth box replacing the warp's z.
+
+## Receiver sampler
+
+STATIC. The RTTI catalog gives
+`SQEX::CDev::Engine::Dw::Renderer::shaderDriver::ShadowMapShaderDriver` the
+4-slot vtable at RVA `0xcd4684` (VA `0x010D4684`): `0x00C2D540`,
+`0x00C675E0`, `0x00C67920` and `0x0053C440`.
+
+`0x00C67920` tests `0x00C47A70`. When it is true, for each cascade i below
+the count C `+0x520` and below 2, it binds the cascade texture
+(`0x00C47CA0(i)` virtual `+0x10`) to sampler `s = 10 + i` through
+`0x00418410` and calls:
+
+| Call | Device writes | Values |
+| --- | --- | --- |
+| `0x00418300(s, 3, 3, 0, 7)` at `0x00C679AD` | `0x0041CC60`, sampler states 1, 2 and 3 through the table `0x00F59750` (1, 2, 3, 4) | ADDRESSU and ADDRESSV 4 (BORDER), ADDRESSW 1 (WRAP) |
+| `0x00418380(s, 0, 0xC, 1)` at `0x00C679B9` | `0x0041BE40` | not decoded |
+| `0x004183C0(s, 1, 1, 0, 0)` at `0x00C679DF` | `0x0041CD00` | MAGFILTER 1 and MINFILTER 1 when `0x004181C0` returns 0 to 3, then MAXMIPLEVEL 0, MIPMAPLODBIAS 0.0 and MIPFILTER 0 for the fourth argument 0 (`0x0041CE22..0x0041CE59`) |
+| `0x00418350(s, 0xFFFFFFFF)` at `0x00C679FB` | `0x0041CCC0`, sampler state 4 | BORDERCOLOR white |
+
+The state numbers are the Direct3D 9 sampler state values. `0x0041CD00`
+writes MIPFILTER 2 before the fourth-argument test and 0 after it.
+
+INFERRED. `shadowMap0` is sampler 10, point sampled with no mip levels, and
+a tap outside the map reads the white border.
 
 ## Caster programs and depth bias
 
@@ -419,8 +565,12 @@ Reproduce with `ghidra disasm 0x007dce53 -n 30`, `ghidra memory read
 
 ## Open
 
-- The fitted projection of `ShadowTransform::Update` and its depth range.
-- Which surface the receivers sample and its sampler state.
+- Which of C `+0x664` and `+0x674` holds the sun in ordinary play, and the
+  consumer of byte C `+0x77B`.
+- The meaning of `0x00418380(s, 0, 0xC, 1)` and the value `0x004181C0`
+  returns.
+- The role of `DepthShadowFilter` (vtable RVA `0xcfbe58`) in the shadow
+  path.
 - The direction source in ordinary play, the meaning of the Shadow section
   fields that have no context setter here, and cut scene shadow clips.
 - Which ScreenEnv a position selects.

@@ -475,6 +475,50 @@ the 24 bytes at `0x0058b464` and the two dwords at `0x0058b45c`, decodes of
 `[0x0058adc0,0x0058aecb]` and `[0x0058a090,0x0058a787]`, and the 16 dwords
 at `0x0058a7a8`.
 
+### Loading bit and the temporary gain
+
+STATIC, the same decodes. `0x0058adc0` first writes `+0xeb = 10` and
+`+0xe8 = (+0xe8 & 0xc0ff) | 0x80` (`0x0058adc3..0x0058ade2`). For type
+`0x11` it then clears bit `0x80`, and for type `0x17` it writes `0x3c` to
+`+0xeb` and clears bit `0x80` (`0x0058adeb..0x0058ae04`). Every other type
+keeps bit `0x80`, the bit stages 1, 2 and 12 test.
+
+The loading wrappers take the owner `+0x7c` in ECX and do nothing when the
+owner's `+0x175a4` is null:
+
+| Wrapper | Body |
+| --- | --- |
+| `0x004D6FE0(a, b)` | `0x0056A5F0(a, b)` on the `+0x175a4` object, which adds 1 to its `+0x21c` (`0x0056a60c`), then owner virtual `+0x38` at `+0xb4`, `0x0091C230(0)` and `0x004D6820(0.0, 0, 0, 0)` at `0x004D7025` |
+| `0x004D70B0(a)` | `0x004D6820(-1.0, 0, 0, 1)` at `0x004D70CC`, then `0x0056A7C0(a)`, which writes 0 to `+0x21c` (`0x0056a7d8`) |
+| `0x004D7110()` | byte `+0x34` of the `+0x175a4` object, false without one |
+| `0x004D70F0()` | `0x00569F40` of the `+0x175a4` object, false without one |
+
+The [temporary gain and restore](../resource/sound-effect-triggers.md#temporary-gain-and-restore)
+section owns `0x004D6820`.
+
+Stage 12 tests `0x004D7110` first (`0x0058a5e0`). Only when it is true and
+the stored type is not `0x10` or `0x15` does it call `0x004D70B0(1)` under
+bit `0x80` or the fade with zeros otherwise (`0x0058a5e9..0x0058a631`).
+
+`0x0058a7f0` has two callers, `0x0058ae62` in `0x0058adc0` and `0x0058e8f7`
+in the element destructor `0x0058e860`. It returns when `+0xe4` is already
+-1. Otherwise it writes -1 to `+0xe4`, posts `0x27 {2,0}`, and for the
+local element tests `0x004D7110` (`0x0058a845`). When that is true it calls
+`0x004D70B0(1)` at `0x0058a866` under bit `0x80`, else the fade with zeros
+(`0x0058a890`). The type compares with `0x10` (`0x0058a84e`) and 1
+(`0x0058a895`) read the -1 just stored, so both pass. It then calls
+`0x00589030` and clears bits 1 to 5 of `+0xe8` (`0x0058a8cb`).
+
+`ghidra x-ref to 0x004d6fe0` lists callers `0x0058a204`, `0x0058a955`,
+`0x0075b506`, `0x0088647c` and `0x006b115b`. `ghidra x-ref to 0x004d70b0`
+lists `0x0058a60e`, `0x0058a866`, `0x0058aa57`, `0x0058ab0c`,
+`0x0075b514`, `0x006b006b` and `0x006b11c2`. The callers outside stages 1
+and 12 and `0x0058a7f0` were not traced.
+
+INFERRED. For a local arrival with bit `0x80` the client shows Now Loading
+and drops the temporary gain to 0.0 in stage 1, and restores it with the
+screen in stage 12 or when `0x0058a7f0` ends the arrival early.
+
 ## Ferry steersman motion assets
 
 The c001 FID bank `client/chara/pc/c001/act/cmn/fid/base/2072`
