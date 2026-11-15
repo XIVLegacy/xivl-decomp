@@ -77,6 +77,38 @@ The 7,556 blocks of kinds 1, 3 and 8 all carry the tag `ldmv`, the reversed `vmd
 and a clear unused bit, and 7,555 of them name a model of the veff's own model
 reference array. INFERRED from the install.
 
+### Draw path record
+
+STATIC, Capstone 5.0.7 on the pinned image, since Ghidra leaves the switch
+arms of `0x00D87180` undisassembled. The draw routine reads a pair from its
+third argument: a model object M at `+0x00` and a pointer P at `+0x04`. It
+returns false when either is zero. When M's virtual `+0x84` returns 3 it
+calls M's virtual `+0x1C` and returns true. Otherwise it returns false
+unless M's virtual `+0x3C` equals `u32(P+4)` (`0x00D871DF..0x00D871EA`).
+
+The kind byte at `+0x04` of the second argument selects the arm through
+the byte table `0x00D873E8` and the jump table `0x00D873DC`
+(`0x00D87203..0x00D87216`):
+
+| Kind | Arm |
+| --- | --- |
+| 1, 2, 3, 4, 8 | `0x00D8721D`. Kind 8 builds the flipbook matrix first. The arm calls `0x00D86820` with M as its second and P as its third argument at `0x00D87358`. |
+| 7 | `0x00D8736A`. Loops `u32(P+4)` times and calls `0x00D86940` for each index at `0x00D873A5`. |
+| 5, 6 | `0x00D873C1`, returns true with no call. |
+
+`0x00D86820` holds P in ESI, loops while its index is below `u32(P+4)`,
+keeps `u32(P)` as a base pointer (`0x00D86859..0x00D86860`) and reaches the
+binder `0x00D86010` at `0x00D868C3`. The binder multiplies the part index
+by `0x2C` (`0x00D8605F`) to address its element. So on the arms through
+`0x00D86820`, P holds the base of the `0x2C`-byte material element array
+at `+0x00` and the part count at `+0x04`, and that count must equal the
+model's part count.
+
+INFERRED. P is the resolved resource record of the parameter block above.
+Reproduce with Capstone from the file offsets of `0x00D871F6`,
+`0x00D8721D`, `0x00D87345`, `0x00D8736A`, `0x00D86820` and `0x00D86010`,
+and `ghidra memory read 0x00d873dc 20` for the two tables.
+
 ## Material element
 
 For each part of the model the binder at `0x00d86010` reads a 0x2c byte element.
