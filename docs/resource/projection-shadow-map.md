@@ -6,8 +6,9 @@ page records the values behind the receiver driver's operand blocks, the
 settings reset and the setters it applies, the cascade setup of the shadow
 effect, the default map size, the two caster programs with their depth
 bias, the weather ScreenEnv Shadow section that the applier copies into the
-settings, the caster selection mask and its bit setters, and the DrawEnv
-name test of the weather manager. The [Model Pixel shadow parameters](../model-pixel-shadow.md) page owns
+settings, the caster selection mask and its bit setters, the serialized
+byte behind a BG model's caster bit, and the DrawEnv name test of the
+weather manager. The [Model Pixel shadow parameters](../model-pixel-shadow.md) page owns
 the receiver handles and the arithmetic of `0x00C8BA20`. The
 [cloth pixel program](chara-lighting-model.md#cloth-pixel-program) section
 owns the receiver tap and fade expression of a shipped program.
@@ -279,16 +280,117 @@ of that byte and is cleared when `0x00443E40(7, 0x1D, 0)` returns zero,
 when `0x007CDA60` returns a value of 0 or less, or when dword `0x012C5E38`
 is zero (`0x007D1980..0x007D19E0`).
 
-The BG instance setup `0x00AA97C0` calls seven getters of one object,
-virtual `+0x78` through `+0x90`, and passes each result to virtual `+0x24`
-through `+0x3C` of a second object in the same order
-(`0x00AA9942..0x00AA99CE`), so the getter at `+0x8C` feeds slot `+0x38`. INFERRED: for a model whose table
-starts at `0x0109EF40` that slot is `0x00A75B70`, the caster-bit forwarder.
-The serialized source of the BG property values is not traced.
+The BG instance setup `0x00AA97C0` writes the caster bit of a BG model from
+a serialized byte. [BG caster bit source](#bg-caster-bit-source) owns that
+route.
+
+The other callers of `0x00C38AD0` push mask `0x01` (`0x00C264FD`,
+`0x00C2689D`, `0x00C26CF6`, `0x00C289DB`, `0x00C2939F`, `0x00C29CFA`,
+`0x00C2AA32` and `0x00C2AE9E`) or `0x81` (`0x00C4D329`). `0x00C267A8`
+passes the argument of `0x00C26580`, and `0x00C2A41E` passes EDI, which
+this read did not trace. No immediate mask holds bit `0x04` or `0x08`.
 
 Reproduce with `ghidra disasm 0x00c38ad0 -n 62`, `ghidra disasm 0x00c270c0
 -n 320`, `ghidra disasm 0x00c2e2a0 -n 14`, `ghidra x-ref to 0x00c2e2a0`,
-`ghidra disasm 0x007d1980 -n 42` and `ghidra disasm 0x00aa9930 -n 60`.
+`ghidra x-ref to 0x00c38ad0`, `ghidra disasm 0x007d1980 -n 42` and
+`ghidra disasm 0x00aa9930 -n 60`.
+
+## BG caster bit source
+
+STATIC, with the PE section decode of the method section and Capstone
+5.0.7 x86-32 decodes of the cited ranges.
+
+`0x00AA97C0` takes a property object P through its instance argument's
+virtual `+0xBC` and keeps it when P's virtual `+0x04` returns 1. When P's
+virtual `+0xC4` returns null, it runs P's virtual `+0xB8` and then reads
+the display model M through P's virtual `+0xC4` (`0x00AA97DE..0x00AA9884`). It calls P's getters `+0x78` through
+`+0x90` and passes each result to M's virtual `+0x24` through `+0x3C` in
+the same order (`0x00AA9942..0x00AA99D4`). So getter `+0x80` feeds M's
+slot `+0x2C`, and getter `+0x8C` feeds slot `+0x38`.
+
+The property tables of the RTTI catalog hold these cells:
+
+| Table | `+0x78..+0x90` | `+0xB8` | `+0xC4` |
+| --- | --- | --- | --- |
+| `RaptureBGChipInstanceObjectProperty` `0x00FF242C` | `0x00A96930`, `0x00A96960`, `0x00A96990`, `0x00A969C0`, `0x00A969F0`, `0x00A96A20`, `0x00A96A50` | `0x00A97550` | `0x00CB1C80` |
+| `RaptureBGPartsInstanceObjectProperty` `0x00FF2534` | `0x00A97840`, `0x00A97870`, `0x00A978A0`, `0x00A978D0`, `0x00A97900`, `0x00A97930`, `0x00A97960` | `0x00A98460` | `0x00CB1C80` |
+
+Each getter calls its own virtual `+0x0C` and then virtual `+0x44` of the
+result, and reads one byte of the pointer that returns. Getters `+0x78`,
+`+0x7C`, `+0x80` and `+0x84` return bits 0, 1, 2 and 3 of byte `+6`,
+`+0x88` returns byte `+4`, `+0x8C` byte `+5`, and `+0x90` bit 4 of byte
+`+6` (`0x00A96930..0x00A96A77`, `0x00A97840..0x00A97987`). Getter `+0x80`
+is `0x00A96990` and `0x00A978A0`.
+
+`0x00A98460` stores the object that virtual `+0x04` of the manager at
+`0x01365B04` returns for argument 0 at P `+0x0C`
+(`0x00A9847D..0x00A9848E`), and `0x00CB1C80` returns P `+0x0C`. Creator
+`0x0062C430`, a cell of the table at `0x00F93284`, allocates `0x6C` bytes,
+constructs them with `0x0062BE80` and returns the object plus 4. The
+constructor writes `LayDefaultModelObject` table `0x00FBAD6C` at object
+`+4` (`0x0062BED6`). INFERRED: the manager call of `0x00A98460` reaches
+this creator, so M's table is `0x00FBAD6C`. Its cells:
+
+| M slot | Method | Effect on the drawable |
+| --- | --- | --- |
+| `+0x24` | `0x00625D20` | bit `0x04` setter `0x00C2E210` |
+| `+0x28` | `0x00625D60` | bit `0x08` setter `0x00C2E240` |
+| `+0x2C` | `0x00625DA0` | bit `0x10` setter `0x00C2E2A0`, the caster bit |
+| `+0x30` | `0x00625DE0` | bit `0x20` setter `0x00C2E2D0` |
+| `+0x34` | `0x00625E20` | `0x00C3B080` |
+| `+0x38` | `0x00625E60` | writes `arg & 3` to drawable `+0x2C4` when bit 7 of the byte argument is set |
+| `+0x3C` | `0x00625EA0` | calls the model's virtual `+0x84` with the negated Boolean |
+
+Each method reads M `+0x08`, calls its virtual `+0x11C` for the model and
+then the model's virtual `+0x148` (`0x006576B0`, model `+0xD8`) for the
+drawable, except `+0x38`, which reads model `+0xD8` directly. So the caster
+bit of a BG model takes getter `+0x80`, bit 2 of byte `+6`.
+
+The getter's pointer chain. P's virtual `+0x0C` (`0x008002B0`) forwards to
+virtual `+0x08` of the subobject at P `+4`, and P's virtual `+0x08`
+(`0x00800830`) to that subobject's virtual `+0x04`. Table `0x010A899C`
+(`LayoutInstanceObjectPropertyBase`, written by `0x00ABA680`) holds
+`0x00ABA630` at `+0x04`, which stores its argument at subobject `+4`, and
+`0x008D5570` at `+0x08`, which returns it. Instance slot `0x00A99EB0`
+(table cell `0x00FF28DC`) passes the instance interface T, its own address
+plus 4, to the property's virtual `+0x08` (`0x00A99ED3..0x00A99EDC`).
+So the getter's `+0x0C` call returns T. `RaptureLayoutInstanceObject` table
+`0x00FF279C` holds `0x00A99D10` at `+0x44`, `0x00CB1C80` at `+0x3C` and
+`0x008D54C0` at `+0x40`. `0x00A99D10` returns the first dword of the
+pointer that `+0x3C` returns, T `+0x0C`, or 0 for a null pointer.
+`0x008D54C0` stores its argument at T `+0x0C`.
+
+T `+0x0C` has two writers:
+
+- A root instance. Slot 1 `0x007FE900` passes the setup descriptor's
+  first pointer plus `0x10` to slot `+0x40` (`0x007FE920..0x007FE935`).
+  [UnitTree child creation](bgchip-model-binding.md#unittree-child-creation-and-admission-source)
+  places the Instance node in that descriptor, so T `+0x0C` is the
+  Instance node plus `0x10`.
+- A UnitTree child. `0x007FD830` matches descriptor `+0x08` against child
+  record `+0x1C` in the parent Instance node's `+0x34/+0x38` array
+  (`0x007FD97A..0x007FD9A1`, match saved at `0x007FDBFC`), and passes the
+  matching 12-byte descriptor, or 0, to the new child's slot `+0x40`
+  (`0x007FDA74..0x007FDA80`).
+
+INFERRED. A BG model casts the main light shadow when bit 2 of byte `+6`
+is set in the node that the first dword of its instance's 12-byte
+descriptor references. That descriptor is the Instance node's own
+`+0x10..+0x1B` for a root instance, and the parent array entry whose
+`+0x08` equals the child ID for a UnitTree child. A child with no match
+passes 0, `0x00A99D10` returns 0 and the getter reads address 6. The
+reading assumes that the setup runs after the drawable exists. The model
+initializer of the [floor model render path](floor-model-render-path.md)
+is the lead for that order.
+
+Reproduce with a decode of `[0x00AA97C0,0x00AA99EB]`, the cells above from
+the PE sections, decodes of `[0x00A96930,0x00A96A78)`,
+`[0x00A97840,0x00A97988)`, `[0x00A98460,0x00A984CE]`,
+`[0x0062C430,0x0062C4B1]`, `[0x0062BE80,0x0062BF0B]`,
+`[0x00625D20,0x00625ECF]`, `0x008002B0`, `0x00800830`, `0x00ABA630`,
+`0x008D5570`, `0x008D54C0`, `0x00A99D10`, `0x00CB1C80`, `0x006576B0`,
+`[0x00A99EB0,0x00A99EDF]`, `[0x007FE900,0x007FE935]` and
+`[0x007FD960,0x007FDC00]`.
 
 ## DrawEnv name test
 
@@ -321,6 +423,8 @@ Reproduce with `ghidra disasm 0x007dce53 -n 30`, `ghidra memory read
 - Which surface the receivers sample and its sampler state.
 - The direction source in ordinary play, the meaning of the Shadow section
   fields that have no context setter here, and cut scene shadow clips.
-- Which ScreenEnv a position selects, and which serialized byte clears the
-  caster bit of a layout model.
+- Which ScreenEnv a position selects.
+- The caster byte of a UnitTree group child or of a leaf of a nested
+  UnitTree, whose parent array this page does not trace, and the order of
+  the BG setup and drawable creation.
 - Which objects register as receivers.

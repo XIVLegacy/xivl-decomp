@@ -396,6 +396,85 @@ ticks. Their conversion to frames is in
 `cbnm_revive`. The c003 entry and its MTB extent are in
 [Fall and revival entries](locomotion-bank-census.md#fall-and-revival-entries).
 
+### Receive case, immediate arm and arrival stages
+
+STATIC. Capstone 5.0.7 x86-32 linear disassembly of the pinned PE, with the
+jump-table cells read from its section bytes. `0x0058b2a0` is not a function
+in the Ghidra project, so its range was decoded from the raw bytes. Message
+offsets below are payload offsets plus `0x10`, as in the section above.
+
+The `0x00ce` case at `0x0058ce03` compares the element's actor ID
+(`0x004D6750`, `0x0058ce05`) with the parent container's self actor ID
+(`0x004D7490` on element `+0x7c`, `0x0058ce0f`), the getters of
+[E2 selector state](../net/e2-selector-state.md). On equality it clears bit
+0 of element byte `+0x26d` (`0x0058ce18`). If the u16 spawn type at message
+`+0x34` is then `0x16` (`0x0058ce1f`), it calls `0x00586fb0` with element
+`+0x7c` (`0x0058ce2a`) and leaves the case, with no position stored and no
+call to `0x0058b2a0`. Every other message stores the position at message
+`+0x18..+0x20` and 1.0 (`0x00f54f70`) at element `+0x214..+0x220`
+(`0x0058ce58`, `0x0058ce7a`). It then calls `0x0058b2a0` with that
+position, the rotation at message `+0x24`, the vector at message
+`+0x28..+0x30`, the spawn type and the zoning flag at `+0x36`
+(`0x0058ceed`).
+
+`0x0058b2a0` first tests whether its element is the one `0x004D86B0`
+returns (`0x0058b2aa..0x0058b2b5`), the
+[nearest-target](../net/target-cycle-and-pick.md#nearest) player element.
+For that element with flag 1, a spawn type 0 becomes 1
+(`0x0058b2f1..0x0058b300`). The switch then compares `type - 1` with `0x17`
+at `0x0058b2da`. Above it, so for type 0 and types past 24, it jumps to
+`0x0058b366`. Otherwise byte table `0x0058b464` picks one of the two
+entries of pointer table `0x0058b45c`, `0x0058b302` and `0x0058b366`. The
+24 table bytes are 0 for types 1 to 10 and 15 to 24, and 1 for types 11 to
+14.
+
+The immediate arm `0x0058b366..0x0058b412` posts internal actor messages
+`0x24` (the rotation as the second lane of a zeroed vector), `0x25` (the
+position) and `0x26` (the message `+0x28` vector) through `0x004D7980`. It
+stores that last vector at element `+0xb0..+0xbc`
+(`0x0058b3dd`, `0x0058b3ea`). No arrival stage runs.
+
+The arrival arm `0x0058b302` calls `0x0058adc0` with the type, the flag,
+the position, the rotation and the `+0x28` vector. When stored flag
+`+0xe6` is 1, `0x0058adc0` replaces only the destination: position at
+`+0xc0..+0xcc`, vector at `+0xd0..+0xdc` and rotation at `+0xe0`
+(`0x0058ae15..0x0058ae5d`). Otherwise it calls `0x0058a7f0`, clears the
+stage bits of `+0xe8` and stores the type, the flag and the same
+destination (`0x0058ae60..0x0058aecb`). It also writes fade byte `+0xeb`,
+which is `0x3c` for type `0x17` and 10 otherwise. Back in `0x0058b302`, a
+stored type of 1 calls `0x005878a0` at once (`0x0058b349..0x0058b355`)
+before the state machine `0x0058a090` runs.
+
+The state machine indexes table `0x0058a7a8` with
+`([this+0xe8] >> 1) & 0x1f`. "Local" below is the branch taken when the
+element equals the `0x004D86B0` element (`0x0058a0e2..0x0058a0f3`). A stage
+that does not return early advances the stage bits.
+
+| Stage | Entry | Behavior |
+| ---: | --- | --- |
+| 0 | `0x0058a19d` | posts `0x27 {0,type}` |
+| 1 | `0x0058a1dd` | local: calls `0x00589000`, then `0x004D6FE0(1, 1)` at `0x0058a204` when bit `0x80` of `+0xe8` is set, else the fade `0x005606B0` with 0, 0, 0, 1.0 over byte `+0xeb` (`0x0058a22e`) |
+| 2 | `0x0058a238` | local: waits while `0x004D70F0` returns true under bit `0x80`, else while `0x0055DB00` returns true |
+| 3 | `0x0058a274` | local with stored flag other than 1: clears bit 0 of `+0xe8`, posts `0x27 {1,type}` and calls `0x005878a0` (`0x0058a2b6`). Not local: calls `0x005878a0` (`0x0058a2c2`) |
+| 7 | `0x0058a3ad` | local with stored flag 1: posts `0x27 {1,type}` and calls `0x005878a0` (`0x0058a3ef`) |
+| 12 | `0x0058a5cd` | local: the type-gated calls `0x004D70B0(1)` at `0x0058a60e` under bit `0x80`, else the fade with zeros (`0x0058a631`), then writes `0x14` to `+0xea` |
+| 13 | `0x0058a69c` | local: counts `+0xea` down to 0, then calls `0x00589030` |
+| 14 | `0x0058a6e6` | posts `0x27 {2,type}` |
+| 15 | `0x0058a72e` | writes `0xffff` to `+0xe4` and 0 to `+0xe6`. Local: calls `0x00586fb0` with element `+0x7c` (`0x0058a778`) |
+
+INFERRED. Every self `0x00ce` other than spawn type `0x16` moves the self
+actor to the message position. Types 11 to 14, type 0 and types past 24 do
+so at once through the posted messages. The other types do so in stage 3,
+or in stage 7 with zoning flag 1, after the fade of stages 1 and 2. Type 1
+also copies the destination before the first stage. Self type `0x16` calls
+the routine that ends stage 15 and does not move the actor.
+
+Reproduce with `ghidra disasm 0x0058cca0 -n 4000` filtered to
+`0x0058ce03..0x0058cef2`, a Capstone decode of `[0x0058b2a0,0x0058b41a)`,
+the 24 bytes at `0x0058b464` and the two dwords at `0x0058b45c`, decodes of
+`[0x0058adc0,0x0058aecb]` and `[0x0058a090,0x0058a787]`, and the 16 dwords
+at `0x0058a7a8`.
+
 ## Ferry steersman motion assets
 
 The c001 FID bank `client/chara/pc/c001/act/cmn/fid/base/2072`
