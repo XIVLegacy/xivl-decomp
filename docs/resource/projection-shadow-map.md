@@ -4,8 +4,10 @@ The main light shadow of the pinned client is one depth map that a caster
 pass fills and the receiver pixel programs sample through `shadowMap0`. This
 page records the values behind the receiver driver's operand blocks, the
 settings reset and the setters it applies, the cascade setup of the shadow
-effect, the default map size, and the two caster programs with their depth
-bias. The [Model Pixel shadow parameters](../model-pixel-shadow.md) page owns
+effect, the default map size, the two caster programs with their depth
+bias, the weather ScreenEnv Shadow section that the applier copies into the
+settings, the caster selection mask and its bit setters, and the DrawEnv
+name test of the weather manager. The [Model Pixel shadow parameters](../model-pixel-shadow.md) page owns
 the receiver handles and the arithmetic of `0x00C8BA20`. The
 [cloth pixel program](chara-lighting-model.md#cloth-pixel-program) section
 owns the receiver tap and fade expression of a shipped program.
@@ -178,10 +180,147 @@ INFERRED. `0xAF` and `0xC3` are 175 and 195, the D3D9 values of
 draws program 1 with the shader bias of `0x00C5BB70`, and the slope reaches
 the device only through the `0x00C5BCE0` driver.
 
+## Weather ScreenEnv Shadow section
+
+STATIC. The ScreenEnv applier `0x00A73BE0`, called from `0x007DD3F0` at
+`0x007DD3FF` and `0x007DD413`, takes S as its first argument and the
+ScreenEnv receiver as its second. It reads a version byte through
+`0x00A94B70` on the object that the receiver's virtual `+0x20` returns and
+calls the settings reset `0x00A5B6F0` on S before copying any section. For
+a version of 4 or later (`CMP` with 4 at `0x00A73E44`) and a true
+"has Shadow" getter it copies the section into S
+(`0x00A73E51..0x00A73FC4`):
+
+| ScreenEnv vtable slot | Getter | Node field | S field |
+| --- | --- | --- | --- |
+| `+0x17C` | `0x00AB0100` | the node pointer is nonzero | gate |
+| `+0x184` | `0x00AB0120` | bit 0 of byte `+0x5C` | byte `+0x530`, the other rows run only when it is set |
+| `+0x194` | `0x00AB0320` | bit 2 of `+0x5C` | byte `+0x531` |
+| `+0x1C4` | `0x00AB0170` | bit 1 of `+0x5C` | byte `+0x532` |
+| `+0x18C` | `0x00AB0250` | float `+0x1C` | `+0x534` |
+| `+0x1CC` | `0x00AB01C0` | `+0x10..+0x18`, w = 1.0 | `+0x560` |
+| `+0x19C` | `0x00AB0280` | `+0x20`, `+0x24`, `+0x28`, `+0x34` | `+0x580` |
+| `+0x1A4` | `0x00AB0370` | float `+0x38` | `+0x590` |
+| `+0x1AC` | `0x00AB03A0` | float `+0x3C` | `+0x594` |
+| `+0x1B4` | `0x00AB03D0` | float `+0x40` | `+0x598` |
+| `+0x1BC` | `0x00AB0400` | float `+0x44` | `+0x59C` |
+| `+0x1DC` | `0x00AB0480` | float `+0x2C` | `+0x53C` |
+| `+0x1E4` | `0x00AB04B0` | float `+0x30` | `+0x540` |
+| `+0x1EC` | `0x00AB04E0` | float `+0x48` | `+0x548` |
+| `+0x1F4` | `0x00AB0510` | float `+0x50` | `+0x54C` |
+| `+0x1FC` | `0x00AB0540` | float `+0x54` | `+0x550` |
+| `+0x204` | `0x00AB0570` | float `+0x58` | `+0x554` |
+| `+0x20C` | `0x00AB05A0` | float `+0x4C` | `+0x544` |
+| `+0x1D4` | `0x00AB0430` | bit 3 of `+0x5C` | byte `+0x5A0` |
+| `+0x214`, version 7 or later | `0x00AB05D0` | float `+0x60` | `+0x55C` |
+
+The slots are those of the `RaptureScreenEnvBaseObject` vtable
+`0x01061BAC` (RTTI catalog RVA `0xc61bac`). Each getter calls its
+receiver's virtual `+0x20` and reads the node that the returned object
+holds at `+0x20`. The debug dump `0x00AB1980` prints the strings
+`Shadow Enabled: %s` (`0x010A78E0`), `Shadow DirFixed: %s` (`0x010A78CC`),
+`Shadow Bias: %f` (`0x010A78BC`), `Shadow Dir: (%f, %f, %f)`
+(`0x010A78A0`) and `Shadow Color: (%f, %f, %f, %f)` (`0x010A7880`) after
+the slots `+0x184`, `+0x1C4`, `+0x18C`, `+0x1CC` and `+0x19C`.
+
+INFERRED. Read with the reset table above, a weather ScreenEnv with a
+Shadow section replaces the colour (`+0x580`), the first split
+(`+0x590`), the fade range (`+0x548`), the offset radius (`+0x554`) and
+the bias factor (`+0x534`) of the defaults, and a clear bit 0 of node
+`+0x5C` leaves the enable byte `+0x530` zero.
+
+Reproduce with `ghidra disasm 0x00a73be0 -n 420`, the vtable cells from
+`ghidra memory read 0x01061d28 164`, `ghidra disasm` of each getter, and
+`ghidra x-ref to 0x010a78e0`.
+
+## Caster selection
+
+STATIC. The caster pass of `0x00C270C0` requests its draw list with
+`0x00C38AD0(0x11)` at `0x00C27302`. Unless byte `0x0136EB11` is set, which
+sends the request to `0x00C71190`, that query keeps every drawable of its
+list whose dword `+0xA0` holds every bit of the argument (`AND` and `CMP`
+at `0x00C38B6F..0x00C38B77`), so the pass takes drawables with bits `0x01`
+and `0x10` set. The pass draws the same mask per cascade through
+`0x00C26580(0x11)` at `0x00C278DB`.
+
+Before the cascade loop the pass measures each listed drawable's bounding
+sphere against a centre point and keeps those whose distance minus radius
+is at most 500.0 (`0x00FA4960`, compare at `0x00C27683`). It unions their
+bounds with `0x00857440` at `0x00C276A2` and hands the union to
+`0x00C48810` at `0x00C276FB`. When no drawable qualified it calls the
+enable setter `0x00C47B60(0)` at `0x00C2770F`.
+
+The drawable constructor `0x00C2EA70` writes `0x3D` to `+0xA0` at
+`0x00C2EBE4`, so bits `0x01` and `0x10` are set from construction. Five
+setters toggle one bit each, writing `flags ^ bit` when the bit's current
+state differs from the Boolean argument:
+
+| Setter | Bit |
+| --- | --- |
+| `0x00C2E210` | `0x04` |
+| `0x00C2E240` | `0x08` |
+| `0x00C2E270` | `0x2000` |
+| `0x00C2E2A0` | `0x10` |
+| `0x00C2E2D0` | `0x20` |
+
+The four direct callers of `0x00C2E2A0` reach the drawable through their
+object's virtual `+0x11C` and then that result's virtual `+0x148`:
+
+| Caller | Table entry in the RTTI catalog |
+| --- | --- |
+| `0x007CDC60` | slot 128 (`+0x200`) of `RaptureActor` `0x00FEA50C`, `BgModelActor` `0x00FBA43C`, `WeaponActor` `0x01057EE4`, `CDevActor` `0x00FBC03C` and the other actor tables of that family |
+| `0x00A08230` | slot 28 (`+0x70`) of `RaptureCutCharacterListener` `0x00FBE8BC` and `CutCharacterListener` `0x01094F44` |
+| `0x00625DA0` | slot 11 (`+0x2C`) of `Application::Scene::Actor::Map::LayDefaultModelObject` `0x00FBAD6C` |
+| `0x00A75B70` | slot 11 (`+0x2C`) of `Lay::Default::External::Dw::LayDefaultModelObject` `0x0109EF4C` |
+
+`0x007D1980` calls `0x007CDC60` at `0x007D19E8` for the actor at its
+`+0x08` when bit 0 of its state byte is set. The argument starts as bit 3
+of that byte and is cleared when `0x00443E40(7, 0x1D, 0)` returns zero,
+when `0x007CDA60` returns a value of 0 or less, or when dword `0x012C5E38`
+is zero (`0x007D1980..0x007D19E0`).
+
+The BG instance setup `0x00AA97C0` calls seven getters of one object,
+virtual `+0x78` through `+0x90`, and passes each result to virtual `+0x24`
+through `+0x3C` of a second object in the same order
+(`0x00AA9942..0x00AA99CE`), so the getter at `+0x8C` feeds slot `+0x38`. INFERRED: for a model whose table
+starts at `0x0109EF40` that slot is `0x00A75B70`, the caster-bit forwarder.
+The serialized source of the BG property values is not traced.
+
+Reproduce with `ghidra disasm 0x00c38ad0 -n 62`, `ghidra disasm 0x00c270c0
+-n 320`, `ghidra disasm 0x00c2e2a0 -n 14`, `ghidra x-ref to 0x00c2e2a0`,
+`ghidra disasm 0x007d1980 -n 42` and `ghidra disasm 0x00aa9930 -n 60`.
+
+## DrawEnv name test
+
+STATIC. `0x007DCDF0` calls the position query `0x007DB9C0` at `0x007DCE28`
+and `0x007DB940` at `0x007DCE53`, and takes the nonzero object O that the
+second leaves in its local. It moves the dword `+0x24` to `+0x20` and stores
+O at `+0x24`. When O differs from the previous value it reads a name through
+O's virtual `+0xA4`, copies it into `+0xC0` through `0x009D29FB`, and sets
+byte `+0x1A4` of the object that `0x007E02F0` returns to 1 when
+`0x009D6090(name, "dwev_0")` returns zero and to 0 otherwise
+(`0x007DCE58..0x007DCEAD`, string at `0x00FEE454`).
+
+`0x007E91D0` scales the tick count at its argument's `+0x10` by 30.0
+(`0x00FE5490`) and divides it by 300000.0 (`0x00F67020`). It then moves the
+float `+0x1A0` by that step times 0.05 (`0x00FA7AE0`): down while byte
+`+0x1A4` is set and up while it is clear (`0x007E9351..0x007E93AF`), and
+clamps the result to 0 and 1.0.
+
+INFERRED. O is the DrawEnv at the queried position and `0x009D6090` is a
+substring search, so the byte is set for a DrawEnv whose name lacks
+`dwev_0`. No reader of `+0x1A0` in the shadow path
+was found.
+
+Reproduce with `ghidra disasm 0x007dce53 -n 30`, `ghidra memory read
+0x00fee454 8` and `ghidra disasm 0x007e91d0 -n 400`.
+
 ## Open
 
 - The fitted projection of `ShadowTransform::Update` and its depth range.
 - Which surface the receivers sample and its sampler state.
-- The direction source in ordinary play and the runtime writers of the
-  settings object, such as weather data and cut scene shadow clips.
-- Which objects register as casters and receivers.
+- The direction source in ordinary play, the meaning of the Shadow section
+  fields that have no context setter here, and cut scene shadow clips.
+- Which ScreenEnv a position selects, and which serialized byte clears the
+  caster bit of a layout model.
+- Which objects register as receivers.

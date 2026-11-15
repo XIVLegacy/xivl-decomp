@@ -317,6 +317,16 @@ retail `group/contentgroup/contentgroupbaseclass.lua` establishes the other
 half of the join: lines 51 through 60 assign `_globalTemp._nesting` an entry
 whose leaf is `director` and whose Information token is `member`.
 
+The same rule maps `partyGroupWork._globalTemp.owner` to `0x9DCE039D`,
+computed with `murmur_hash2_backward` of `tools/validate_murmur2.py` and
+seed zero. The
+decoded retail `group/partygroup/partygroupbaseclass_battle.lua`
+(`PartyGroupBaseClass.initForBattle`) nests the leaf `owner` with the
+Information token `member` under `_globalTemp` and binds
+`partyGroupWork._globalTemp.owner`. No retained capture record carrying
+`0x9DCE039D` is joined here, so this is a computed hash for a declared
+path, not an observed wire property.
+
 The native `member` registration resolves to one concrete handler family:
 
 ```text

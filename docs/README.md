@@ -390,6 +390,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Grand Company cut preview owners](resource/grand-company-cut-preview-owners.md)
 - [Cut scheduler preview setup consumer](resource/cut-preview-setup-clip.md)
 - [Background setup registration and construction](resource/cut-background-setup-construction.md)
+- [Background setup leading inputs](resource/cut-background-setup-inputs.md)
 - [Preview event and callback arguments](resource/cut-preview-event-consumer.md)
 - [Cut scheduler clip class census](resource/cut-scheduler-clip-class-census.md)
 - [Cut scheduler status and parameter clips](resource/cut-status-and-parameter-clips.md)

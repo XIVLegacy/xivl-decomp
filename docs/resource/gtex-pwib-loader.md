@@ -140,6 +140,17 @@ The numeric-to-name assignments follow Microsoft's authoritative
 definition. The numeric API table, rather than a nearby metadata label,
 establishes these names.
 
+The tables also define index 25, which the standalone-file census above
+does not count. Its API dword at `0x00F6381C` is `0x33545844`,
+`D3DFMT_DXT3`. Its metadata record at `0x00F64024` holds 8 bits per pixel
+and block-format byte 1 at `+0x21`. The neighbouring records read 4 and 1
+at `0x00F63FFC` for index 24 and 8 and 1 at `0x00F6404C` for index 26,
+which agree with the table. Reproduce with `ghidra memory read 0x00f63818
+12` and `ghidra memory read 0x00f64024 40`, and read the record offsets from
+helpers `0x00433240` (dword at record `+0x00`) and `0x00433300` (byte at
+record `+0x21`). Which installed textures select index 25 is not established
+here.
+
 ### 2D writer field boundary
 
 The complete normal control flow of loader `0x00431F30`, upload loop

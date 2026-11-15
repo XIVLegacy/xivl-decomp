@@ -178,3 +178,63 @@ contracts requires the corresponding record/key type, actual clip and
 context/receiver bindings and value preservation. It does not establish a
 combat spawn, zone ID, text sheet, successful loading, visible transition,
 actor destruction, server quest mutation or historical dispatch.
+
+## State-1 stage origin
+
+The state-1 path also resolves the selected name to a layout vector and
+stores it in the running scheduler. The listing was read with ghidra-cli
+disassembly on the pinned image, with Capstone 5.0.7 for the consumer
+ranges. These are static observations without target execution.
+
+The six indexed-name arms of the second-word table above, and the type-1
+inline arm, store their name result at ESP+`0x18` and branch to
+`0x00816241` (types 6 and 5) or `0x00816254` (types 4, 3, 2 and 1). Type 7
+falls through from `0x00816155` to the same code. Every arm therefore
+reaches `0x00816274`, which reloads that name and calls
+`0x00623E70(name, &v)` with receiver B at `0x00816283`.
+
+`0x00623E70` first writes (0, 0, 0, 1.0) to its output, with 1.0 the float
+at `0x00F54F70`. It looks the name up through `0x00645E50` on B+`0x17C`
+when that pointer is nonzero. Otherwise, or on a miss, it compares the name
+with the string at `+0x17C` of the objects that B+`0x180` and B+`0x184`
+hold. It returns false when no object matches or when the matched object's
+dword `+0x140` is below 5. Otherwise it calls the object's interface
+virtual `+0x16C` through its `+4` subobject with the output pointer and
+returns true (`0x00623E70..0x00623F97`).
+
+On a true result the method copies the 16-byte vector, obtains the
+scheduler with `0x00A20070(F)`, which returns `u32(F+0xC)`, and calls
+`0x00A1CE70` on it at `0x008162DA`. `0x00A1CE70` stores its 16-byte
+argument at scheduler `+0x20` and `0x00A1CE20` stores its argument at
+scheduler `+0x10`. On type 7 the method then adds the record vector
+D+`0x24..+0x2C`, loaded at `0x0081615A..0x00816164`, to the same vector
+(`ADDPS` at `0x008162EC`) and passes the sum on to `0x006143E0` and to
+dword `+0x330` of the object at ESP+`0x3C` (`0x0081636B`). A false result
+skips both stores and writes state 2 at `0x00816376`.
+
+| Function | Direct callers of the scheduler store |
+| --- | --- |
+| `0x00A1CE70` (`+0x20`) | `0x00815F00`, `0x00817180`, `0x00A03E20`, `0x00DE7630`, `0x00DE9A80` |
+| `0x00A1CE20` (`+0x10`) | `0x00A03DD0`, `0x00DE7630`, `0x00DE9A80` |
+
+The getters `0x00A1C030` and `0x00A1C040` return the addresses scheduler
+`+0x10` and `+0x20`. Each has 27 call sites in 24 functions, among them
+`RaptureSetPosClip` slot 1 `0x0082A080` (vtable `0x0102F44C` in the RTTI
+catalog) and `RapturePhysicsLookAtClip` slot 1 `0x00821B40` (vtable
+`0x0101564C`). In `0x0082A080` the scheduler from `0x00A20070` reaches
+`0x00A1C050` at `0x0082A1DE`. When that returns nonzero, the method reads
+both getters (`0x0082A1F6`, `0x0082A249`) and passes the two addresses,
+with its own clip vectors, to the target's virtual `+0x48` at
+`0x0082A289`.
+
+INFERRED. The stage layout named by the record supplies an origin that
+the scheduler keeps at `+0x20` and that position clips hand to their
+targets. Not traced: the body of the layout virtual `+0x16C`, how the
+target virtual `+0x48` composes `+0x10` and `+0x20` with the clip vectors,
+and the initial value of scheduler `+0x10`.
+
+Reproduce with `ghidra disasm 0x00816130 -n 130`, `ghidra disasm
+0x00816382 -n 200`, `ghidra disasm 0x00623E70 -n 75`, `ghidra disasm
+0x00A1CE70 -n 14`, `ghidra x-ref to 0x00A1CE70` and `ghidra x-ref to
+0x00A1C030`. The switch arm of `0x0082A080` near `0x0082A1C9` is read with
+Capstone from the file offset of that VA.
