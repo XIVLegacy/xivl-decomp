@@ -246,3 +246,43 @@ colour application, for every CharaVisual. The route into `0x006B7840` for an
 actor appearance event is `0x00665E40` through vtable `+0x64` per
 [appearance-dirty-apply.md](appearance-dirty-apply.md). Not separately traced:
 an explicit Player to CharaActor to CharaVisual construction chain.
+
+## Attribute cells
+
+The loop at `0x006BAB9D..0x006BAD37` in `0x006BA250` runs EBX from 0 to 15
+(`local-data-flow`). For each part row it reads the cell of column
+`0x4C + EBX` through `0x00C9A480` and continues only when the byte there
+equals 1 (`CMP byte ptr [EAX],0x1` at `0x006BABD3`). It then builds the
+name `"atr_"` (`0x00FD34D4`), the string at `[ESP+0x20]`, `"v_"`
+(`0x00FD34D0`) and the character `'a' + EBX` (`0x006BAC9F..0x006BACC5`),
+and calls `0x00C3AE20(name, 1)` on `[obj+0xD8]` when that is nonnull
+(`0x006BACE1..0x006BACF2`). No path of the loop passes 0.
+
+`0x00C3AE20` walks the `+0x368` entries of stride `0xB0` at `+0x36C`
+(`0x00C3AE8A`) and, for each of an entry's `+0x80` meshes from
+`0x00C32C10`, calls `0x00C42240(name, flag)` (`local-data-flow`).
+`0x00C42240` walks the mesh group table at `+0x108` of the object at
+`+0x1C`, count the u16 at `+0x100`, compares each group name (at the entry
+plus the big-endian dword at entry `+8`) with the name, and on a match
+writes `flag != 0` to byte `[+0x3C] + index` (`0x00C422C2..0x00C422E2`).
+`0x00C422F0` is the reader of the same layout, and its only caller is
+`0x006B85BE` (`direct-xref-set`).
+
+The MeshDrawTag init `0x00C448E0` stores the group table owner at `+0x1C`,
+sizes the byte vector at `+0x38` (begin `+0x3C`, end `+0x40`) to the u16
+count at `+0x100` with fill 0 through `0x00C456D0`, and writes 0 to each
+byte (`0x00C448EF..0x00C4494C`). Its callers are `0x00C33638` and the
+MeshDrawTag constructor `0x00C44A80` (`direct-xref-set`). The vftable
+`0x010D7A04` (`SQEX::CDev::Engine::Dw::Renderer::MeshDrawTag`, RTTI catalog
+RVA `0xcd7a04`) is stored by `0x00C43290`, `0x00C44830` and `0x00C44A80`.
+
+INFERRED. `0x00C42240` acts on MeshDrawTag objects, since it uses the
+same `+0x1C` and `+0x3C` fields. Every attribute then starts off, and only
+a row cell of 1 turns the group of the matching name on. The draw
+consumer of the byte vector is `UNKNOWN`, so that an off attribute hides
+its group's triangles is not established.
+
+Reproduce with `ghidra disasm 0x006bab90 -n 120`,
+`ghidra disasm 0x00c3ae20 -n 40`, `ghidra disasm 0x00c42240 -n 50`,
+`ghidra disasm 0x00c448e0 -n 40`, `ghidra x-ref to 0x00c422f0`,
+`ghidra x-ref to 0x00c448e0` and `ghidra x-ref to 0x010d7a04`.

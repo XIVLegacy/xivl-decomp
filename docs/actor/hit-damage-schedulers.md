@@ -5,7 +5,8 @@ resident effect bank. This page records the resident id list the client
 requests, the damage schedulers that bank holds, the route from the
 `normal_dam` scheduler's RaptureActionSelectDamageMccClip to the result
 decoder `0x007A1810`, the scheduler names the kind 1 and 2 arm of that
-decoder starts, and the element name tables of `0x00855160`. The
+decoder starts, the element name tables of `0x00855160`, and the element
+query that answers the facing elements `EID_V01` to `EID_V05`. The
 [resident effect banks](crafting-presentation.md#resident-effect-banks)
 section owns the bank identities, the
 [transient result effects](crafting-presentation.md#transient-result-effects)
@@ -228,6 +229,99 @@ Each name goes to `0x0065BD70(name, 9)` on the object at `+0xE4`, with
 (`0x01043344`) skips the first lookup. `EID_CRAFT_MAT` (`0x01043350`) takes
 its second argument from `0x0065AE60` in place of 9.
 
+## Element query and facing elements
+
+STATIC. CharaActor slot 93 is `0x0065D4D0` (vtable cell `0x00FC0EA8`). It
+calls `0x00855790(out, id, A, B, 0)` with ECX at actor `+0x143C`
+(`0x0065D4D0..0x0065D4F5`). `0x00855790` dynamic-casts A and B to
+CharaActor through `0x009DA6CC` (`0x008557A8`, `0x008557C2`). With the last
+argument 0 it searches the 41 dwords at helper `+0x00` for `id`
+(`0x008557E0..0x008557EB`). A match at index i makes the selector -i. A
+nonzero last argument, or no match, keeps `id` as the selector.
+
+A selector of 0 or above takes the ordinary path at `0x00855871`. A
+negative selector -i with i from 1 to 40 indexes the byte table
+`0x008558BC` at i - 1 and the jump table `0x008558A8`
+(`0x00855806..0x00855812`). A selector below -40 takes the ordinary path:
+
+| Index i | Names | Arm |
+| --- | --- | --- |
+| 1 to 8 | the eight foot names | `0x008552D0(out, A, id)` at `0x00855822` |
+| 9, 11, 13 | `EID_V01`, `EID_V03`, `EID_V05` | `0x008553F0(out, A, B)` at `0x00855838` |
+| 10, 12 | `EID_V02`, `EID_V04` | `0x008553F0(out, B, A)` at `0x0085584E` |
+| 14 to 38 | `EID_V06` to `EID_V30` | the ordinary path |
+| 39, 40 | `EID_SE_FOOT_R`, `EID_SE_FOOT_L` | `0x00855610(out, A, B)` at `0x00855864` |
+
+The byte table holds 0 eight times, then 1, 2, 1, 2, 1, then 4 twenty-five
+times, then 3 twice. The jump table holds `0x00855819`, `0x0085582F`,
+`0x00855845`, `0x0085585B` and `0x00855871`.
+
+The ordinary path calls `0x0065BD60(selector)` on the owner at helper
+`+0xE4`. That routine adds `0x1960` and jumps to `0x00846DC0`, which tests
+`selector & 0xFF8000`. When the test holds, `0x0065BDC0` answers.
+Otherwise `0x007CCF70` calls `0x00A5FEF0(out, selector)` on the owner.
+`0x00A5FEF0` asks the object at owner `+0x0C` its virtual `+0x14`. When
+that is true it answers that object's virtual `+0x11C(out, selector)`, else
+it copies the 64 bytes that the object's virtual `+0x64` returns
+(`0x00A5FEFC..0x00A5FF4C`).
+
+### Nearest damage element
+
+STATIC. `0x008553F0(out, P, Q)` returns a translation matrix through
+`0x0061F3B0`, which writes the rows `0x00FB7A60`, `0x00FB6D80` and
+`0x00FB7A70` (the identity rows) and the vector it is given with w set to
+1.0 (`0x00F54F70`).
+
+- With P and Q both null the vector is `0x00FBF760`, (0, 0, 0, 1)
+  (`0x0085541E`).
+- With one of them null the vector is the other's virtual `+0x88`
+  (`0x00855441..0x00855454`, `0x00855461..0x00855474`).
+- With both, it reads Q's and P's virtual `+0x88`. When the xyz distance
+  between them is below 0.001 (`0x00FB7AB4`) the vector is the translation
+  at `+0x30` of Q's virtual `+0x17C(buffer, 0)` (`0x008554BB..0x0085551F`).
+- Otherwise it walks Q's virtual `+0x17C(buffer, i)` for i from 0 to 15,
+  takes each translation minus P's position, zeroes the y lane, and keeps
+  the translation whose length is strictly below the best so far, starting
+  from `FLT_MAX` at `0x00FBA384` (`0x0085552C..0x008555AE`). The rows and
+  the kept translation are written at `0x008555B0..0x008555E6`.
+
+So the answer has no rotation, and the facing of either actor does not
+turn it. CharaActor slot 95 is `0x0065D530` (cell `0x00FC0EB0`), which
+calls `0x00855330(out, i)` with ECX at actor `+0x143C`. `0x00855330` reads
+the id at helper `+0xA4 + 4 * i`, one of the 16 `EID_DAM_*` ids that
+`0x00855160` stores (`0x0085534F`). A negative id answers the translation
+of the owner's virtual `+0x88`. Any other id takes the same
+`0x0065BD60`, `0x0065BDC0` and `0x007CCF70` path as the ordinary path
+above (`0x00855356..0x008553C8`). CharaActor slot 94 reaches the same
+table entry 9 through `0x008558F0`, which calls `0x00855790` with id -9
+and last argument 1 (`0x008558FD..0x00855904`).
+
+### RaptureVfxActor binding
+
+STATIC. RaptureVfxActor has two vtables. The COL `0x01164DFC` of the one
+at `0x00FF54FC` (RVA `0xbf54fc`) gives object offset 0, and the COL
+`0x01164E68` of the one at `0x00FF543C` (RVA `0xbf543c`) gives offset
+`0x1C`.
+
+- Slot 30 of the offset 0 vtable, `0x0080A660`, takes the bound actor at
+  `+0x50` and looks up the dwords `+0x58` and `+0x5C` through `0x007A0150`
+  on that actor's `+0x118` object plus `0x54`. With neither found it
+  answers the bound actor's virtual `+0x64(out, id)`. Otherwise it answers
+  the bound actor's virtual `+0x174(out, id, A, B)`, slot 93, with A the
+  `+0x58` result and B the `+0x5C` result (`0x0080A665..0x0080A6C7`).
+- Slot 21 of the offset `0x1C` vtable, `0x0080B270`, reads the same object
+  fields at its `+0x34`, `+0x3C` and `+0x40` and makes the same two calls.
+  When its `+0x44` (object `+0x60`) is nonzero it passes the answer to
+  `0x0080AA50` with ECX at the object start (`0x0080B2D9..0x0080B30D`).
+  `0x0080AA50` was not followed.
+
+INFERRED. A and B are the source and the target of the effect, so
+`EID_V01`, `EID_V03` and `EID_V05` answer the damage element of B nearest
+A, and `EID_V02` and `EID_V04` the damage element of A nearest B. The
+writer of object `+0x58` and `+0x5C` was not traced. The getter is a
+virtual slot, so its callers may ask again each update, and that was not
+traced either.
+
 ## Reproduction
 
 ```text
@@ -237,6 +331,14 @@ ghidra x-ref to 0x007c21b0
 ghidra x-ref to 0x007bfbd0
 ghidra x-ref to 0x007a1810
 ghidra x-ref to 0x00855160
+ghidra disasm 0x00855790 -n 90
+ghidra disasm 0x008553f0 -n 150
+ghidra disasm 0x0065d4d0 -n 12
+ghidra disasm 0x00855330 -n 50
+ghidra disasm 0x008558f0 -n 10
+ghidra disasm 0x00a5fef0 -n 30
+ghidra disasm 0x0080a660 -n 40
+ghidra disasm 0x0080b270 -n 60
 ghidra disasm 0x0055fb40 -n 30
 ghidra disasm 0x00821390 -n 60
 ghidra disasm 0x007b71b0 -n 80
@@ -245,8 +347,11 @@ ghidra disasm 0x007a1810 -n 400
 
 Read the dwords of `0x00FA4948` (4), `0x0126F4B0` (2), `0x007A26D8` (4),
 `0x007A26E8` (6), `0x007A2720` (28), `0x007A2790` (5), `0x007A27A4` (4),
-`0x007A27B4` (18), `0x012D13C0` (41) and `0x012D1380` (16), and the 14
-bytes at `0x007A2700`, from the file-backed sections.
+`0x007A27B4` (18), `0x012D13C0` (41), `0x012D1380` (16) and `0x008558A8`
+(5), the 14 bytes at `0x007A2700` and the 40 bytes at `0x008558BC`, the
+floats at `0x00FBF760`, `0x00FB7A60`, `0x00FB6D80`, `0x00FB7A70`,
+`0x00FB7AB4` and `0x00FBA384`, the cells `0x00FC0EA8` and `0x00FC0EB0`, and the COL dwords
+before `0x00FF543C` and `0x00FF54FC`, from the file-backed sections.
 
 ## Open
 
@@ -257,5 +362,7 @@ bytes at `0x007A2700`, from the file-backed sections.
   `0x012C4E18`, and kinds 6, 13 and 14.
 - The writer of `this+0x94` before `0x0055FB40`, and what loads
   `0x15D90000` once it is requested.
-- Which element an effect binds to when the skeleton lacks the name, and
-  where the `EID_V*` elements are placed.
+- Which element an effect binds to when the skeleton lacks the name, the
+  model answer (virtual `+0x11C`) for an element id it does not hold, and
+  the arms `0x008552D0` and `0x00855610`.
+- The writer of RaptureVfxActor `+0x58` and `+0x5C`, and `0x0080AA50`.

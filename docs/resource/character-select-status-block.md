@@ -128,6 +128,8 @@ unlisted key.
 
 | Key | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Index `+0x00` | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
+| Model `+0x08` | 1 | 2 | 9 | 3 | 4 | 3 | 4 | 5 | 6 | 5 | 6 | 8 | 8 | 7 | 7 |
 | Race `+0x10` | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 | 3 | 3 | 4 | 4 |
 | Row `+0x20` | 100606 | 100607 | 100608 | 100609 | 100610 | 100611 | 100612 | 100613 | 100614 | 100615 | 100616 | 100617 | 100618 | 100619 | 100620 |
 
@@ -184,12 +186,146 @@ and 1.0 (`0x00F54F70`), and passes the motion name at `0x012BE69C`
 (`cbnm_id0`) to `0x00585BD0` (`0x006AE2AE`) with a timer from
 `0x00459E00` modulo 13000 plus 2000 (`0x006AE28D..0x006AE29F`).
 
+For modes 0, 1 and 9 the last arm of each roster entry posts actor message
+`0x25` with the 16 bytes (x, 0, 0, 1.0) through `0x004D7980`
+(`0x006AE2BC..0x006AE38B`), x being the slot x of the
+[row focus](#row-focus-and-select-camera) section. No rotation is written
+there.
+
 INFERRED. The select background is the effect pair of `0x7FDB0000`, not a
 zone layout, and slot i stands at 1.5 * i plus the mode offset.
+
+## Row focus and select camera
+
+STATIC. `0x006AA990(mode, slot)` is the BootupManager row focus, called at
+`0x006B0BC0`. B is the BootupManager in ECX.
+
+- It takes the actor array of the mode from `0x006A8EA0` and returns when
+  the slot's actor is null and the mode is not 1. It stores the mode at
+  `B+0x178`.
+- For a mode other than 5, when the slot differs from `B+0x1E8 + 4 * mode`
+  it hides the previous actor (`0x005854D0`, then
+  `0x00587C10(0.0, 2, 0, 1)`), then stores the slot there
+  (`0x006AA9C3..0x006AA9FB`).
+- For a slot other than -1 it starts motion `cbnm_id0` (`0x012BE69C`)
+  through `0x00585BD0` when the timer `B+0x3EE0 + 4 * slot` is negative,
+  and then sets that timer to `0x00459E00() % 13000 + 2000` on the
+  generator at `B+0x417C` (`0x006AAA07..0x006AAA3A`).
+- The byte table `0x006AAC4C` (0, 0, 0, 0, 0, 1, 0, 0, 2, 0) and the
+  arms `0x006AAC40` send modes 0 to 4, 6, 7 and 9 to `0x006AAA66`, mode 5
+  to `0x006AAB7C` and mode 8 to `0x006AAB8B`. A mode above 9 also takes
+  `0x006AAB8B`.
+
+The `0x006AAA66` arm (`0x006AAA66..0x006AAB6B`):
+
+- `x = 0x006A9470(mode, slot)`, also stored at `B+0x198 + 4 * mode`.
+- `t = B+0x210 + 4 * slot`, the camera index.
+- `0x0055C8E0(first, second, 0.02, 5.0)` on the camera at `B+0x64`, with
+  `first = (x, H[t], D[t], 1.0)`, `second = (x, H[t], 0.0, 1.0)` and the
+  floats at `0x012BDF24` and `0x012BDF28`, then `0x0055F250` on the same
+  camera.
+- When the slot's actor exists: `0x0055C290(1)`, `0x0055C2B0(1)`,
+  `0x0055C2D0(0x004D6750(0))` and `0x0055C310` on `B+0x60`,
+  `0x00686E50("select", 0x004D6750(1, 0))` on `B+0x5C` (string pointer
+  `0x012BDF18`), `0x004D7660` on the actor, and the slot is stored at
+  `B+0x1C0 + 4 * mode`.
+
+When the slot changes, the `0x006AAB8B` path calls `0x00588280(f, 1)` on the previous slot's
+actor and, for a slot with an actor, `0x00588280(1, 1)` on it, with no
+camera goal (`0x006AAB8B..0x006AAC2F`). The mode 5 arm stores mode 5,
+sets f to 0 and joins it. Every other route reaches it with f 1.
+
+`0x006A9470(mode, slot)` returns `slot * 1.5 + offset` with 1.5 at
+`0x012BDF20`. The offset is 0 for modes 0, 1 and 9 and for a mode of 0 or
+below, and `B+0x194 + 4 * mode` for any other mode. Mode 5 uses slot 0.
+`0x006A9440(mode)` returns the offset alone (`0x006A9440..0x006A94BC`).
+
+Several writers in `0x006AD530` store the dword at `+0x00` of the tribe
+record that `0x006A9940` returns into `B+0x210 + 4 * slot`
+(`0x006AD704`, `0x006ADC66`, `0x006ADE49`, `0x006ADEF5`). Others store
+values from `0x006ACBE0` and `0x006A99C0` paths (`0x006ADA94`,
+`0x006ADAC9`, `0x006ADB35`), not traced here.
+
+Camera tables, 15 floats each, read from the file-backed `.data` section:
+
+| t | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| D `0x012BDF40` | 3.4 | 3.2 | 3.7 | 3.8 | 3.8 | 3.8 | 3.8 | 2.7 | 2.7 | 2.7 | 2.7 | 3.0 | 3.0 | 4.2 | 4.2 |
+| H `0x012BDF7C` | 1.1 | 1.05 | 1.2 | 1.25 | 1.25 | 1.25 | 1.25 | 0.9 | 0.9 | 0.9 | 0.9 | 1.0 | 1.0 | 1.4 | 1.4 |
+
+### Camera goal
+
+STATIC. `0x0055C8E0(first, second, speed1, speed2)` copies the two
+16-byte points and the two floats into a 40-byte payload and posts camera
+message `0x18` (`0x0055C90E..0x0055C935`). `0x0055F250` posts command
+`0x10` with the dword 8, and `0x0055F190(f)` posts command `0x14` with
+the float. `0x0055C520(b)` posts command `0x2B` with `b != 0`.
+
+In the camera command receiver `0x0061A6C0` the table `0x0061AE48` sends
+id `0x18` to `0x0061A9C3`. That arm finds context key 8 in the registry
+at `+0x1B0` through `0x006222B0` and calls `0x007F2690(first, second,
+payload +0x20, payload +0x24)` on it (`0x0061A9C3..0x0061AA0E`).
+`0x007F2690` stores the points at `+0x30` and `+0x40` and the floats at
+`+0x50` and `+0x54` (`0x007F2696..0x007F26B9`). The constructor
+`0x0061B5A0` inserts the `CameraActorContextCharaSelect` built by
+`0x007F2400` under key 8 into `+0x1B0` (`0x0061B972`, `0x0061BB7E`,
+`0x0061BB98`, `0x0061BBA4`).
+
+STATIC. The CharaSelect update is slot 1 of vtable `0x00FF0F24`,
+`0x007F24A0(camera, dt)` (`0x007F24A0..0x007F268A`). For each pair,
+current `+0x10` toward goal `+0x30` with speed `+0x50`, then current
+`+0x20` toward goal `+0x40` with speed `+0x54`:
+
+- `share = dt * 0.3` (double `0x00FB7DE0`), or 1.0 when that exceeds 1.0
+  (double `0x00F598A0`).
+- `step = (goal - current) * share`.
+- When the xyz length of the step is at least `speed * dt`, the step
+  becomes its unit vector (`0x0061CFD0`) times `speed * dt`.
+- The current point gains the step.
+
+It then writes `+0x10` to camera `+0x330` and `+0x20` to camera `+0x340`.
+The [update pipeline](../actor/camera-input-chain.md#update-pipeline-and-command-receiver)
+passes `dt` to the context's `+0x04`.
+
+### Boot camera
+
+STATIC. The BootupManager constructor `0x006B3210` sends command `0x14`
+with 0.6606713 (`0x012BDF3C`) at `0x006B3890`, command `0x10` with 8 at
+`0x006B3928`, the goal `(2.5, 1.1, 20.0, 1.0)` and `(0.0, 1.1, 0.0, 1.0)`
+with speeds 0 and 0 at `0x006B3946` (2.5 at `0x00FD25D8`, 1.1 at
+`0x012BDF1C`, 20.0 at `0x00FEB194`), and command `0x2B` with 1 at
+`0x006B3950`. The BootupManager update sends the same two points with
+speeds 0.02 and 5.0 at `0x006B0A23`, after command `0x10` with 8
+(`0x006B09A5..0x006B0A23`).
+
+The mode 5 path at `0x006B1580..0x006B1610` sends first
+`(x, H[t], 10.0, 1.0)` and second `(x, H[t], 0.0, 1.0)` with speeds 1.0
+(`0x012BDF34`) and 5.0 (`0x012BDF38`), 10.0 at `0x012BDF30`. Here x is
+`0x006A9440(m)` and `t = B+0x210 + 4 * (B+0x1C0 + 4 * m)`, the camera index
+of the slot last focused in mode m (ESI is B + `0x34` in that function).
+
+INFERRED. The first point is the eye and the second the look-at, so the
+eye of a focused slot stands D[t] in front of the slot at height H[t] and
+looks at the slot at the same height. Command `0x14` writes `+0x404`, the
+float the [command table](../actor/camera-input-chain.md#update-pipeline-and-command-receiver)
+records for id 20, and reading it as the field of view is INFERRED. With
+`dt` in 30 Hz frames, the eye closes 0.3 of the way each frame up to 0.02
+yalms a frame.
+
+Reproduce with `ghidra disasm 0x006aa990 -n 200`, `ghidra x-ref to
+0x006aa990`, `ghidra disasm 0x006a9440 -n 40`,
+`ghidra disasm 0x0055c8e0 -n 20`, `ghidra disasm 0x0061a9c3 -n 30`,
+`ghidra disasm 0x007f24a0 -n 160`, `ghidra disasm 0x007f2690 -n 12`,
+`ghidra x-ref to 0x007f2400` and `ghidra disasm 0x006b3881 -n 50`, and
+read the floats at `0x012BDF1C..0x012BDFB7`, the bytes at `0x006AAC4C`,
+the dwords at `0x006AAC40` and the cell `0x00FF0F28`.
 
 ## Open
 
 - `0x006A9C90`, `0x006AAF50` and the meaning of the `0x3A` mask.
 - The fields of town records `+0x0C` and `+0x10`.
-- The actor builder that takes the roster appearance and the update slots
-  of the character select camera contexts.
+- The actor builder that takes the roster appearance, the meaning of actor
+  message `0x25`, and the select update slots of the CharaCreate and
+  CharaFocus camera contexts.
+- What the motion timer starts when it runs out, and the `bg_effect` and
+  `select` schedulers of `0x7FDB0000`.
