@@ -926,6 +926,78 @@ control `CustomControl_MapNavigation` declares `Function="0"`,
 separate 13,161-byte document, the one the native MainMenuWidget slot
 constructs ([Navigation form and scheduled update](#navigation-form-and-scheduled-update)).
 
+The same two decoded documents carry the input declarations of the widget
+(MEASURED, form line numbers of the decoded text):
+
+- line 1, root `Window_MapNavigationWidget`:
+  `ConsumedCommand="UILuaCommands.Cancel,MapScreen.Move"` and
+  `KeyboardNavigation.DirectionalNavigation="Cycle"`
+- lines 19 and 20, `Window.InputBindings`: `KeyBinding Command="Map.ScaleUp"`
+  on `Key="PageUp"` and `Command="Map.ScaleDown"` on `Key="PageDown"`, both
+  `IsRepeat="True"` with `CommandTarget` the element
+  `CustomControl_MapNavigation`
+- line 215, `ListBox_NavigationMenu`: `IsTabStop="False"`, `MaxHeight="200"`
+  and `KeyboardNavigation.DirectionalNavigation="Cycle"`
+- the template `ControlTemplate_Window_MapNavigationWidget` answers the
+  command `RaptureCommands.MoveCamera` with `MapScreen.Move` on the map
+  control and answers the routed event `MouseLeftButtonDown` with
+  `UILuaCommands.EventMapNavigationClose`
+- the row template `ControlTemplate_ListBoxItem_MenuItem` is a
+  `Button_MenuItem` (`Command="UILuaCommands.Operate"`, style
+  `BTN_basis_listboxSelect`) holding `TextBlock_MenuItemName` and
+  `Border_ClassIcon`
+
+STATIC. `ghidra find string` returns no string containing
+`MapNavigationClose` or `MapClose` in the executable.
+
+### Zoom commands
+
+STATIC. The initializer `0x00F12060` registers the RoutedCommand at
+`0x01340518` under the string `Map.ScaleUp` (`0x00FC285C`, pushed at
+`0x00F12089`), and `0x00F120E0` registers `0x013405B8` under `Map.ScaleDown`
+(`0x00FC2868`, `0x00F12109`). `0x00F12160` registers `0x01340658` under
+`MapScreen.Move` (`0x00FC29BC`).
+
+The command handler `0x006755A0` receives `this` at control `+0xB4` and
+recovers the control with `LEA reg,[this-0xB4]` at `0x0067572F` and
+`0x00675810`. It compares the command at `+0x1C` of its argument with
+`0x01340658` at `0x006755BA`, `0x01340518` at `0x00675670` and `0x013405B8`
+at `0x006757C8`. Every arm ends in `0x0092D1F0` with the argument. Below,
+`s` is the `Scale` value at control `+0x450`, `step` is the binary64 at
+`0x00FBAD50` (`0x3FB99999A0000000`, the f32 0.1 widened), and `Dx,Dy` are the
+sheet extent of [Automatic position and sheet conversion](#automatic-position-and-sheet-conversion).
+
+`Map.ScaleUp` (`0x0067567B..0x00675727`):
+
+- `cover` is the larger of `f32(+0x1B4 / Dx)` and `f32(+0x1AC / Dy)`,
+  divided in binary64, the same quotients as the Function 0 load
+- when `s > cover`, `s' = f32(s - step)`, then raised to `MinScale` `+0x460`
+  when that is larger, then raised to `cover` when that is larger
+- otherwise `s' = s`
+- `0x0067572D..0x006757A7` writes `s'` to the holder `+0x450` only when the
+  holder flag byte `+0x454` has bit 1 clear and `s'` differs from the held
+  value (an unordered compare also writes), through `0x006984B0` with the
+  callback `0x006737A0` and the property `0x0133FE5C`
+
+`Map.ScaleDown` (`0x006757CF..0x00675819`):
+
+- `s' = f32(s + step)`, lowered to `MaxScale` `+0x458` when it is larger
+- `s'` goes to the `Scale` setter `0x00674570(s', 0, 1)`, which passes holder
+  `+0x450`, property `0x0133FE5C` and callback `0x006737A0` to `0x0067C860`
+
+The callback `0x006737A0` is the `Scale` change path of
+[Actual scale and explicit properties](#actual-scale-and-explicit-properties),
+so a changed `Scale` reaches the actual scale `+0x60C` and the shared cell
+`0x012BAAF8` through `0x00673640`, directly or after the stepped transition.
+
+INFERRED. With the constructor `MinScale` 0.5 and `MaxScale` 1 and the
+Function 0 load at actual scale 1, `Map.ScaleDown` leaves a fresh load at 1,
+and each `Map.ScaleUp` lowers `Scale` by 0.1 down to the larger of 0.5 and
+`cover`. A smaller scale draws more of the map. The shared cell carries the
+last scale into the next Function 0 load of any control. The routing of a
+movement key while this modal window holds the keyboard is UNKNOWN
+(`ConsumedCommand` names `MapScreen.Move`, not a movement command).
+
 ## Viewport and draw
 
 The active viewport update at `0x006762F0` walks retained pieces and calls

@@ -259,11 +259,30 @@ The error branches at `0x00821fae`, `0x00821fd9` and `0x00822004` format the
 texts "Target specification missing", "Target is not an IActor" and "Target is
 not a CharaActor" (the client strings are Shift-JIS Japanese, checked as bytes
 in the manifest). INFERRED: mode 1 carries two angles in degrees and mode 2 a
-world point. The meaning of the two passes and of the node index was not traced.
+world point. The meaning of the two passes was not traced.
 
 OBSERVED: all 15,619 records are 0x34 bytes. The mode is 0 in 13,320, 1 in
 2,169 and 2 in 130 records. The mode 1 angles lie within plus or minus 90.
 The flag bytes are 0 or 1.
+
+STATIC, node name. `0x00A20080` loads the scheduler object at `+0xC`, then
+its `+0x50`, and jumps to `0x00A26F00`, which loads `u32(u32(obj+0x5C))` as
+a base and returns `base + s16(base + 2 * index)`. That is the offset rule
+of the scheduler's `String` table that `tools/scb_clip_scheduler.py` reads
+for class names. OBSERVED with that parser: in `client/cut/man0g005/man0g005`
+(string table at file offset `0xDBD8`), `man0u005/man0u005` (`0x42C0`) and
+`man0l005/man0l005` (`0x2AB1C`) every mode 0 record names index 19, 25 and
+32 respectively, and each of those entries is `EID_LOOK_AT`, the only
+`EID_` string of the file.
+
+STATIC, mode 0 route. `0x0065E730(actor, target, ...)` returns when the
+actor's virtual `+0x268` is nonzero. It uses the actor in place of a null
+target or a target whose virtual `+0x268` is nonzero, passes the chosen actor's `+0xDC` word
+with the pass, flags, float, node name and offset to `0x00854830` on
+`actor+0x2620` (`0x0065E7A3..0x0065E7A9`), and `0x00854830` calls the slot
+writer `0x00853B50` at `0x00854873`. The slot layout and the default node name
+are in the
+[actor controller section](../actor/chara-look-at-consumers.md#actor-controller).
 
 ## ClipSyncClip
 
