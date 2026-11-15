@@ -563,6 +563,59 @@ this value to the shadow settings is established.
 Reproduce with `ghidra disasm 0x007dce53 -n 30`, `ghidra memory read
 0x00fee454 8` and `ghidra disasm 0x007e91d0 -n 400`.
 
+## DirFixed direction and the Shadow blend
+
+STATIC. The apply calls of the [reset table](#settings-reset-and-apply)
+for the Shadow section's DirFixed and Dir fields reach these context
+setters. Each apply reads the ShadowEffect at `+0x10`, takes its virtual
+`+0x18` result plus `0x30` as the context C and tail-jumps to the setter.
+
+| S field | Apply call | Pushed at | Setter | C field |
+| --- | --- | --- | --- | --- |
+| byte `+0x532` | `0x00A58BA0` | `0x00A5B367..0x00A5B371` | `0x00C47E00` | byte `+0x684` |
+| `+0x560` | `0x00A58B20` | `0x00A5B3A4..0x00A5B3B5` | `0x00C47E10` | 16 bytes at `+0x664` |
+| `+0x570` | `0x00A58B60` | `0x00A5B3E8..0x00A5B3F9` | `0x00C47E50` | 16 bytes at `+0x674` |
+
+The [ScreenEnv table](#weather-screenenv-shadow-section) copies the
+DirFixed bit (slot `+0x1C4`) into byte `+0x532` and the node Dir (slot
+`+0x1CC`) into `+0x560`. With the
+[shadow transform update](#shadow-transform-update), a set DirFixed makes
+the light direction the node Dir, normalized into T `+0x220`.
+
+`ShadowTransform::CalcShadowMatrix` `0x00C61260` scales T `+0x220` by a
+scalar it holds on its stack, adds the bounds centre that `0x00BE5980`
+returns, and passes that sum and the centre to the light view
+`0x007DF590` (`0x00C61416..0x00C6169F`).
+
+INFERRED. The light eye sits on the Dir side of the casters' centre, so a
+DirFixed lane's light travels along the negated node Dir. The writer of C
+`+0x674` in ordinary play is not traced here.
+
+STATIC. `0x007E2550` has one caller, `0x007E313A` in `0x007E2AF0`. It
+takes a first source on the stack, the fraction t as its second stack
+argument, a second source in ESI and the receiver in EDI. It returns
+unless the virtual `+0x17C` (has Shadow) of all three is true. It then
+writes each Shadow getter of the [ScreenEnv table](#weather-screenenv-shadow-section)
+into the receiver through the slot 4 bytes above the getter:
+
+- The bytes of slots `+0x184` (enable), `+0x194`, `+0x1C4` (DirFixed) and
+  `+0x1D4` take the first source's value while 0.5 (`0x00F62F60`) is
+  greater than t, else the second source's (`0x007E261F`, `0x007E2662`,
+  `0x007E26E8`, `0x007E2890`).
+- The floats and vectors, for example slot `+0x18C` (bias) at
+  `0x007E26A5..0x007E26CA` and slot `+0x1CC` (Dir) at
+  `0x007E28B9..0x007E2902`, take `first + (second - first) * t`.
+- Before the copies it returns unless both sources hold the enable byte
+  or both hold the slot `+0x1D4` byte (`0x007E25A4..0x007E25FD`).
+
+The fraction that `0x007E2AF0` passes, and which of the weather and the
+spatial fractions drives it, was not traced.
+
+Reproduce with `ghidra disasm 0x00a58b20 -n 30`,
+`ghidra disasm 0x00c47e00 -n 30`, `ghidra disasm 0x00a5b302 -n 160`,
+`ghidra disasm 0x00c61405 -n 120`, `ghidra x-ref to 0x007e2550` and
+`ghidra disasm 0x007e2550 -n 400`.
+
 ## Open
 
 - Which of C `+0x664` and `+0x674` holds the sun in ordinary play, and the
@@ -573,7 +626,10 @@ Reproduce with `ghidra disasm 0x007dce53 -n 30`, `ghidra memory read
   path.
 - The direction source in ordinary play, the meaning of the Shadow section
   fields that have no context setter here, and cut scene shadow clips.
-- Which ScreenEnv a position selects.
+- Which ScreenEnv a position selects. The segment and the triangle word
+  route are in the
+  [position query](weather-sky-fog-environment-path.md#position-query-0x007db9c0)
+  section, and category `0xD` is still open.
 - The caster byte of a UnitTree group child or of a leaf of a nested
   UnitTree, whose parent array this page does not trace, and the order of
   the BG setup and drawable creation.

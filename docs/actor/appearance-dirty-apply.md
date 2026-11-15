@@ -132,6 +132,48 @@ bit 0 = 0x00443E40(..., 7, 0x1E, 0) & 1
 actor+0xB20 = 1
 ```
 
+### Bit 0 source
+
+`0x00443E40(group, key, default)` reads the dword at
+`(group * 0x20 + (key & 0x1F)) * 0xBC + [this + 8] + 0x60` and returns the
+default only when that address is zero (`0x00443E40..0x00443E65`). That is
+the int value of the shared record model in
+`xivl-client-structs:docs/user-config-store-contract.md`, "Record model".
+Group 7 key 30 is registered at `0x004BAA10` through `0x00443CF0` with the
+name `character_texture_resolution` (`0x00F906A4`), range 0 to 1 and
+default 1, as `xivl-client-structs:manifests/user_config_store.json`
+records under `systemConfig`.
+
+The class-row resolver `0x0055D2B0` folds the same value into record
+dword 28. It calls `0x004D73B0` on its actor `+0x7C`, then
+`0x00443E40(7, 0x1E, EDI)`, and replaces bit 0 of record `+0x70` with bit
+0 of the result (`0x0055D364..0x0055D380`).
+
+`0x004D73B0` returns `[ECX + 0x4F4]`. A byte scan of `.text` finds seven
+register stores to a `+0x4F4` field. One is `0x004DC013` in `0x004DBF40`,
+which writes that constructor's fifth argument. `0x004DC3A0`, its only
+caller (`0x004DC414`), passes its own first argument there, and
+`Application::Rapture` vtable slot 0 `0x004B2DF0` passes its third
+argument at `0x004B3694..0x004B3697`. That the actor's `+0x7C` object is
+the one `0x004DBF40` builds, and the store behind that argument, were not
+established.
+
+INFERRED. The receiver is the SystemConfig store. The contract records 7
+groups for the game store, 6 for the UI store and 10 for the system store,
+so group 7 exists only in the system store. No later writer of group 7
+key 30 was traced, so the default 1 is the value only while nothing
+changes it.
+
+Bit 0 of record dword `0x1C` becomes helper `+0x40` bit 13, which selects
+the `_tex2/` bank suffix for 1 and `_tex1/` for 0, as the
+[path decoder](appearance-path-decoder.md) records.
+
+Reproduce with `ghidra disasm 0x0058d136 -n 8`,
+`ghidra disasm 0x0055d364 -n 8`, `ghidra disasm 0x00443e40 -n 12`,
+`ghidra disasm 0x004ba9f0 -n 10`, `ghidra x-ref to 0x004dbf40`,
+`ghidra x-ref to 0x004dc3a0` and `ghidra disasm 0x004b367a -n 10`, and a
+byte scan of `.text` for `mov [reg + 0x4F4], reg`.
+
 ## Evidence boundary
 
 This path proves publication of one requested appearance block, asynchronous

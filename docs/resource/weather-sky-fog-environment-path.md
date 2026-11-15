@@ -173,6 +173,75 @@ feeds a compare whose result is unused (U). What the replaced DrawEnv does to
 the zone's own lights is in
 [Zone lighting source and time of day](zone-lighting-source-and-time-of-day.md#zone-layout-lights).
 
+### Position query `0x007DB9C0`
+
+V. `RaptureScreenEnvController` slot 7 (`0x007DD4C0`, vtable `0x00FEED84`)
+calls `0x007DCDF0` at `0x007DD4DA`, which is the only caller of
+`0x007DB9C0` (`0x007DCE28`). The output is two dwords on the caller's
+stack, slot 0 (A) and slot 1 (B). The holder is the controller in ECX.
+
+- The segment starts at holder `+0x40`, or at `+0x70` when bit `0x10` of
+  byte `+0x86` is set (`0x007DBA81..0x007DBA8D`), plus 1.0 in y
+  (`0x00F54F70`), w 1.0. It ends at that start plus holder `+0x50` times
+  10.0 (`0x00FA95A0`), w 1.0 (`0x007DBA90..0x007DBAF8`). The query word
+  is `0x14002` (`0x007DBAFD`) and the query is `0x00A95240` (`0x007DBB29`).
+- A hit (the dword read at `0x007DBB2E`) gives a category through the hit
+  object's virtual `+0x9C`, then `+0x4C`, then `+4`.
+- Category `0xB` (`0x007DBBDE`) calls
+  `0x007D4130(hit, holder + 0x90, 0, &local)` into B
+  (`0x007DBBE3..0x007DBBFE`). A nonzero B goes through
+  `0x007D3A90(B, holder + 0x8C)` into B (`0x007DBC03..0x007DBC15`). When
+  the object that B's virtual `+4` returns holds a nonzero `+0x30`, A is
+  the virtual `+0x68(0xD, [+0x30] + 8)` of the object B's virtual `+8`
+  returns (`0x007DBC1A..0x007DBC43`).
+- Category `0xD` (`0x007DBB66`) runs the query again with `0x10002`
+  (`0x007DBB75`). A category `0xB` hit of that query goes through
+  `0x007D4130` into B (`0x007DBBB1..0x007DBBCA`). A is then the first
+  hit object's virtual `+0x4C` (`0x007DBBCD..0x007DBBDA`), with no
+  weather swap.
+
+`0x007D4130` takes the shape at hit `+0x2C`. Shape virtual `+0x4C` is the
+data owner, and shape virtual `+0x18` minus 4 is the owner O. A null shape
+or O, a zero shape virtual `+0xBC`, or a missing or short
+`RaptureAttribute` table returns 0. Otherwise the u16 word W of the hit
+triangle, as on the
+[ground material](footstep-detector-and-ground-material.md#ground-material)
+page, gives `(W >> 7) & 0x1F` to O `+4` virtual `+0x198`. O `+4` virtual
+`+0x1A0` returns a container, and when both results are nonzero the
+container's virtual `+0x10` with the first result is the return value
+(`0x007D4244..0x007D4280`). So bits 7 to 11 of the triangle word select
+the object that becomes B.
+
+`0x007D3A90(object, holder + 0x8C)` takes the virtual `+0x13C` of its second
+argument and that result's `+0x78`. When `+0x19C` or `+0x1A4` of that is
+nonzero and `+0x158` is an object for which `0x007E0360` is true, it looks
+the object's name (virtual `+0xA4`) up with `0x007E45B0` on `+0x158`. A
+found object replaces the argument, else the argument is returned
+(`0x007D3AD1..0x007D3B5A`).
+
+`0x007E7480` is called only from `0x007DCDF0` (`0x007DCE8C`). Its store of
+0.0 to WeatherManager `+0x8C` at `0x007E75F0` runs only when `+0xE4` is
+nonzero and the find `0x007EB280` on `+0x20` with the name at `+0x90`
+returns an entry (`0x007E759A..0x007E75E8`).
+
+I. The `0xB` hit is an Attribute hull of the zone collision
+([selected instance admission](attribute-resource-and-scene-binding.md#selected-instance-admission)),
+B is the zone DrawEnv the triangle names, and `0x007D3A90` swaps it for the
+weather work-set DrawEnv of the same name. Bits 7 to 11 take 0, 1, 10, 11,
+13, 14, 20, 21 and 22 in the ground material census, and the weather
+layouts name lanes `dwev_00` to `dwev_22`, which fits index N naming
+`dwev_NN`. The O `+4` virtual `+0x198`, `+0x1A0` and `+0x10` targets were
+not traced, so that mapping is I. Holder `+0x50` reads as the down
+direction and `+0x40` as the followed position (camera or actor U). The
+writers of holder `+0x40`, `+0x50`, `+0x70` and byte `+0x86` are U, and
+category `0xD` is U.
+
+Reproduce with `ghidra x-ref to 0x007db9c0`, `ghidra x-ref to 0x007dcdf0`,
+`ghidra x-ref to 0x007e7480`, `ghidra disasm 0x007db9c0 -n 200`,
+`ghidra disasm 0x007d4130 -n 100`, `ghidra disasm 0x007d3a90 -n 60` and
+`ghidra disasm 0x007e7480 -n 110`, and read the cell `0x00FEEDA0` and the
+floats `0x00F54F70` and `0x00FA95A0`.
+
 ## Unknowns
 
 - Field meaning inside the 0x50 light node beyond the shapes in the resource
