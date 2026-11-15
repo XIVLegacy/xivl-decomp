@@ -74,6 +74,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Weapon set directories and battle bank paths](actor/weapon-set-directories-and-battle-banks.md)
 - [Attack scheduler selection](actor/attack-scheduler-selection.md)
 - [Effect caster clips and damage side](actor/effect-caster-and-damage-side.md)
+- [Hit damage schedulers](actor/hit-damage-schedulers.md)
 - [Thornmarch Moogle action contract](actor/moogle-action-contract.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
@@ -451,6 +452,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Client-initiated music](resource/client-music-initiators.md)
 - [Bootup logo, rating and title phases](resource/bootup-phase-owners.md) -
   Phase factory, logo and rating end conditions, and the title version text.
+- [Character select status block](resource/character-select-status-block.md)
 - [Qix control module registry](resource/vfx-control-module-registry.md)
 - [Qix veff data body](resource/vfx-effect-data-body.md)
 - [Qix effect runtime](resource/vfx-effect-runtime.md)

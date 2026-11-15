@@ -211,5 +211,6 @@ frames of the scheduler, before the dead pose of phase 5.
   `0x0081F090` starts on each target.
 - The `mode` and `flag` that `0x0065E4E0` passes to `0x007BF8C0`, and the
   callers of `0x007BBDD0` other than `0x007BF8C0`.
-- The scheduler that RaptureActionSelectDamageMccClip of a target scheduler
-  starts, and the role of `sht00`.
+- The role of `sht00`. The enter of RaptureActionSelectDamageMccClip and the
+  damage schedulers it leads to are on the
+  [hit damage schedulers](hit-damage-schedulers.md) page.
