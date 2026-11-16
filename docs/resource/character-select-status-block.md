@@ -4,7 +4,9 @@ The character select phase fills the status block of
 `system/bootup/CharacterSelection.form` for the selected roster slot. This
 page records the control handles of the phase object, the writer
 `0x00884CB0`, the static tables it reads, and the select scene resources
-BootupManager requests. The markup of the form and the English rows it
+BootupManager requests, the creation view states and camera context, the
+`boot_charaParts` loader, the appearance window table and the bootup
+background. The markup of the form and the English rows it
 names are in `xivl-client-data:docs/boot-select-and-error-rows.md`. The
 [`_zoneParam` boot consumer](../actor/zone-initialization-inputs.md#_zoneparam-boot-consumer)
 section owns the zone cache the writer reads, and the
@@ -283,9 +285,60 @@ The `ESI+0x3E60` that the avert arm of the update compares with 3 is
 STATIC. Every caller passes the BootupManager as `[P+0x224]` of its own
 object. State 3 comes from `0x00864417`, `0x00868165`, `0x00868377`,
 `0x0086847C`, `0x008684BC` and `0x008686F5`, state 2 from `0x0085E8D1`,
-`0x0085EF8E`, `0x0085F02E` and `0x0085F12E`. The classes of those callers
-were not resolved, so which creation phases hold state 3 is not
-established.
+`0x0085EF8E`, `0x0085F02E` and `0x0085F12E`.
+
+STATIC. By the [vtable slot catalog](../../config/ffxivgame.vtable_slots.jsonl)
+the callers are methods of the `CharacterCreation` phases:
+
+| Caller | Owner and slot | State |
+| --- | --- | ---: |
+| `0x00868120` | `AppearancePhaseFace` slot 6 | 3 |
+| `0x0085EF80` | `AppearancePhaseFace` slot 7 | 2 |
+| `0x008686B0` | `AppearancePhaseHair` slot 6 | 3 |
+| `0x0085F120` | `AppearancePhaseHair` slot 7 | 2 |
+| `0x00868330` | `AppearancePhaseFeature` slot 6 | 3 |
+| `0x00864390` | `AppearancePhaseFeature` slot 15 | 3 |
+| `0x0085F020` | `AppearancePhaseFeature` slot 7 | 2 |
+| `0x00868450`, `0x00868490` | referenced as data from `0x0086B540`, `AppearancePhaseFeature` slot 4 | 3 |
+| `0x0085E8B0` | `AppearancePhase` slot 20 | 2 |
+
+INFERRED. The Hair, Face and Feature phases hold view state 3 and return
+to state 2 from their slot 7 methods, so the averts that the update gates on
+state 3 play only in those phases.
+
+### Creation camera context
+
+STATIC. The camera command receiver `0x0061A6C0` dispatches its command
+through the table `0x0061AE48` (`0x0061A6D7..0x0061A6E8`). Entries 28, 29 and
+30 send ids `0x1C`, `0x1D` and `0x1E` to `0x0061AADC`, `0x0061AB10` and
+`0x0061AB44`. Each finds context key 9 in the registry at `+0x1B0` through
+`0x006222B0` and calls `0x007F1170`, `0x007F12B0` or `0x007F13F0` on it.
+
+STATIC. The context constructor arm at `0x007F2700` writes vtable
+`0x00FF0F74`, the `CameraActorContextCharaCreate` vtable of the catalog, and
+stores 3.0 (`0x00FA7AD8`) at `+0x10`, 5.0 (`0x00FA7B20`) at `+0x14`, 1.0
+(`0x00F54F70`) at `+0x1C` and 8.0 (`0x00FBAC18`) at `+0x20`.
+
+STATIC. The handlers write the dword `+0x50` and the float `+0x14`:
+
+| Handler | Camera id | View state | `+0x14` | `+0x50` |
+| --- | --- | ---: | --- | ---: |
+| `0x007F1170` | `0x1C` | 3 | `+0x1C` | 1 |
+| `0x007F12B0` | `0x1D` | 2 | `+0x20` | 0 |
+| `0x007F13F0` | `0x1E` | 4 | 2.0 (`0x00F62F64`) | 2 |
+
+Each also stores 0 at `+0x54` and writes `+0x18` and `+0x0C`.
+
+STATIC. The update, slot 1 `0x007F27B0`, clamps `+0x14` to the range 1.0 to
+5.0 (`0x007F28A1..0x007F28CE`) after adding the scaled pointer words
+`+0x1BE` and `+0x1C2` of the camera. It then switches on `+0x50`: 0 calls
+`0x00664100` with the float at `0x00F62F60`, 1 calls `0x00660090` and 2 calls
+`0x006601D0` (`0x007F28D3..0x007F2912`).
+
+INFERRED. `+0x14` is the distance goal, so state 3 closes to 1.0 and state 2
+draws back to the 5.0 limit, the stored 8.0 reading as 5.0 after the clamp.
+The joints the three look-at helpers read and the sender of state 4 were not
+traced.
 
 ### Facing setter `0x00587C10`
 
@@ -457,8 +510,131 @@ registration slot is zero it calls `0x004D74C0` on `[B+4]`, calls virtual
 slot (`0x006AF363..0x006AF3F5`, `boot_skillequip` at
 `0x006AF3D5..0x006AF3F5`).
 
-The readers of the four creation sheets were not traced. The decoded sheet
-shapes are in `xivl-client-data:docs/character-creation-sheet-shapes.md`.
+The decoded sheet shapes are in
+`xivl-client-data:docs/character-creation-sheet-shapes.md`.
+
+### Parts loader
+
+STATIC. The BootupManager update arm at `0x006B19BD..0x006B1A3D` reads the
+handle at `ESI+0x1CC8`, which is the `boot_charaParts` registration slot
+`B+0x1CFC` because ESI is B `+0x34` there. It advances the row counter
+`ESI+0x1B78` once per pass (`0x006B19FE`) and stops at 15
+(`0x006B1A3D`). For cells 0 to 23 (`CMP EDI,0x18` at `0x006B1A2D`) it
+passes the row, the cell and the cell text to `0x006AECE0` on B
+(`0x006B1A07..0x006B1A30`).
+
+STATIC. `0x006AECE0(row, cell, text)` splits the text at commas
+(`0x006AED8E`). An entry without `/` (`0x00FD2414`) is read with `_atol`,
+or for cells `0x12` to `0x16` through `0x006A8F50`
+(`0x006AEE65..0x006AEE88`). An entry with `/` is split at `/`
+(`0x006AEF52`) and its last element read with `_atol` plus 1
+(`0x006AEFAD..0x006AEFEB`). Each value is appended through `0x006B4FF0` to
+the list at `B + 16 * (cell + 24 * row + 0x1B8)` (`0x006AEEA0..0x006AEEB1`).
+
+STATIC. `0x006AA030(cell)` answers the list at
+`B + 16 * (cell + 24 * index + 0x1D0)`, `index` being the dword
+`0x006A99C0(B+0x1C8, B+0x1CC)` returns (`0x006AA030..0x006AA05E`).
+
+INFERRED. `0x006A8F50` reads a hexadecimal colour, the slash entries store
+the count of a list's variations, and `0x006AA030` answers a list of the
+current tribe.
+
+### Appearance window table
+
+STATIC. The table at `0x012D1738` holds 18 entries of four dwords up to
+`0x012D1858`. `0x0085E7F0(window)` finds the entry whose first dword is the
+window and copies all four (`0x0085E7F0..0x0085E833`).
+
+| Window | Dword 1 | Dword 2 | Dword 3 | Window form |
+| ---: | ---: | ---: | ---: | --- |
+| 0 | 1 | 9 | 0 | `AppearancePhaseSizeWin` |
+| 1 | 18 | 10 | 0 | `AppearancePhaseVoiceWin` |
+| 2 | 16 | 0 | 18 | `AppearancePhaseSkinColorWin` |
+| 3 | 2 | 1 | 0 | `AppearancePhaseHairStyleWin` |
+| 4 | 15 | 3 | 19 | `AppearancePhaseHairColorWin` |
+| 5 | 3 | 8 | 21 | `AppearancePhaseHairMColorWin` |
+| 6 | 4 | 2 | 0 | `AppearancePhaseHairVaWin` |
+| 7 | 17 | 4 | 20 | `AppearancePhaseFacePColorWin` |
+| 8 | 5 | 5 | 0 | `AppearancePhaseFaceTypeWin` |
+| 9 | 8 | 13 | 0 | `AppearancePhaseFaceEyebroWin` |
+| 10 | 10 | 12 | 0 | `AppearancePhaseFaceEyeWin` |
+| 11 | 9 | 11 | 0 | `AppearancePhaseFacePupilWin` |
+| 12 | 11 | 14 | 0 | `AppearancePhaseFaceNoseWin` |
+| 13 | 13 | 15 | 0 | `AppearancePhaseFaceMouthWin` |
+| 14 | 14 | 17 | 0 | `AppearancePhaseFeatureWin` |
+| 15 | 12 | 16 | 0 | `AppearancePhaseFaceContWin` |
+| 16 | 6 | 21 | 0 | none |
+| 17 | 7 | 22 | 22 | `AppearancePhaseFColorWin`, `AppearancePhaseFTColorWin` |
+
+STATIC. The form column comes from the phase methods that push a form path
+and a window id before calling `0x00863970` or `0x00863750`: the path
+pushes at `0x0086935D` (1), `0x00869395` (2), `0x00868538` (3),
+`0x008685AB` (4), `0x008685E3` (5), `0x00868573` (6), `0x00867FAB` (7),
+`0x00867EC8` (8), `0x00867F03` (9), `0x00867F3B` (10), `0x00867F73` (11),
+`0x00867FE3` (12), `0x0086801B` (13), `0x00868233` (14), `0x00868053` (15),
+`0x008681F8` (17) and `0x0086826B` (17). The Size form push at `0x00869324`
+passes EBX as the id, read as 0. No push for window 16 was found among
+these.
+
+STATIC. Readers of the entry:
+
+- `0x00863C60` and `0x00863DB0` pass dword 2 to `0x006AA030`
+  (`0x00863C72..0x00863C89`, `0x00863DC5..0x00863DDD`). `0x00863CF0` also
+  reads the entry (`0x00863D69`).
+- `0x00863830` passes dword 3 to `0x006AA030` (`0x00863845..0x0086387A`).
+- `0x00867040` reads dword 1 as an index into the vector at `[EBX+4]`
+  (`0x008671A6..0x008671FA`).
+
+STATIC. `0x00864120` fills the value at `+0x29C` of each of up to 32 Buttons
+at `+0x250 + 4 * index`. Windows 6 and `0x11` store the index. Every other
+window stores the entry of its dword 2 list at the index from `0x00863DB0`,
+for an index below the count `0x00863CF0` gives (`0x0086414F..0x00864191`).
+
+INFERRED. Dword 2 names the `boot_charaParts` cell that lists a window's
+values, dword 3 the colour cell of a colour window, and dword 1 the
+`boot_charaLook` cell that holds a template's value for the window. The data
+join is in `xivl-client-data:docs/character-creation-sheet-shapes.md`.
+
+## Bootup background
+
+STATIC. The form string `\system\bootup\BootupBg.form` at `0x01052048` has
+one reference, `0x008838E8` in the BootupBg constructor `0x008838A0`.
+`0x006A9C60` loads `[B+0x1BA8]` and jumps to `0x008839B0`.
+
+STATIC. BootupBg slot 4, `0x008839E0`, binds the Labels named by the pointer
+table `0x012D68D8` (`Label_BgLimsaLominsa`, `Label_BgGridania`,
+`Label_BgUldah`) and the Borders named by `0x012D68E4`
+(`Border_BgLimsaLominsa`, `Border_BgGridania`, `Border_BgUldah`). It divides
+two sizes by 1920.0 (binary64 `0x01052118`) and 1200.0 (binary64
+`0x01052110`), formats the smaller quotient with `%.4f` and writes the text
+to `RenderTransform.ScaleX` and `RenderTransform.ScaleY` of each Border
+(`0x00883ACF..0x00883B9F`).
+
+STATIC. `0x008839B0(city, command)` sends the string
+`[0x012D68CC + 4 * command]` to the Label at `+0x1B8 + 4 * city` through
+`0x006A4ED0`. The table holds `BG_FadeIn`, `BG_FadeOut` and `BG_FadeOut`.
+
+STATIC. The callers of `0x006A9C60` are `0x00860110` (`0x00860153`,
+`0x00860167`), slot 21 of `LocationPhase`, and `0x00865C60` (`0x00865C90`,
+`0x00865D5E`, `0x00865D9A`), slot 20 of `LocationPhase`.
+
+INFERRED. The city backgrounds fade in and out only on the location step,
+in the city order Limsa Lominsa, Gridania, Ul'dah.
+
+Reproduce the creation sections with `ghidra x-ref to 0x006aac60`,
+`ghidra disasm 0x0061a6c0 -n 12`, `ghidra memory read 0x0061ae48 160`,
+`ghidra disasm 0x0061aadc -n 14`, `ghidra disasm 0x007f2700 -n 30`,
+`ghidra disasm 0x007f1170 -n 40` (and `0x007f12b0`, `0x007f13f0`),
+`ghidra disasm 0x007f2892 -n 40`, `ghidra disasm 0x006b19bd -n 50`,
+`ghidra disasm 0x006aece0 -n 260`, `ghidra disasm 0x006aa030 -n 20`,
+`ghidra memory read 0x012d1738 288`, `ghidra x-ref to 0x012d1738`,
+`ghidra disasm 0x00864120 -n 80`, `ghidra disasm 0x0086935d -n 2` for each
+form push above, `ghidra x-ref to 0x01052048`, `ghidra disasm 0x008839b0 -n 10`,
+`ghidra disasm 0x00883ab8 -n 60` and `ghidra x-ref to 0x006a9c60`. Read the
+floats `0x00FA7AD8`, `0x00FA7B20`, `0x00F54F70`, `0x00FBAC18`, `0x00F62F64`,
+the binary64 values `0x01052110` and `0x01052118`, the strings at
+`0x0104A2D8` and the other form pushes, `0x01051FAC..0x01052090` and
+`0x00FD2414`, and the owners of the caller slots in the vtable slot catalog.
 
 ## Open
 
@@ -467,8 +643,13 @@ shapes are in `xivl-client-data:docs/character-creation-sheet-shapes.md`.
 - The actor builder that takes the roster appearance, the meaning of actor
   message `0x25`, and the select update slots of the CharaCreate and
   CharaFocus camera contexts.
-- The readers of the four creation sheets and the creation phases that
-  hold view state 3.
+- The readers of `boot_charaTemp`, `boot_charaLook` and `boot_skillequip`,
+  the vector `0x00867040` indexes by dword 1 of the window table, and the
+  window that id 16 serves.
+- The joints the CharaCreate look-at helpers `0x00664100`, `0x00660090` and
+  `0x006601D0` read, and the sender of view state 4.
+- The consumer of the BootupBg Label commands and the sizes its init
+  divides.
 - The resolution of `cbem_make_id0` and `avert1` to `avert4` against the
   `9998` files, the receiver of the effect messages 3, 4 and 5, and the `bg_effect` and
   `select` schedulers of `0x7FDB0000`.
