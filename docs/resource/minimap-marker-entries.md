@@ -4,8 +4,8 @@ The `MapScreenControl` of the [MiniMap base tiles](minimap-base-tiles.md)
 page keeps retained marker entries for its data rows and for the actors of
 the scene. This page records the marker properties, where an entry takes its
 position, how arrange places, fades and orders an entry, how an actor entry
-picks its row, the position visibility gate, the navigation window markup
-and the header words of the marker packages. Control offsets
+picks its row, the position visibility gate, the quest map index, the
+navigation window markup and the header words of the marker packages. Control offsets
 are offsets of that control object. It supplements the
 [direction and view cone](minimap-direction-and-view-cone.md) page and the
 "Marker wrapper and row context" section of the
@@ -231,8 +231,38 @@ the low six bits of an actor's marker number select its `2Dmap_actor_data`
 row and the self actor takes row 0. A control with a nonempty `Filter` shows
 the self entry and the overridden entries and hides every other actor entry.
 
-UNKNOWN: the writers and meaning of bit 2 of actor `+0x26D` and bit `0x02` of
-actor `+0x274`.
+STATIC. The only set of bit 2 of the element byte `+0x26D` is
+`OR byte ptr [ESI+0x26D], 4` at `0x0058E407` in the `CharaElement` scene event
+dispatcher. Its switch subtracts `0x4A` from the event and jumps through the
+table at `0x0058E6B0` (`0x0058E0DF..0x0058E0EB`, table reference at
+`0x0058E0F4`). The cell `0x0058E6DC`, index 11, sends event `0x55` to
+`0x0058E3EC`, which calls virtual `+0x2C` of the `+0xBA0` subobject with the
+result of `0x004D6750` and then sets the bit (`0x0058E3EC..0x0058E407`).
+The cell `0x0058E6F4` of event `0x5B` is index 17.
+
+STATIC. Among the 85 call sites of the scene post `0x007CE7B0`, the only one
+that pushes the immediate event `0x55` is `0x0065FF37` in `0x0065FDA0`, with
+a four-byte value 1 (`0x0065FF24..0x0065FF37`). The route through
+`0x008064A0`, whose event is its argument, was not resolved. `0x0065FDA0`
+has one caller, the actor update `0x006679C0` at `0x00668150`. It acts only
+while bit `0x400000` of the scene actor dword `+0x2B70` is set and its step
+counter is 0 (`0x0065FDB4..0x0065FDDC`). After the post it clears that bit
+(`0x0065FF3C`) and later stores `0xED` at `+0x1170` (`0x0065FF57`).
+
+STATIC. A byte search for the `+0x2B70` displacement followed by the
+immediate `0x400000` finds only the set at `0x0065AA7C` and the test at
+`0x0065FDCA`. `0x0065AA70(value)` sets the bit and stores the value at
+`+0x1170` only when the value differs from `+0x1170`, and stores 0 there
+instead when bit 0 of `[[this+0x2B5C]+0x4C]` is set (`0x0065AA70..0x0065AAA2`).
+It has 182 direct callers between `0x007A3B43` and `0x007C1CB4`.
+
+STATIC. `AND byte ptr [reg+0x26D], 0xFB` clears bit 2 of the element byte at
+`0x00585DF5`, `0x00589D35` and `0x00589D91`.
+
+INFERRED. Bit 2 of `+0x26D` reports that the scene actor finished a
+requested motion change, so an actor entry waits until that report.
+
+UNKNOWN: the meaning of bit `0x02` of actor `+0x274`.
 
 ## Position visibility
 
@@ -260,9 +290,79 @@ STATIC. The update `0x006795D0` sets the holder from `0x0067972D`:
 The s2c `0x018D` consumer tests the byte `+0x57C` against 2 at `0x00671574`
 ([0x018D consumer](../net/s2c-018d-client-consumer.md)).
 
+STATIC. `+0x4F8` is the `PlayerPosX` holder. The name literal `PlayerPosX`
+at `0x00FC272C` is registered by the initializer `0x00F11D80` with the
+descriptor `0x01340228` and tag `0x1C` (stored at `0x0134023C`). The setter
+arm `0x00673F61..0x00673F82` passes the descriptor and the holder
+`+0x4F8` to `0x00596950`, and the constructor registers the descriptor at
+`0x0067A3DC..0x0067A3DE`. The writer `0x00675840` tests `+0x9F0` against 1,
+reads `+0x638`, `+0x63C` and the binary64 at `0x00F55AD0`, and writes the
+holder through the descriptor (`0x0067584A..0x006758FF`).
+
+STATIC. The aliases above are, in decimal, 331 to 321, 131 to 121, and 422
+or 431 to 421.
+
 INFERRED. `PosVisibility` is 2 while the control shows the map that holds the
-player and `+0x4F8` is set, so the `0x018D` rows are taken only then. Which
-values `+0x4F8`, `+0x9F4`, `+0x9FC`, `+0xA54` and `+0xA58` hold was not
+player and `PlayerPosX` is set, so the `0x018D` rows are taken only then.
+Which values `+0xA54` and `+0xA58` hold was not traced.
+
+## Quest map index
+
+STATIC. The name literal `QuestMapIndex` at `0x00FC2814` is registered by the
+initializer `0x00F11F20` with the descriptor `0x013403D8` and tag `0x28`
+(stored at `0x013403EC`). The setter arm `0x00674201..0x00674228` passes the
+descriptor and the holder `+0x56C` to `0x00596950`. The typed writer
+`0x00675480` passes the same descriptor and holder to `0x00596520`.
+
+STATIC. The SSD pass `0x00678C80` reads the holder at `0x00678CBD`. With
+`+0x56C` not -1 and a source at `+0x498` whose `+0x10` is not null:
+
+- it calls virtual `+0x20` of the source for its row list, formats the
+  index with `%d` (`0x00FC29D4`) and looks up the row whose `ssdindex`
+  (`0x00FC29D8`) equals that text through `0x00DC2F00`
+  (`0x00678CCA..0x00678D5B`)
+- with no such row it takes the index as a position through `0x0067B3F0`
+  when it is below the row count (`0x00678D8A..0x00678DB5`)
+- from the row it reads `Layout` (`0x00FC29E4`) and `Floor` (`0x00FC29EC`)
+  through `0x00670850` and writes them through the `Layout` writer
+  `0x00674640` (descriptor `0x0133FEEC`, holder `+0x470`) and the `Rect`
+  writer `0x006746A0` (descriptor `0x0133FF10`, holder `+0x478`). It writes
+  `Ready` 1 through `0x00674700` (descriptor `0x0133FF34`, holder `+0x480`)
+  and sets the load request bit `+0xA69 & 0x10`
+  (`0x00678DBB..0x00678E05`)
+- it reads `X` (`0x00FC29F4`) and `Z` (`0x00FC29F8`) through `0x00670990`,
+  and when the pair differs from `+0x630/+0x634` (`0x0067AAE0`) stores it
+  there and calls `0x00672D30` (`0x00678E0D..0x00678E5E`)
+
+STATIC. `0x00672D30(pair)` compares the pair with `+0x640/+0x644`, passes a
+changed pair through `0x00672A80`, stores the result at `+0x640/+0x644` and
+sets bits of `+0xA68` (`0x00672D30..0x00672E13`). Another update calls it
+with `+0x630` while `+0x56C` is not -1 (`0x006783CD..0x006783E5`).
+
+STATIC. The constructor `0x00679ED0` registers `0x00671E00` six times through
+`0x006804F0` (`0x00679F55..0x00679FC7`). `0x00671E00` refuses a row whose
+dword `+4` is 8. For a row with a nonempty `Layout` (`0x00FC2988`), a zero
+sixth argument and `+0x56C` not -1, it refuses the row unless its `ssdindex`
+(`0x00FC2990`) equals `+0x56C` (`0x00671EBF..0x00671EE9`). The following
+compare at `0x00671EEF..0x00671F21` tests the control's target layout and
+page against themselves, so a matching row is kept whatever its own layout.
+On the other branch a row whose `HideLayout` (`0x00FC299C`) equals a set
+`+0x9F8` is refused (`0x00671F47..0x00671F65`).
+
+STATIC. Two native callers of `0x00675480` write the index:
+
+- `MapNavigationWidget` vtable `0x00F9EFB4` slot 8, `0x004FCA20`. With its
+  `+0x254` equal to 3 it calls `0x004F1850(1, &[+0x258])` and passes
+  `[+0x258]` to `0x00675480` on the control at `+0x24C`
+  (`0x004FCA24..0x004FCA56`).
+- `MapMenuTopJournal` vtable `0x00F9D3D0` slot 3, `0x004FCEB0`. For an
+  argument other than 8 it passes the dword at `this+0x10+4*argument` to
+  `0x00675480` on the control at `[[this+8]+0x24C]`
+  (`0x004FCED9..0x004FCEEB`).
+
+INFERRED. A `QuestMapIndex` write shows the `ssd_marker_data` row of that
+`ssdindex`, loads its layout and floor as the shown page, and centres the
+map on its `X` and `Z`. Who sets `MapNavigationWidget` mode 3 was not
 traced.
 
 ## Navigation window markup
@@ -283,6 +383,23 @@ decoded with `xivl extract-resource`:
   control.
 
 `MiniMapWidget.form` declares no `GroupMarkerSource`.
+
+MEASURED. `MapNavigationWidget.form` holds no `UILuaCommands.Activated`
+text. Its window template `ControlTemplate_Window_MapNavigationWidget` in
+`client/sqwt/widget/MapNavigationWidget.tpl` (file SHA-256
+`da386f16168c709a1533abe76ec55d6675533079fc34c4d8be719b60cd977483`,
+decoded SHA-256
+`5394098335ccfa4fb6577ee09d1aefbcaaed4f6a7e34332c9313f16f389cc6be`)
+declares `EventTrigger RoutedEvent="Shown" Name="WindowOpen"`, whose
+`BeginStoryboard` Storyboard has `CompletedCommand="UILuaCommands.Activated"`
+and a `DoubleAnimation` of `VisualOpacity` from 0 to 1 over `0:0:0.2`. The
+`MapNavigationWidget.sd.tpl` variant (decoded SHA-256
+`4b9e44a2082a9a21cd46404f9ac26292d54fc03c1a652b7c7c2f872ba5abd22b`) carries
+the same completion. Many other window templates of `client/sqwt` carry an
+`Activated` completion too, among them the `WINBasis` families.
+
+INFERRED. The navigation window's `Activated` command reaches its script when
+the `Shown` fade completes, about 0.2 s after the window shows.
 
 MEASURED. `client/sqwt/common/MapMarker.tpl` (decoded SHA-256
 `68a685d900291186ba0b6472e8a6f9054459d2b2d874913725ee0fb8fe1e5555`)
@@ -338,10 +455,40 @@ ghidra disasm 0x00675CF0 -n 50
 ghidra disasm 0x00F11F70 -n 5
 ghidra disasm 0x0067A6C0 -n 10
 ghidra disasm 0x0067972D -n 80
+ghidra disasm 0x0058E0D8 -n 10
+ghidra memory read 0x0058E6B0 108
+ghidra disasm 0x0058E3EC -n 9
+ghidra x-ref to 0x007CE7B0
+ghidra disasm 0x0065FDA0 -n 140
+ghidra disasm 0x0065AA70 -n 14
+ghidra find bytes 702b000000004000
+ghidra x-ref to 0x0065AA70
+ghidra disasm 0x00F11D80 -n 5
+ghidra disasm 0x00673F61 -n 10
+ghidra disasm 0x00675840 -n 60
+ghidra disasm 0x00F11F20 -n 5
+ghidra disasm 0x00674201 -n 12
+ghidra disasm 0x00675480 -n 16
+ghidra disasm 0x00678CBD -n 120
+ghidra disasm 0x00672D30 -n 80
+ghidra disasm 0x006783C0 -n 12
+ghidra disasm 0x00671E00 -n 130
+ghidra find bytes 001e6700
+ghidra x-ref to 0x00675480
+ghidra disasm 0x004FCA20 -n 20
+ghidra disasm 0x004FCEB0 -n 20
 ```
 
+For the event `0x55` scan, disassemble the instructions before each
+`0x007CE7B0` call site and read the third push before the call. Read the
+strings at `0x00FC2814`, `0x00FC272C`, `0x00FC2988` to `0x00FC29F8` and the
+vtable slots of `MapNavigationWidget` (RVA `0xB9EFB4`) and
+`MapMenuTopJournal` (RVA `0xB9D3D0`) in the
+[vtable slot catalog](../../config/ffxivgame.vtable_slots.jsonl).
+
 Repeat the initializer read for each address in the property tables. Extract
-the forms and `common/MapMarker.tpl` with `xivl extract-resource` and read
+the forms, `widget/MapNavigationWidget.tpl`, `widget/MapNavigationWidget.sd.tpl`
+and `common/MapMarker.tpl` with `xivl extract-resource` and read
 line 19 and the three reader elements of the minimap form, the map control,
 readers and controls of the navigation form, and the `MapMarkerParty`
 template. Read the first 0x18 bytes of each package.
