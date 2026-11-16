@@ -125,9 +125,10 @@ through `0x007C7F80`, stores the float -1.0 (`0x00F62F80`) at copy
 (`0x007B7216..0x007B7263`). In both cases, when record `+0x74` differs from
 the owner's `+0xDC` it calls `0x0065B2C0(+0x74)` (`0x007B7273..0x007B7281`).
 
-`0x007C21B0` has one caller, `0x00667F04` in `0x006679C0`. While byte
-`+0xB3C` of its owner is 0 it pops each entry of the first container
-(count `+0x30`) through `0x007B6400` (`0x007C21F0..0x007C2260`). It then
+`0x007C21B0` has one caller, `0x00667F04` in `0x006679C0`. It pops every
+entry of the first container (count `+0x30`) and passes each to
+`0x007B6400` only while byte `+0xB3C` of its owner is 0
+(`0x007C21F0..0x007C2260`). It then
 walks the second container (count `+0x58`). An entry whose `+0x208` is
 below 0.0 goes to `0x007BFBD0(entry, 0.0)` (float `0x00FA4460`). An entry
 at or above 0.0 has the float argument subtracted from `+0x208`
@@ -139,9 +140,91 @@ at or above 0.0 has the float argument subtracted from `+0x208`
 
 INFERRED. The clip enter only queues the record. The receiver starts its
 damage schedulers from the frame update of `0x006679C0`, in the update
-after the enter for a record of the second container. The removal of
-entries marked -10000.0 and the route of the first container to
-`0x007BFBD0` were not traced.
+after the enter for a record of the second container. The route of the
+first container to `0x007BFBD0` was not traced.
+
+## Result drain `0x007C21B0`
+
+STATIC. Each container is a ring of record pointers with data `+4`,
+capacity `+8`, head `+0xC` and count `+0x10` from its base. The first
+container is based at `+0x20`, the second at `+0x48` and the auto attack
+container of the [clip enter](#raptureactionselectdamagemccclip-enter) at
+`+0x34` (data `+0x38`, capacity `+0x3C`, head `+0x40`, count `+0x44`).
+
+- After the second container's walk, when the head entry's `+0x208` is
+  below -9999.0 (float `0x00FE81B8`), `0x007C4310` compacts that
+  container (`0x007C2443..0x007C245C`).
+- From `0x007C2470` the routine walks the `+0x34` container. For each head
+  record it computes the binary64 10.0 at `0x00F67848` divided by the
+  record float `+0x10` (`0x007C24E3..0x007C24FB`), allocates a
+  `0x20C`-byte entry through `0x0044D500(0x20C, 0, 0x1F)` (`0x007C2543`)
+  when the ring slot is empty, copies the record into it through
+  `0x007C7F80` (`0x007C2572`), stores the quotient at `+0x208`
+  (`0x007C2588`) and counts it into the second container
+  (`0x007C25A0`). It then calls `0x007BB990(record)` with ECX the drain
+  owner (`0x007C25DA`) and pops the record through its virtual `+0`
+  (`0x007C25F4`).
+- From `0x007C262A` the routine walks a further container (count `+0x1C`),
+  which is not traced here.
+
+INFERRED. A record of category `0x11` or `0x19` starts its guard or brace
+motion in the drain after the enter, and its damage schedulers through
+`0x007BFBD0` once `10.0 / f` units of the drain's float argument have
+passed, f being the record float `+0x10`. The writer and unit of that
+float are not traced. Any other record starts its damage schedulers in the
+update after the enter and never reaches `0x007BB990` from this routine.
+
+## Guard and brace motion `0x007BB990`
+
+STATIC. `0x007BB990(record)` returns when the receiver's virtual `+0x268`
+is nonzero and when `0x007A0150(record+0x74)` finds no source actor
+(`0x007BB990..0x007BB9C9`). It then finds the receiver's row.
+
+- With the signed byte `record+0xC` at or above 0 it walks the list of
+  `0x0080B0F0` and `0x0080B020` for an entry whose `+8` is the receiver's
+  `+0xDC` and whose row byte `record + 0xAF + 0x14 * i` equals
+  `record+0xC` (`0x007BB9D3..0x007BBA25`).
+- With `record+0xC` negative it takes the first of the u16 `record+0x98`
+  rows whose target `record + 0xA0 + 0x14 * i` is the receiver's `+0xDC`
+  (`0x007BBA33..0x007BBA6A`).
+
+The row code is the low nibble of `record + 0xAE + 0x14 * i`
+(`0x007BBA78..0x007BBA87`). The stance flag is set when the receiver byte
+`+0xB39` is 2 or `0x51` (`0x007BBA8B..0x007BBAA0`). The routine returns
+unless the kind `(E >> 27) & 0xF` of the row effect dword E is 1 or 2
+(`0x007BBAA2..0x007BBAB1`). When the signed byte `record+0xB` is nonzero it
+calls `0x0065DE40` with the row code, a side value from the jump table
+`0x007BBD60` and E with bits 28 to 30 cleared and bit 27 set
+(`0x007BBAB7..0x007BBB12`), not followed here.
+
+It then takes `(E >> 9) & 0x3F` minus 3 into the 18-entry jump table
+`0x007BBD80` (`0x007BBB17..0x007BBB28`). A value above 17 plays nothing.
+Each arm passes one name to `0x007BA0E0`.
+
+| Damage type | Motion name | Strings |
+| ---: | --- | --- |
+| 3, 4 | `cbbm_dmg_brace` with the stance flag, `cbnm_dmg_brace` without it, only when `0x007A3EE0(receiver+0x590)` is true and the row code is 1 | `0x00FE6248`, `0x00FE6258`, `0x00FE6268`, `0x00FE6278` |
+| 5, 6 | none | |
+| 7, 9 | `cbbm_grd1_f_1` with or without the stance flag | `0x00FE6288`, `0x00FE62A8` |
+| 8, 10 | `cbbm_grd2_f_1` with or without the stance flag | `0x00FE6298`, `0x00FE62B8` |
+| 11 to 20 | `cbbm_dmg_brace` with the stance flag, `cbnm_dmg_brace` without it | `0x00FE62C8..0x00FE63F8` |
+
+The table `0x007BBD80` holds `0x007BBB2F`, `0x007BBB6D`, `0x007BBB63`
+twice, `0x007BBBAB`, `0x007BBBC3`, `0x007BBBDB`, `0x007BBBF3`, then
+`0x007BBC0B` to `0x007BBD3D` in steps of `0x22`.
+
+STATIC. `0x007BA0E0(name)` returns false when the receiver's virtual
+`+0x268` is nonzero, its byte `+0xB3C` is nonzero, its byte `+0xB3D` is 1
+to 13, `0x007A5320` on receiver `+0xB80` answers false, or `0x007ADA50` on
+receiver `+0x4C0` answers true (`0x007BA0E0..0x007BA138`). Otherwise it
+calls `0x007ACD60` on `+0x4C0`, passes the name to `0x007B9920`
+(`0x007BA162`) and, on success, to `0x007B1030` (`0x007BA17E`). It tries no
+second name.
+
+INFERRED. The stance flag is the battle stance, so an auto attack that the
+receiver guards plays `cbbm_grd1_f_1` or `cbbm_grd2_f_1` in or out of
+battle, and a brace plays the `cbbm_` name in battle and the `cbnm_` name
+out of it.
 
 ## Result decoder kinds 1 and 2
 
@@ -343,7 +426,16 @@ ghidra disasm 0x0055fb40 -n 30
 ghidra disasm 0x00821390 -n 60
 ghidra disasm 0x007b71b0 -n 80
 ghidra disasm 0x007a1810 -n 400
+ghidra disasm 0x007c21b0 -n 330
+ghidra x-ref to 0x007bb990
+ghidra disasm 0x007bb990 -n 260
+ghidra disasm 0x007ba0e0 -n 50
 ```
+
+For the drain and the guard motion, also read the dwords of `0x007BBD60` (8)
+and `0x007BBD80` (18), the strings `0x00FE6248..0x00FE63F8` in steps of 16,
+the binary64 at `0x00F67848` and the floats at `0x00FE81B8`, `0x00FA4460`
+and `0x00FA7B24`.
 
 Read the dwords of `0x00FA4948` (4), `0x0126F4B0` (2), `0x007A26D8` (4),
 `0x007A26E8` (6), `0x007A2720` (28), `0x007A2790` (5), `0x007A27A4` (4),
@@ -355,9 +447,10 @@ before `0x00FF543C` and `0x00FF54FC`, from the file-backed sections.
 
 ## Open
 
-- The removal of entries marked -10000.0, the first container's route to
-  `0x007BFBD0`, and the meaning of record words `+0x78`, `+0x68` and
-  `+0x0D`.
+- The first container's route to `0x007BFBD0`, the container walked from
+  `0x007C262A`, the writer and unit of the record float `+0x10`, and the
+  meaning of record words `+0x78`, `+0x68` and `+0x0D`.
+- `0x007A3EE0`, the row code byte, `record+0xB` and `0x0065DE40`.
 - The arms of `record+0x0D`, the scheduler pointers `0x012C4E0C` to
   `0x012C4E18`, and kinds 6, 13 and 14.
 - The writer of `this+0x94` before `0x0055FB40`, and what loads

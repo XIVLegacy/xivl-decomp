@@ -454,6 +454,7 @@ Each finding records its evidence and the limits of what it establishes.
   Phase factory, logo and rating end conditions, and the title version text.
 - [Character select status block](resource/character-select-status-block.md)
 - [Qix control module registry](resource/vfx-control-module-registry.md)
+- [VFX LeafMatrixCib leaf scale](resource/vfx-leaf-matrix-scale.md)
 - [Qix veff data body](resource/vfx-effect-data-body.md)
 - [Qix effect runtime](resource/vfx-effect-runtime.md)
 - [Qix DrawResource, model shaders and render state](resource/vfx-drawresource-and-shaders.md)

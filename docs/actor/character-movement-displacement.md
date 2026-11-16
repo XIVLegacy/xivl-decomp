@@ -80,6 +80,30 @@ with rounding at each float vector instruction. Non-positive lanes retain
 their original input through masks. This describes the observed operations,
 not an exact replacement with mathematical `1/sqrt(L)`.
 
+### First-person arm
+
+STATIC. The mode byte table `0x00665AC8` holds `0 1 0 1 2 2 2 2 0 0 0`
+for the camera keys 0 to 10, and the arm table `0x00665ABC` holds
+`0x0066534F`, `0x006656F8` and `0x006658A5`. Keys 1 and 3, the
+first-person keys, take `0x006656F8`. The bytes load as above: `a` from
+`C+0x11B8` at stack `+0x14`, `b` from `C+0x11B9` at `+0x1C`, `c` from
+`C+0x11BA` at `+0x40` and `d` from `C+0x11BB` at `+0x18`
+(`0x006652CF..0x00665335`).
+
+- With `0x007A4610` false (`0x006657BD..0x00665812`) the arm builds
+  `q.x = -0.0f - c` (float `0x00F62FA0`), `q.y = 0` and
+  `q.z = float(-0.0 - (double(d) + double(b)))` (double `0x00F63008`), and
+  calls `0x0042F740` and `0x00661270` as the first arm does. Byte `a` is not
+  in the vector.
+- With `0x007A4610` true (`0x00665707..0x006657B8`) a positive `b` jumps to
+  `0x00665590`. Otherwise it builds the same vector, then turns the actor
+  through `0x007AA5B0` by `(a + c) / -20.0 * dt` (double `0x00FC1050`).
+
+INFERRED. In first person byte `a` turns the view through the
+[camera update](camera-input-chain.md#first-person-update) and byte `c`
+alone moves the actor sideways. Which binding command writes each byte is
+not established on this page.
+
 ## Retained direction and state
 
 The copied vector reaches `0x007AA690` at `0x00665A96`, followed by

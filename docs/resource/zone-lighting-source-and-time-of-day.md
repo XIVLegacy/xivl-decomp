@@ -131,7 +131,9 @@ second argument of `0x00C2F8F0` is a flag, not an axis index. The world matrix
 is the product of the node local matrix and a matrix reached through the
 node's `+0xD4` object (I). Position is from `0x00C2F450`. The weather lights
 keep the transform authored on their layout instance record (the clip
-transform write is disabled, see the curve page). In `wtr_fine` lane 00 those
+transform write is disabled, see the curve page), and the outdoor lane
+timelines also move and turn the main and sub lights through SunMoon clips,
+see [Lane light orbits](#lane-light-orbits). In `wtr_fine` lane 00 those
 records carry X-only euler rotations of opposite sign on `main_lght_00` and
 `sub_lght_00` and none on `amb_lght_00` (shape only, the sky lights carry
 multi-axis rotations). The euler composition order of the layout instance
@@ -196,8 +198,9 @@ colour is the amb light. The `ltst_NN` members are slot records of
 - `data/29/B0/00/01.DAT` (the `twn01` shape): 10 LightBase (type 0 in 1, type 3
   in 1, type 1 in 8), 2 LightSet that each list the same directional and
   ambient pair, 4 DrawEnv named `dwev_00`, `dwev_21`, `dwev_10`, `dwev_01`.
-- Zone point lights are in no LightSet. Their route into the draw is U
-  (the C+0x308 block and the fixed array at `0x0136E908` are the candidates).
+- Zone point lights are in no LightSet. The weather manager registers them
+  and hands them to BG models and actors through LightSets it fills, see
+  [Zone point light route](#zone-point-light-route).
 
 The zone directional and ambient lights are the LightSet content of the zone
 DrawEnv objects. A weather DrawEnv of the same name replaces the holder's
@@ -214,6 +217,173 @@ that separate block, as qualified in the
 [driver source finding](model-lightset-source.md#selected-vertexlight-source).
 No universal weather-versus-zone light replacement/addition rule for every
 draw follows from these distinct paths.
+
+## Zone point light route
+
+### Node getters (V)
+
+`LightBaseObject` (vtable `0x010A6884`,
+`.?AVLightBaseObject@Layout@Stella@Lay@Engine@CDev@SQEX@@`) and
+`RaptureLightBaseObject` (vtable `0x010618DC`) share slots 39 to 47, which
+read the node record D that slot `+0x20` returns.
+
+| Slot | Function | Field |
+|---|---|---|
+| `+0x9C` | `0x00AAE490` | byte D `+0x44`, LightType |
+| `+0xA0` | `0x00AAE4A0` | D `+0x20 +0x24 +0x28`, each `(int)(c * 255.0)` (binary64 `0x00F598B0`), passed with alpha `0xFF` to `0x00ABAB00`, which multiplies each byte by the binary64 `0x010A8A18` (1/255) |
+| `+0xA4` | `0x00AAE500` | D `+0x2C`, intensity |
+| `+0xA8` | `0x00AAE510` | D `+0x30`, decay rate |
+| `+0xAC` | `0x00AAE520` | D `+0x34`, cone angle |
+| `+0xB0` | `0x00AAE530` | D `+0x38`, penumbra |
+| `+0xB4` | `0x00AAE540` | D `+0x3C`, radius |
+| `+0xB8` | `0x00AAE550` | D `+0x48` when byte D `+0x10` is at least 1 (`0x00A94B70`), else 0.0 |
+| `+0xBC` | `0x00AAE590` | dword D `+0x40`, priority |
+
+The point arm of the instance apply (`0x00A9FF14`, layout type 1) writes
+runtime `+0xDC = 3`, the colour to `+0xC0..+0xCC`, the intensity to
+`+0xD0`, the decay rate to `+0xE0`, calls `0x00C2FA40` with the vector
+(1, 0, 0, 1), writes the radius to `+0xF0` and `max(0.001, slot +0xB8)` to
+`+0xE4` (float `0x00FB7AB4`, `0x00AA0017..0x00AA0141`). Every arm writes
+the priority to `+0xF4` (`0x00AA0149..0x00AA0158`). The debug dump
+prints `+0xE0` as `DecayRate : %f` and `+0xF0` as `Radius : %f`
+(`0x00AA0979`, `0x00AA0A25`). The pixel driver feeds `+0xE0` and `+0xE4`
+to PointLightParams, see [Draw-time light list and rules](#draw-time-light-list-and-rules).
+
+### Instance property flags (V)
+
+`LightInstanceObjectProperty` (vtable `0x010A4994`) slots 29 to 36
+(`0x00A9F790..0x00A9F8E0`) read the record P that slot `+0x0C` and then
+slot `+0x44` return: bits 0, 1, 2 and 3 of byte P `+0`, then the floats P
+`+4`, `+8`, `+0xC` and `+0x10`. `0x007FC1D0` copies them into the
+`RaptureLightInstanceObjectProperty` (vtables `0x00FF2B48` and
+`0x00FF2A9C`, the Stella property at `+4`) as bits 1 to 4 of byte `+0x74`
+and the floats `+0x64..+0x70`, then sets bit 0 of `+0x74`. The overrides
+`0x00800660..0x008006D0` (slots `+0x74` to `+0x90` of `0x00FF2A9C`) read
+them back.
+
+Slot 9 of `0x00FF2A9C` (`0x007FF260`) calls `0x007FEE00`, which acts only on
+a runtime point light and returns at once when the four floats are all 1.0
+(`0x007FEE3D..0x007FEECD`). Otherwise it measures the light position `+0x50`
+against a position it reads through the weather manager's `+0x114` object,
+not traced further.
+
+### Registration (V)
+
+`0x007FDC10` registers a light with `WeatherManager::AddPointLight`
+`0x007E6E90`, which inserts it into the set at manager `+0xE8` and sets
+the byte `+0x1A6`. It requires the manager (`[0x0133DEF4] +0x158`), a
+runtime type of 3, a layout type `+0x150` other than 0 and 1, and a changed
+cached position (`0x007FC2F0`, `+0x50..+0x5C`). Slot 20 of `0x00FF2A9C`
+(`0x007FED70`) calls it after the base method `0x00A9F9A0`. Slot 21
+(`0x007FEDA0`) calls the base method `0x00A9FC10` and then calls it unless
+the layout type is `0x4000`, `0x4001` or `0x4002`
+(`0x007FEDD1..0x007FEDEF`).
+
+### Assignment `0x007E5D10` (V)
+
+`this` is the weather manager. The arguments are the destination LightSet,
+the centre, the kind, the layout, the owner layout, the count and a seed
+LightSet. With a count of 0 it returns. It seeds up to two lights from the
+seed set at distance -1.0 (float `0x00F62F80`) and starts the free slots at
+FLT_MAX (`0x00FBA384`). While fewer than `count` are seeded it walks the
+`+0xE8` set and keeps the nearest one (count 1) or two (count 2) by
+`0x007EAEF0`, the squared xyz length of the difference, replacing only on
+a strictly smaller value and skipping a light already chosen. There is no
+range test. The jump table `0x007E61FC` sends the kinds to three filters on
+the Rapture property flags, read through slots `+0x74` (bit 0), `+0x78`
+(bit 1), `+0x7C` (bit 2) and `+0x80` (bit 3):
+
+| Kind | Admits |
+|---|---|
+| 0, 3 | same layout (the light's slot `+0x0C` then `+0x14` equals the layout argument), bit 2 set, bit 1 clear |
+| 1, 4 | bit 3 clear or the light's slot `+0x20` equals the owner layout, bit 0 set, bit 1 clear |
+| 2 | same layout, bit 1 clear |
+
+The chosen lights go to the destination through `LightSet::AddLight`
+`0x00C30820`, the first slot then the second (`0x007E61BB..0x007E61DE`).
+
+### BG models `0x007E6800` (V)
+
+`0x007E6800` returns unless `0x00807680` answers 1 and the layout type is
+other than `0x1000`, 0 and 1. The count is 2. For a property of type 1 or
+2 (BGChip or BGParts) it takes the count from property slot `+0x94` (byte
+`+7` of the property node, `0x00A96A80`) and two name offsets from slots
+`+0x98` and `+0x9C` (dwords `+8` and `+0xC`), and `0x007E0A50` seeds the
+named lights (`0x007E0970` splits a name at `/` for a unit tree child). The
+centre is half the sum of the model bounds from the model's `+0x88` method
+(float 0.5 at `0x00F62F60`). The call is `0x007E5D10` with kind 0 at
+`0x007E69E3`. A second caller `0x007E6A30` passes kind 2, the count from
+its object's `+0x7C` method and a centre from `+0x30..+0x3C` of its `+0x60`
+object (`0x007E6BBA`), not identified further.
+
+### Actors `0x007D5750` (V for the call, I for its holder)
+
+`0x007D5750`, called from `0x007D85D0` and `0x007D8340`, runs while bit 1
+of byte `+0x58` is set. It calls `0x007E5D10` (`0x007D5816`) on the manager
+from `0x007E02F0` with the destination at holder `+0x6A0`, the centre from
+`0x007D4450` (the position from the holder's `+0x74` object through
+`0x00AFA220` plus (0, 1.0, 0, 0)), kind 4, layout 0, the owner layout from
+`0x007D43A0(0)`, count 2 and an empty seed set. I: the holder is the
+screen environment controller that also selects the DrawEnv lane.
+
+### Point light rank (V)
+
+`LightEnv::GetLightList` `0x00C31E30` reads the cap table `0x013092DC`,
+which holds 1, 4, 2, 3, 3 and 1, and the table `0x01374C58`. The rank
+`0x00C2FBE0` of a point light is 0 beyond `+0xF0` plus the query radius,
+else `intensity / pow(d, +0xE0)` with d the distance (`0x00C2FC26..0x00C2FC82`).
+The assignment above does not call this rank.
+
+### Install census (V)
+
+Structure-only read of the Gridania layouts. `0x29B00002` places 68 point
+lights. Their property byte P `+0` reads 0 (10 lights), 1 (23), 4 (26) or 5
+(9), so 35 admit a BG model and 32 admit an actor. `0x29B00001`,
+`0x29B00003` and `0xA09B0002` read 0 and 5, 1, 4 and 5, and 0 and 5. The
+`0x29B00000` layout places no light. Every BG placement of the five layouts
+resolves a count of 2 under the rule above. Named requests occur in `0x29B00001`, `0x29B00002`
+and `0x29B00003`, some as unit tree paths such as
+`isgrp_005335/lght_shop_bg_001`.
+
+The distinct pixel programs of the `0x29B00002` models, by pass and by the
+register count of `PointLightPositions`, are pass 0: 69 with none and 3
+with 2, pass 1: 64 with 1 and 9 with 4, pass 2: 61 with 2. I: a BG model
+draws the pixel pass whose index is its point light count. The pass
+selection code is U.
+
+## Lane light orbits
+
+V (file, structure-only read). In the weather layout `0x29B0000F`
+(`wtr_fine`) the lane timelines `00`, `01` and `20` each bind
+two `LayRaptureSunMoonClip` records beside their light clips, one to
+`main_lght_NN` and one to `sub_lght_NN`. Both carry the angles (90, 225,
+90) degrees, radius 10, record word `+0x28` = 1 and length 2,400,000 ticks,
+with offset 0 on the main light and 180 on the sub light. The lanes `10`,
+`11`, `12`, `21` and `22` bind none. The `sky` and `cld` timelines carry the
+same record shape, with the offsets swapped on `sky` (main 180, sub 0). The
+weather layout `0x615A0010` carries the same pair in its lane `00` and no
+pair in its lanes `10` to `22`, `13` and `14`.
+
+The record fields, Move and the matrix rows are in the
+[SunMoon clip](sky-celestial-layout-census.md#sunmoon-clip-v-0x01060f4c-vtable-enter-0x008d2a40-update-0x008d3990)
+section, and the word `+0x28` = 1 makes `0x008D3400` rotate the node on
+every update ([Gates](sun-moon-orientation.md#gates)).
+
+I (arithmetic over those records). With `t = 2 pi k + pi / 2` for offset 0
+and `k` the day phase, the orbit point is
+`(-R cos t, -0.7071 R sin t, -0.7071 R sin t)`. It is below the horizon at
+phase 0, at `(R, 0, 0)` at 0.25, 45 degrees above the +Z horizon at 0.5 and
+at `(-R, 0, 0)` at 0.75. The sub light with offset 180 is opposite.
+
+U. A directional light shines along `(0, 0, -1)` through its node world
+matrix ([Light record](#light-record)). After `0x008D3400` that matrix
+holds the look-at basis toward the camera, whose axis roles and handedness
+are open on the [orientation page](sun-moon-orientation.md#look-at-basis).
+So whether a lane light shines from its orbit point toward the orbit
+centre or the other way is not established, and one ruling on that basis
+covers both the moon facing and the lane light direction. The mode 4 path
+(clip `+0x40`) and the moon phase roll on a light record are also not
+traced for the lane lights.
 
 ## DrawEnv cubes
 
@@ -232,6 +402,39 @@ The sampler side of the cube bind, with slot 0 read by every `chara`
 material record, is in
 [Chara engine samplers and light inputs](chara-engine-samplers-and-light-inputs.md#sampler-records-and-the-engine-bind-v).
 
+### Cube object reference
+
+V. `LayoutDrawEnvObject` (vtable `0x0109FD44`) slot 30 `0x00A81640`
+returns the reference at node `+0x28`, and slot 31 `0x00A81650` returns the
+`+0x18` row count of the node it references, or 0 when it is null. In the
+initializer `0x00A82020`, when slot 31 answers a count and slot 30 a
+reference, the finder's `+0x5C` method resolves the reference to an object,
+and for each `i` below the count the object's `+0xAC(i)` texture goes to
+`SetEnvmapTexture` `0x00C20410` with slot `i` (`0x00A82362..0x00A823B2`).
+
+V (file, structure-only read). In `0x29B0000F` each lane DrawEnv
+`dwev_NN` references the cube object `envmap_NN`, and so does each of the
+`0x615A0010` lane DrawEnvs. In `0x29B0000F`, `envmap_00` and `envmap_01` name the 64x64 cubes
+`env_00_de` (`0x615F0000`) and `env_01_de` (`0x615F0015`), `envmap_10` the
+`f0f_fine_` cube `0x72E8030F` that the object `f0f_fine_000` also names,
+`envmap_11` `f0d_11_00`, `envmap_12` `f0d_12_00`, `envmap_20` and
+`envmap_21` `f0i_21_00`, and `envmap_22` `f0i_22_00`.
+
+V (file). Only the lane `00` and `01` timelines bind a `LayEnvMapClip`, to
+`envmap_00` and `envmap_01`. Its payload is a u32 2,400,000, the target
+name, a count 9 and nine pairs of a u32 key in tenths of an Eorzea hour and
+a cube object name: 0 `f0f_fine_000`, 30 `f0f_fine_000`, 50
+`f0f_fine_050`, 61 `f0f_fine_060`, 100 `f0f_fine_120`, 140 `f0f_fine_120`,
+179 `f0f_fine_180`, 190 `f0f_fine_190` and 210 `f0f_fine_000`. In
+`0x615A0010` the clip on `envmap_00` has the same keys naming the
+`w0f_fine_` objects.
+
+I. Slot 0 of a lane DrawEnv is the cube of its own `envmap_NN` object. The
+clip swaps the outdoor cubes over the day in lanes `00` and `01` only, so an
+indoor lane such as `21` keeps `f0i_21_00`. The runtime use of the clip
+payload (class string `0x010A0EDC`) and the blend between two keys are not
+traced.
+
 Cube shapes from the installed weather bundles (counts): 128x128 RGBA8 cube,
 8 mips, 524820 bytes (9 per layout, names `f0f_<weather>_`, `f0d_`, `f0i_`),
 64x64 one-mip cube, 98464 bytes (`env_00_de`, `env_01_de`, keys
@@ -239,9 +442,13 @@ Cube shapes from the installed weather bundles (counts): 128x128 RGBA8 cube,
 
 ## Unknown
 
-- How day/night picks between cube keys (blend ratio source), and which
-  element is `CubeMapBaseObject` index 0 per layout. Slot 0 is the slot every
-  character material record reads.
+- How `LayEnvMapClip` blends between two cube keys (the blend ratio
+  source). Slot 0 is the slot every character material record reads.
+- The axis roles of the orientation basis that decide the lane light
+  direction, and what the four distance fade floats of a light property do
+  past the early return of `0x007FEE00`.
+- The holder of `0x007D5750`, the caller of kind 2 `0x007E6A30`, and the
+  pass selection of a BG model with point lights.
 - Layout property byte offsets of Fog and DrawEnv objects.
 - Default state before the first weather packet, the `0x0136E908` source, the
   euler order of layout instance rotations on lights.

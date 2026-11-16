@@ -195,6 +195,75 @@ there.
 INFERRED. The select background is the effect pair of `0x7FDB0000`, not a
 zone layout, and slot i stands at 1.5 * i plus the mode offset.
 
+### Effect request object
+
+STATIC. The select scene requests run on the object at B `+0x5C`, which
+the BootupManager update reaches as ESI `+0x28`. Its request methods are
+non-virtual and post through `0x004D7980`.
+
+| Method | Effect |
+| --- | --- |
+| `0x00686E10(id)` | clears byte `+0x94` and posts message 3 with the 4-byte id |
+| `0x00686E30(name)` | clears byte `+0x95` and posts message 4 with 16 bytes of the name |
+| `0x00686E50(name, id, a, force)` | with `force` 0 and `id` equal to the dword `+0x98`, returns without a post. Otherwise stores `id` at `+0x98` and posts message 5 with `0x18` bytes: the id, the byte `a` at `+4` and 16 bytes of the name at `+5` |
+| `0x00686EC0`, `0x00686ED0` | post messages 6 and 8 with no data |
+| `0x00686EE0` | returns byte `+0x94` |
+
+The row focus passes `force` 0, so a second focus on the actor of the last
+request posts nothing. The receiver of messages 3, 4 and 5 is not traced.
+
+INFERRED. The object is an `EffectDebugElement`. The constructor
+`0x00686FB0`, whose only caller `0x00533B14` allocates `0x120` bytes, stores
+the vtable `0x00FC4538` with RTTI
+`.?AVEffectDebugElement@Effect@Element@Main@Application@@` at `0x0068701F`,
+and the request methods sit beside it and use fields below `0x120`. A
+scheduler name such as `bg_effect` or `select` names the RES of
+`0x7FDB0000` whose path ends with it, and the id of message 5 is the
+focused actor's handle.
+
+### Idle motions
+
+STATIC. The BootupManager update `0x006B0220` runs with ESI = B `+0x34`.
+
+- For each roster actor i that is not null and is not the focused actor
+  (`0x006B0444..0x006B0490`), when the timer `ESI+0x3EAC + 4 * i`
+  (B `+0x3EE0`) is not negative it subtracts the elapsed time. When the
+  result goes negative it starts the motion named at `0x012BE0D4`
+  (`cbem_make_id0`) through `0x00585BD0`. The timer is not rearmed here.
+- When more than 8000 ms (`0x1F40`) have passed since `ESI+0x15C` by
+  `GetTickCount` (import cell `0x00F3E1BC`), and `ESI+0x3E60` equals 3,
+  and the mode `ESI+0x144` is 2 to 7 or 9 with a focused slot, it plays
+  one of `avert1` to `avert4` (pointer table `0x012BEFA4`) on the focused
+  actor through `0x0058C720`, the index being a generator value
+  (`0x00459DC0`, `0x00459E00`) modulo `[0x012BDFC4]`, which reads 4
+  (`0x006B04A6..0x006B0591`). Once the 8000 ms have passed it stores the
+  tick at `ESI+0x15C` whether it played or not (`0x006B05D2..0x006B05DE`).
+
+STATIC. `0x005854D0` posts message `0x2D` with no data, and `0x00587C10`
+wraps an angle with the doubles pi (`0x00F62F48`) and 2 pi (`0x00F62FE0`).
+
+INFERRED. With the row focus, an unfocused actor switches to
+`cbem_make_id0` once its timer runs out and starts `cbnm_id0` again when
+it is focused, since the row focus starts `cbnm_id0` on a focused slot
+whose timer is negative. The row focus turns the previous actor rather
+than hiding it.
+
+MEASURED. A plain byte search of the install's `client` and `data` trees
+finds `cbem_make_id0` in the nine files `client/chara/pc/c001/skl/9998` to
+`c009/skl/9998`, and `avert1` to `avert4`, bare and with the prefixes
+`cbxf_` and `cfxf_`, in those files and in `kao/<face>/fac_mdl/9998` files.
+Which of those names the motion post resolves is not traced.
+
+### Name split `0x006A9230`
+
+STATIC. `0x006A9230(name, first, second)` copies the bytes of `name` into
+`first` until a space, at most `0x20` bytes. At a space it writes a zero to
+`first` and copies the 16 bytes after the space into `second` with two
+8-byte moves. With no space in the first `0x20` bytes it returns with
+`first` unterminated and `second` untouched (`0x006A9230..0x006A927C`). The
+[status writer](#status-writer-0x00884cb0) sets `first` on
+`TextBlock_PlayerName` and `second` on `TextBlock_PlayerName_2`.
+
 ## Row focus and select camera
 
 STATIC. `0x006AA990(mode, slot)` is the BootupManager row focus, called at
@@ -226,9 +295,10 @@ The `0x006AAA66` arm (`0x006AAA66..0x006AAB6B`):
   camera.
 - When the slot's actor exists: `0x0055C290(1)`, `0x0055C2B0(1)`,
   `0x0055C2D0(0x004D6750(0))` and `0x0055C310` on `B+0x60`,
-  `0x00686E50("select", 0x004D6750(1, 0))` on `B+0x5C` (string pointer
-  `0x012BDF18`), `0x004D7660` on the actor, and the slot is stored at
-  `B+0x1C0 + 4 * mode`.
+  `0x00686E50("select", id, 1, 0)` on `B+0x5C` (string pointer
+  `0x012BDF18`, `0x006ADD41..0x006ADD5B`, id being the dword `+0x88` of
+  the actor that `0x004D6750` returns), `0x004D7660` on the actor, and the
+  slot is stored at `B+0x1C0 + 4 * mode`.
 
 When the slot changes, the `0x006AAB8B` path calls `0x00588280(f, 1)` on the previous slot's
 actor and, for a slot with an actor, `0x00588280(1, 1)` on it, with no
@@ -327,5 +397,6 @@ the dwords at `0x006AAC40` and the cell `0x00FF0F28`.
 - The actor builder that takes the roster appearance, the meaning of actor
   message `0x25`, and the select update slots of the CharaCreate and
   CharaFocus camera contexts.
-- What the motion timer starts when it runs out, and the `bg_effect` and
+- The resolution of `cbem_make_id0` and `avert1` to `avert4` against the
+  `9998` files, the receiver of the effect messages 3, 4 and 5, and the `bg_effect` and
   `select` schedulers of `0x7FDB0000`.

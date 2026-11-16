@@ -177,6 +177,37 @@ and both engine samplers bind slot 0 of the draw's DrawEnv. `reflectMap` and
 sampling (reflected view vector at `reflectMapLod`, normal at
 `lightDiffuseMapLod`) uses the same resource.
 
+### Sampler state block and LOD bias (V)
+
+The bind helper `0x00C46020` reads the state block that the record passes:
+
+- Byte `+0` gives the min and mag filter arguments, 1 when it is zero and
+  2 otherwise. Byte `+1` gives the mip filter argument the same way
+  (`0x00C4605F..0x00C46085`).
+- Byte `+2` is a signed bias in eighths, `byte * 0.125` (binary64 0.125 at
+  `0x00F598A8`, `0x00C46056..0x00C46076`).
+- When the texture has one level the helper passes bias 0.0 and mip filter
+  0 (`0x00C46088..0x00C46093`).
+- Bytes `+3` and `+4` reach `0x00418380` and a three-entry selector
+  (`0x00C46099..0x00C460E7`), not traced here.
+
+`0x004186E0` stores the bias as the byte `bias * 8.0` (binary64 `0x00F57E48`)
+in the stage record at `0x013290D8 + 0x30 * stage` and passes it to
+`0x0041CD00` (`0x004186F9..0x00418733`). `0x0041CD00` writes sampler state
+8 (`D3DSAMP_MIPMAPLODBIAS`) as `byte * 0.125` plus 0.0, 0.5 (binary64
+`0x00F59898`) or 1.0 (binary64 `0x00F598A0`) for the value 0, 1 or 2 that
+`0x004181E0` reads from `0x01329888` (`0x0041CD00..0x0041CD90`). It then
+writes states 6, 5 and 7, the last as 2, and with a mip argument of 0 it
+writes states 9, 8 and 7 as 0 (`0x0041CDB8..0x0041CE59`).
+
+`0x01329888` is written only by `0x0041BCF0`, reached through the thunk
+`0x004181D0`, whose one caller is `0x00403183` in `0x00402B30`. It passes the
+dword at its frame `+0x398`. The setting behind that value is not traced.
+
+I: a state block whose byte `+2` is `0xF8` gives a bias of -1.0 plus the
+selector's 0.0, 0.5 or 1.0. Whether `texldl` honours
+`D3DSAMP_MIPMAPLODBIAS` on the target hardware is not established here.
+
 ## Selected equipment sampler stages (V)
 
 The installed `client/chara/pc/c001/equ/e216/pch_mdl/0001` has
@@ -496,6 +527,6 @@ slot for a block built here, because `0x00C69D20` adds type 4 lights into the
 - The pass choice between `_000` and `_001` and which bit value selects
   `_000`. The decoded math of `_001` is in
   [Character lighting model](chara-lighting-model.md#the-two-passes).
-- The identity of the default object bound for an empty slot, and the
-  sampler state bytes at record `+0x10`.
+- The identity of the default object bound for an empty slot, state block
+  bytes `+3` and `+4`, and the setting behind `0x01329888`.
 - Cube pixel values. No cube texel was read.
