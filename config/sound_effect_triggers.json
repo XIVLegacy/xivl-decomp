@@ -1656,7 +1656,7 @@
     "Resource id sources of 0x0084ff50 and 0x007cf100 callers were not traced to clip data.",
     "The composition roles of the footstep arguments are not decoded.",
     "Bus assignment, 3D placement and the SCD priority switch were not traced into the sound driver.",
-    "The writers of the footstep gate flag 0x0132f3cc, the sources of the drain filter flag and selector, the effect of 0x007969d0 and the default returned by 0x004055d0 were not traced."
+    "The writers of the footstep gate flag 0x0132f3cc, the sources of the drain filter flag and selector, the two gates of 0x007969d0 and the default returned by 0x004055d0 were not traced."
   ],
   "staticChecks": [
     {
@@ -3118,6 +3118,33 @@
       "pattern": "6a 01 8d 8e 0c 0e 00 00 e8 29 0f 21 00",
       "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
       "note": "Calls 0x007969d0 on actor +0xe0c with 1."
+    },
+    {
+      "name": "Level-up popup attach offset by kind",
+      "kind": "signature",
+      "va": "0x00796b85",
+      "pattern": "75 0a f3 0f 10 05 d0 22 fe 00 eb 08 f3 0f 10 05 cc 22 fe 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Kind 0 loads the float -0.15 at 0x00fe22d0 and any other kind the float 0.15 at 0x00fe22cc for the vector passed to 0x0054af00."
+    },
+    {
+      "name": "Level-up popup command by kind",
+      "kind": "signature",
+      "va": "0x00796c05",
+      "pattern": "83 ed 00 8d 4c 24 28 74 13 83 ed 01 74 07 68 74 21 fe 00 eb 0c 68 4c 21 fe 00 eb 05",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Kind 0 takes the UTF-16 name at 0x00fe2128, kind 1 the name at 0x00fe214c and any other kind the name at 0x00fe2174."
+    },
+    {
+      "name": "Level-up popup attach offsets",
+      "kind": "dwords",
+      "va": "0x00fe22cc",
+      "width": 4,
+      "values": [
+        "0x3e19999a",
+        "0xbe19999a"
+      ],
+      "note": "The floats 0.15 and -0.15."
     },
     {
       "name": "interface slot 11 body",

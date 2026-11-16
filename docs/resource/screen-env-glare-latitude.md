@@ -674,6 +674,30 @@ that reading every lane Glare section is enabled and every lane type is 2, so
 the blur takes weight row 2. The runtime binding of the record pointer at
 `this+4` to the LYB node is not traced.
 
+## Colour correction gate (V)
+
+The ScreenEnv vftable `0x01061BAC` holds `0x00AB0600` at `+0x21C`,
+`0x00AB0620` at `+0x224`, `0x00AB07E0` at `+0x244` and `0x00AB0830` at
+`+0x24C`. Each first calls slot `+0x20` of the object.
+
+- Fill. `0x00A73BE0` calls slot `+0x21C` and skips the colour correction
+  fields when it answers zero (`0x00A73FCC..0x00A73FD8`). It then calls slot
+  `+0x224`, stores the answer as the byte P `+0x160` and skips the remaining
+  fields when it is zero (`0x00A73FE0..0x00A73FF2`).
+- Reset. `0x00A5B6F0` stores 0 at P `+0x160` (`0x00A5B917`, from EBX).
+- Apply. In `0x00A5AF60`, mask bit 3 (`0x00A5B0B6`) passes the byte P
+  `+0x160` to `0x00A57B90` (`0x00A5B0BF..0x00A5B0C9`), which stores it at
+  byte `+0x30` of the filter chain held at `[ECX+8]` (`0x00A57B90..0x00A57B97`),
+  and then reads P `+0x170` onward for the setters that follow.
+- Draw. `0x00C4D070` tests the chain byte `+0x30` (`0x00C4D785`) and only
+  then calls `0x00C813C0` on the chain member `+0x14`, the
+  `ColorCorrectionFilter` (`0x00C4D78B..0x00C4D794`).
+
+I: a ScreenEnv without a colour correction section, or with that section
+present and the slot `+0x224` answer zero, leaves the chain byte at 0 and
+draws no colour correction. The slot bodies past their first call and the
+filter programs are U.
+
 ## Unknowns
 
 - The setter of bit 2 of DrawableObject byte `+0x2B0`, and so which pass kinds

@@ -254,6 +254,53 @@ finds `cbem_make_id0` in the nine files `client/chara/pc/c001/skl/9998` to
 `cbxf_` and `cfxf_`, in those files and in `kao/<face>/fac_mdl/9998` files.
 Which of those names the motion post resolves is not traced.
 
+MEASURED. Each of the nine `skl/9998` files starts with `PWIB`, and a
+string scan of each finds the same 13 names:
+`cbem_make_id0`, `cbxf_avert1` to `cbxf_avert4`, `cbxf_voice1`,
+`cbxf_voice2`, `avert1` to `avert4`, `voice1` and `voice2`.
+`client/chara/pc/c010` has no `skl/9998`. `c001/kao/f001/fac_mdl/9998`
+names `cfxf_avert1` to `cfxf_avert4`, `cfxf_voice1` and `cfxf_voice2`.
+INFERRED. The bare `avert<n>` names that `0x0058C720` takes from
+`0x012BEFA4` are entries of this bank, and an avert has a body part
+(`cbxf_`) and a face part (`cfxf_`). The record layout of the bank was not
+decoded here.
+
+### View state `B+0x3E94`
+
+STATIC. `0x006AAC60(state)`, thiscall on B:
+
+- state -1 stores -1 at `B+0x3E94` and calls `0x0055F450` on the camera at
+  `B+0x64` (`0x006AAC66..0x006AAC76`)
+- state 2 calls `0x0055C980`, state 3 `0x0055C970` and state 4 `0x0055C990`
+  on the camera at `B+0x64` (`0x006AAC7B..0x006AACA3`)
+- it stores the state at `B+0x3E94` (`0x006AACAB`). State 3 sets bit 2 of
+  the byte `B+0x1CA0`, and any other state clears it unless the dword
+  `B+0x1C98` is 15 or 16 (`0x006AACA8..0x006AACCF`)
+
+The `ESI+0x3E60` that the avert arm of the update compares with 3 is
+`B+0x3E94`, since ESI is B `+0x34` there.
+
+STATIC. Every caller passes the BootupManager as `[P+0x224]` of its own
+object. State 3 comes from `0x00864417`, `0x00868165`, `0x00868377`,
+`0x0086847C`, `0x008684BC` and `0x008686F5`, state 2 from `0x0085E8D1`,
+`0x0085EF8E`, `0x0085F02E` and `0x0085F12E`. The classes of those callers
+were not resolved, so which creation phases hold state 3 is not
+established.
+
+### Facing setter `0x00587C10`
+
+STATIC. `0x00587C10(angle, ...)`, thiscall on an actor element, takes the
+current facing as the float at `+0xAC`. When the pointer at `+0x98` is set
+it adds the value `0x004DD8B0(1)` returns and wraps the sum to one turn with
+the binary64 pi at `0x00F62F48` and two pi at `0x00F62FE0`
+(`0x00587C26..0x00587C8F`). When the first argument differs from that
+facing, or the byte `+0x264` or `+0x265` is nonzero, it stores the argument
+at `+0xAC` (`0x00587C99..0x00587CC9`).
+
+INFERRED. The row focus call `0x00587C10(0.0, 2, 0, 1)` turns the previously
+focused actor back to facing 0. What turns a select actor before that was
+not traced.
+
 ### Name split `0x006A9230`
 
 STATIC. `0x006A9230(name, first, second)` copies the bytes of `name` into
@@ -390,6 +437,29 @@ Reproduce with `ghidra disasm 0x006aa990 -n 200`, `ghidra x-ref to
 read the floats at `0x012BDF1C..0x012BDFB7`, the bytes at `0x006AAC4C`,
 the dwords at `0x006AAC40` and the cell `0x00FF0F28`.
 
+## Creation sheet holders
+
+STATIC. The BootupManager constructor `0x006B3210` opens five sheets by
+name through `0x004489C0` into holders of B:
+
+| Sheet | Name literal | Holder | Open | Registration slot |
+| --- | --- | --- | --- | --- |
+| `boot_charaParts` | `0x00FD2384` | `B+0x1CA8` | `0x006B3A2C` | `B+0x1CFC` |
+| `boot_charaTemp` | `0x00FD2394` | `B+0x3384` | `0x006B3A44` | `B+0x33D8` |
+| `boot_charaLook` | `0x00FD23A4` | `B+0x35C0` | `0x006B3A54` | `B+0x3614` |
+| `boot_skillequip` | `0x00FD23B4` | `B+0x3ACC` | `0x006B3A64` | `B+0x3B20` |
+| `_zoneParam` | `0x00FD23C4` | `B+0x3CC4` | `0x006B3A74` | |
+
+STATIC. `0x006AF200`, a BootupManager method that the ghidra project has
+no function for, registers the first four holders once. When a
+registration slot is zero it calls `0x004D74C0` on `[B+4]`, calls virtual
+`+4` of the result with the holder address and stores the answer in the
+slot (`0x006AF363..0x006AF3F5`, `boot_skillequip` at
+`0x006AF3D5..0x006AF3F5`).
+
+The readers of the four creation sheets were not traced. The decoded sheet
+shapes are in `xivl-client-data:docs/character-creation-sheet-shapes.md`.
+
 ## Open
 
 - `0x006A9C90`, `0x006AAF50` and the meaning of the `0x3A` mask.
@@ -397,6 +467,8 @@ the dwords at `0x006AAC40` and the cell `0x00FF0F28`.
 - The actor builder that takes the roster appearance, the meaning of actor
   message `0x25`, and the select update slots of the CharaCreate and
   CharaFocus camera contexts.
+- The readers of the four creation sheets and the creation phases that
+  hold view state 3.
 - The resolution of `cbem_make_id0` and `avert1` to `avert4` against the
   `9998` files, the receiver of the effect messages 3, 4 and 5, and the `bg_effect` and
   `select` schedulers of `0x7FDB0000`.
