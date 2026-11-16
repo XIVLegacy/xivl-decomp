@@ -384,6 +384,28 @@ Slot 12 of `LookAtIKObject` is `0x00AEAB00`, a routine of 8,364 bytes that is
 the likely solver. Its angle limits, rotation order and blend speed were not
 traced.
 
+### LookAtIKObject storage
+
+STATIC. The `LookAtIKObject` vtable `0x010A92E4` holds 14 slots:
+`0x00ACF730`, `0x00AECFD0`, `0x00AED860`, `0x00AED880`, `0x00AED8B0`,
+`0x00B8D680`, `0x00AEDD50`, `0x00AED840`, `0x00ADDA30`, `0x00AE8C30`,
+`0x00ACE410`, `0x00AE94B0`, `0x00AEAB00` and `0x00ADDA40`. It is stored by
+`0x00AED7D0` (at `0x00AED802`), `0x00AECFF0` (at `0x00AED010`) and
+`0x00ACF690` (at `0x00ACF6EF`).
+
+STATIC. The objects live in a vector at `+0x70` of the
+`SQEX::CDev::Engine::Phieg::Controller::IK::IKInstance` container, whose
+vtable `0x010A91B8` is stored at `0x00ACBFCF`. One arm of that container's
+switch resizes the vector through `0x00AD1D10` (`0x00ACC112`) and then
+sets byte `+0x7C` to 1 when `0x00ACAE20` answers true (`0x00ACC117..0x00ACC120`).
+`0x00AD1D10` constructs new elements through `0x00AED7D0`, and the fill
+`0x00ACCB20` calls `0x00AED7D0` for each element with a stride of `0x180`
+(`0x00ACCB62`, `0x00ACCB67`).
+
+INFERRED. The joint names, limits and blend rate of a look-at object come
+from a Phieg IK definition resource that fills these elements. That
+resource and the solver `0x00AEAB00` are not traced.
+
 ## Open questions
 
 - CALIBRATION: the head and eye rotation limits, rotation order and blend speed of the LookAtIKObject solver

@@ -217,6 +217,14 @@ drives through s2c 0x0193 subopcodes 0x14 and 0x15, is described in
 [s2c 0x0193 native state](../net/s2c-0193-native-state.md) and is not traced
 here.
 
+STATIC. The middle-button arm of `0x0055CC90` tests byte `+9`, checks
+slot `+0x0C` of the object `0x004D7580` returns, stores byte `+0x16E` = 1
+and the cursor position at the words `+0x170` and `+0x172`, and calls
+`0x00D35310(1)` (`0x0055CD3F..0x0055CD9B`). It sends no command at the
+press. The right-button arm also calls `0x00D35310(1)` after it sends
+command `0x28` (`0x0055CD22`). The mouse-move consumer of `+0x16E` is not
+traced, and neither handler has an arm for two buttons held together.
+
 Client consequence. Wheel input should be quantized to whole notches
 before it reaches the camera model. Rotation should use the cursor change per
 move. Right drag orbits. The left button does not orbit. The middle-button drag
@@ -324,6 +332,63 @@ it during ordinary walking was not found there and is not excluded here.
 
 Client consequence. Only the blend form and rate are known, so this section
 adds nothing to implement beyond the drag gate above.
+
+## First person update
+
+STATIC. The update arms of the
+[pipeline](#update-pipeline-and-command-receiver) reach these context
+slots, read from the vtables of the [context keys](#context-keys) table.
+
+| Key | Vtable | `+0x1C` tick | `+0x20` drag | `+0x24` wheel | `+0x28` endpoint |
+|---:|---|---|---|---|---|
+| 2 | `0x00FF1204` | `0x007F5450` | `0x007F7D40` | `0x007F7EF0` | `0x007F56B0` |
+| 3 | `0x00FF1164` | `0x007F4E90` | `0x007F7940` | `0x007F7AF0` | `0x007F5020` |
+
+The key 1 single update, slot `+0x04` of `0x00FF101C`, is `0x007F31A0`.
+
+STATIC. Endpoint `0x007F5020`, key 3:
+
+- It builds the view direction from the pitch ctx `+0x4` (sine and cosine
+  through `0x009D63B0` and `0x009D6280`) and the yaw ctx `+0x8` (rotation
+  `0x0060D290`).
+- It takes a head point from `0x00663F80` (`0x007F5105`). That routine
+  calls the actor's `+0x88` method and reads an actor matrix at `+0x1740`,
+  or at `+0x1880` or `+0x18C0` by the predicate `0x007A40A0` and the
+  dword `+0x2B9C` (`0x00664070..0x006640B9`). The matrix producer is not
+  traced, so the head height is not a constant here.
+- It zeroes the y lane of the view direction, normalizes it through
+  `0x0061CFD0` (`0x007F5118..0x007F5126`), and stores the head point minus
+  0.22 (float `0x00FF12B8`) times that vector as the eye `+0x330`
+  (`0x007F512E..0x007F514D`).
+- It stores the eye plus 10.0 (float `0x00FA95A0`) times the view direction
+  as the look-at `+0x340` (`0x007F5145..0x007F5167`).
+
+STATIC. Turn by the walking keys. The key 3 tick `0x007F4E90` and the key 1
+update `0x007F31A0` call `0x007A4610`, the
+[auto-run](auto-run-latch.md) predicate of the
+[follow tick](#follow-tick) (`0x007F4ED7`, `0x007F3300`). When it holds,
+the yaw (ctx `+0x8` for key 3, ctx `+0x4` for key 1) takes the actor
+heading lane from the actor's `+0x94` method. Otherwise the yaw loses
+`byte * 0.0004 * dt` (double `0x00FF12C8`, 0.00039999998989515007), the
+byte being the signed `C+0x11B8` that `0x0065D2F0` returns
+(`0x007F4EFE..0x007F4F34`, `0x007F332C..0x007F3365`), and is wrapped to
+-pi..pi. `C+0x11B8` is the byte `a` of the
+[movement page](character-movement-displacement.md#signed-bytes-and-camera-transform).
+
+STATIC. The key 3 tick then adds `+0x424 * dt / 50.0` (double
+`0x00FC1040`) to the zoom `+0x428` and limits the sum to 0.0..1.0
+(`0x007F4F86..0x007F5000`).
+
+INFERRED. In first person the eye stands 0.22 behind the head point along
+the level view direction and looks 10 units ahead. While auto-run is off,
+byte `a` turns the view and does not enter the movement vector, see the
+[first-person arm](character-movement-displacement.md#first-person-arm) of
+the movement page. The sign of the turn on screen depends on the rotation
+convention of `0x0060D290` and is not derived here.
+
+Client consequence. A first-person eye can use the 0.22 back offset and
+the 10.0 look distance. The head height and the turn direction on screen
+stay CALIBRATION values.
 
 ## Lens
 
