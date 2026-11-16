@@ -78,7 +78,7 @@
     "axis roles of the three look-at outputs and the multiplication order with the roll matrix",
     "handedness of the resulting node rotation",
     "whether any other writer selects a moon texture region",
-    "meaning of clip mode 4 and the source of the mode word at +0x40",
+    "the instance accessor behind the mode overwrite of the enter and the composition of the angle setter at target vtable +0x3c",
     "the sender of scene message 116 and the value range it uses"
   ],
   "staticChecks": [

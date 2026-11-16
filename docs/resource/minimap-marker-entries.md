@@ -4,7 +4,8 @@ The `MapScreenControl` of the [MiniMap base tiles](minimap-base-tiles.md)
 page keeps retained marker entries for its data rows and for the actors of
 the scene. This page records the marker properties, where an entry takes its
 position, how arrange places, fades and orders an entry, how an actor entry
-picks its row, and the header words of the marker packages. Control offsets
+picks its row, the position visibility gate, the navigation window markup
+and the header words of the marker packages. Control offsets
 are offsets of that control object. It supplements the
 [direction and view cone](minimap-direction-and-view-cone.md) page and the
 "Marker wrapper and row context" section of the
@@ -58,15 +59,27 @@ None names `Text`, `Visibility` or `Radius`.
 
 ## Entry positions
 
+STATIC. The four source properties register like the marker properties
+above. Each setter arm passes its descriptor and the holder address to
+`0x0067D480`.
+
+| Property | Name literal | Initializer | Descriptor | Tag | Holder and setter arm |
+| --- | --- | --- | --- | --- | --- |
+| `GlMarkerSource` | `0x00FC25D8` | `0x00F11B60` | `0x0133FFC4` | `0x0B` | `+0x490`, arm `0x00673CE7..0x00673CFB` |
+| `SsdMarkerSource` | `0x00FC25E8` | `0x00F11B80` | `0x0133FFE8` | `0x0C` | `+0x498`, arm `0x00673D2E..0x00673D42` |
+| `MapMarkerSource` | `0x00FC25F8` | `0x00F11BA0` | `0x0134000C` | `0x0D` | `+0x4A0`, arm `0x00673D6A..0x00673D7E` |
+| `GroupMarkerSource` | `0x00FC2608` | `0x00F11BC0` | `0x01340030` | `0x0E` | `+0x4A8`, arm `0x00673DA6..0x00673DBA` |
+
 STATIC. Four list passes hand their node lists to `0x006805F0` and walk their
 retained entries through `0x0067DBD0`, whose per-entry call is `0x0067BEC0`.
+The pass is named by the source property of its holder.
 
 | Pass | Function | Source holder | Entry list |
 | --- | --- | --- | --- |
 | SSD | `0x00678C80` | `+0x498` | `+0x300` |
 | Map | `0x00678FE0` | `+0x4A0` | `+0x370` |
-| GL | `0x00679190` | `+0x4A8` | `+0x3A8` |
-| Type | `0x00679340` | `+0x490` | `+0x338` |
+| Group | `0x00679190` | `+0x4A8` | `+0x3A8` |
+| GL | `0x00679340` | `+0x490` | `+0x338` |
 
 The map pass alone reads control `+0x638`, `+0x63C` and `+0x614` into the walk
 context (`0x0067906D..0x00679085`). Call those `Ox`, `Oy` and `r`.
@@ -120,10 +133,36 @@ floor 0 and cut 1 otherwise (`0x0067CCFF..0x0067CD3E`).
 f32 11.0 (`0x00FB6E8C`) through `0x00940500`, and every other actor entry
 `y / control+0x1AC + 9.0` (binary64 `0x00F886D0`) (`0x0067CFAF..0x0067D004`).
 
+STATIC. `0x0067D030` gives a row entry the order value
+`y / control+0x1AC + C+0x0C + E+0x34` through `0x00940500`
+(`0x0067D403..0x0067D448`), C being the walk context
+`(control, W, H, base)` and E`+0x34` the row's `Y` attribute. The callers of
+`0x0067DE10` set the base per list:
+
+| Caller | Entry list | Base |
+| --- | --- | --- |
+| `0x006743B0` (`0x006743F2`) | `+0x338`, GL | f32 6.0 (`0x00FC33C0`) |
+| `0x00674410` (`0x00674452`) | `+0x300`, SSD | f32 7.0 (`0x00FC33C4`) |
+| `0x00675C30` (`0x00675D34`) | `+0x370`, Map | 0.0 (`XORPS` at `0x00675D01`) |
+| `0x00675C30` (`0x00675D9C`) | `+0x3A8`, Group | f32 8.0 (`0x00FBAC18`) |
+
+STATIC. After the actor walk, `0x006759F0` turns the entry of the actor at
+control `+0x9E0`. It takes -0.0 (`0x00F62FA0`) less the float at actor `+0xAC`,
+converts it to degrees modulo 360 through `0x006701B0` (binary64 180.0 at
+`0x00F62F40`, pi at `0x00F62F48`, 360.0 at `0x00FC3300`), adds 180.0 and
+writes the angle through `0x00990C10` to the transform at control `+0x59C`
+(`0x00675A8E..0x00675ACC`). It then reads `MarkerCenterControlName`
+(`+0x528`) and the float 0.5 (`0x00F62F60`) and sets the transform centre
+through `0x00990C40`. The centre arithmetic was not read instruction by
+instruction.
+
 INFERRED. `0x0093C2A0` is the Visibility setter (1 hidden, 2 visible),
 `0x0092EBD0` the Margin setter, `0x009402C0` an opacity setter and
 `0x00940500` an order setter. An entry is a zero-sized slot at the placed
-point. The self entry orders above every other actor entry.
+point. The self entry orders above every other actor entry. The list bases
+order the row lists map, GL, SSD, group from the bottom before the share of
+the height and the `Y` attribute are added. The self entry turns by 180
+degrees less its actor's heading in degrees.
 
 ## Height factor `0x00670A40`
 
@@ -165,13 +204,95 @@ per-entry call is `0x00680810`. In `0x00680810`:
   `common/mapMarker.le.spk` (`0x00FC3390`) and `m00020` (`0x00FC3690`)
   (`0x006809E9..0x00680A32`)
 
+STATIC. The rest of `0x00680810`:
+
+- With an empty `ActorMarkerDefaultTemplate` (`+0x4B8`) it casts the entry
+  element to `SparkleControl` through `0x009DA6CC` and passes the file to the
+  Source setter `0x00990470` and the sequence to the Sequence setter
+  `0x00990250` ([SparkleControl page](sparklecontrol-source-sequence.md))
+  (`0x00680A3A..0x00680AAD`). A nonempty name is passed to `0x00912850`
+  instead (`0x00680ABE..0x00680AD7`).
+- `0x004CFE30` with selector 1 gives the actor position. Lane 0 goes to
+  E`+0x08`, lane 2 to E`+0x0C` and lane 1 to E`+0x10`
+  (`0x00680AEC..0x00680B18`).
+- With a non-null `Filter` (`+0x484`) whose first byte is nonzero, a
+  nonzero type and no `m00020` override, it clears bits `0x01` and `0x04` of
+  E`+0x3D` (`0x00680B62..0x00680B8D`). The text of the filter is not
+  compared. The override stores 1 in a local flag at `0x00680A1C`, and
+  `0x00680AB4` stores 0 on the other path.
+
+STATIC. The update `0x006795D0` collects the actors through `0x00565060`
+(`0x0067961B`) and clears the self actor slot `+0x9E0` before the rebuild
+(`0x00679624`).
+
 INFERRED. The dword at actor `+0x270` is the marker number that
 `_setMapMarker` stores ([map marker lanes](../actor/map-marker-lanes.md)), so
 the low six bits of an actor's marker number select its `2Dmap_actor_data`
-row and the self actor takes row 0.
+row and the self actor takes row 0. A control with a nonempty `Filter` shows
+the self entry and the overridden entries and hides every other actor entry.
 
 UNKNOWN: the writers and meaning of bit 2 of actor `+0x26D` and bit `0x02` of
 actor `+0x274`.
+
+## Position visibility
+
+STATIC. The name literal `PosVisibility` at `0x00FC282C` is registered by
+the initializer `0x00F11F70` with the descriptor `0x01340420` and tag
+`0x2A` (stored at `0x01340434`). The constructor `0x00679ED0` registers the
+holder `+0x57C` (`0x0067A6CC..0x0067A6D8`).
+
+STATIC. The update `0x006795D0` sets the holder from `0x0067972D`:
+
+- When the dword `+0xA54` equals the dword `+0x9F4` and the dword `+0xA58`
+  equals the byte `+0x9FC`, the value is `1 + (dword +0x4F8 != -1)`, written
+  when it changed (`0x0067972D..0x00679755`, `0x006797F3..0x0067983D`).
+- Otherwise, when `Function` (`+0x448`) is not 0, the holder is left
+  unchanged (`0x0067975A..0x00679760`).
+- Otherwise, when `QuestMapIndex` (`+0x56C`) is -1, the value is 1
+  (`0x00679766..0x0067976F`, `0x00679844..0x00679870`).
+- Otherwise the key `+0x9F4` is aliased, `0x14B` to `0x141`, `0x83` to `0x79`
+  and `0x1A6` or `0x1AF` to `0x1A5` (`0x00679775..0x006797A1`), and compared
+  with `+0xA54`. Equal keys give `1 + (dword +0x4F8 != -1)`
+  (`0x006797EB..0x0067983D`). Unequal keys write 1 through `0x00675540` and
+  pass the row count of the resource at `+0x9E8` (`[+0xDC] - 1`) to
+  `0x00942DB0` (`0x006797AA..0x006797E1`).
+
+The s2c `0x018D` consumer tests the byte `+0x57C` against 2 at `0x00671574`
+([0x018D consumer](../net/s2c-018d-client-consumer.md)).
+
+INFERRED. `PosVisibility` is 2 while the control shows the map that holds the
+player and `+0x4F8` is set, so the `0x018D` rows are taken only then. Which
+values `+0x4F8`, `+0x9F4`, `+0x9FC`, `+0xA54` and `+0xA58` hold was not
+traced.
+
+## Navigation window markup
+
+MEASURED. `client/sqwt/widget/MapNavigationWidget.form` (decoded SHA-256
+`2012be5906707b43eadadcde937045257eed7735e9afec7a43b6b2bab5a4fa35`),
+decoded with `xivl extract-resource`:
+
+- The map control declares `Filter="1"` and binds `TypeDataSource`,
+  `GroupMarkerSource`, `GlMarkerSource`, `SsdMarkerSource` and
+  `MapMarkerSource`. `GroupMarkerSource` binds the `SqwtXmlDataMaker`
+  `group_marker_data` (`Name="GroupMakerData"`, `XPath="/root/marker"`),
+  which declares no `XmlFormat`.
+- The form's Buttons, ListBoxes and Sliders are `Button_Close`
+  (`Command="UILuaCommands.Operate"`), `ListBox_NavigationMenu`,
+  `ListBox_MarkerSelectMenu` and `Slider_TransparencyConfig`.
+  `Map.ScaleUp` and `Map.ScaleDown` occur only as key commands of the map
+  control.
+
+`MiniMapWidget.form` declares no `GroupMarkerSource`.
+
+MEASURED. `client/sqwt/common/MapMarker.tpl` (decoded SHA-256
+`68a685d900291186ba0b6472e8a6f9054459d2b2d874913725ee0fb8fe1e5555`)
+declares the template `MapMarkerParty` as a StackPanel of
+`TextBlock_Caption` (style `TBL_chat_inputParty`, `Text` bound to `@Text`)
+and `SparkleControl_MapMarker` (`Source="common/mapMarker.le.spk"`,
+`Sequence` bound to `@SparkleSequence`, 32 by 32).
+
+INFERRED. The navigation window shows the self entry and no other actor
+entry, and party members reach it only as group rows.
 
 ## Marker packages
 
@@ -206,8 +327,21 @@ ghidra disasm 0x00680810 -n 160
 ghidra disasm 0x00585290 -n 4
 ghidra disasm 0x00585300 -n 4
 ghidra disasm 0x00585310 -n 4
+ghidra disasm 0x00F11B60 -n 20
+ghidra disasm 0x00673CE0 -n 60
+ghidra disasm 0x00680A13 -n 100
+ghidra disasm 0x00675A2D -n 60
+ghidra disasm 0x0067D3A2 -n 50
+ghidra disasm 0x006743B0 -n 25
+ghidra disasm 0x00674410 -n 25
+ghidra disasm 0x00675CF0 -n 50
+ghidra disasm 0x00F11F70 -n 5
+ghidra disasm 0x0067A6C0 -n 10
+ghidra disasm 0x0067972D -n 80
 ```
 
-Repeat the initializer read for each address in the property table. Extract
-the form with `xivl extract-resource` and read line 19 and the three reader
-elements. Read the first 0x18 bytes of each package.
+Repeat the initializer read for each address in the property tables. Extract
+the forms and `common/MapMarker.tpl` with `xivl extract-resource` and read
+line 19 and the three reader elements of the minimap form, the map control,
+readers and controls of the navigation form, and the `MapMarkerParty`
+template. Read the first 0x18 bytes of each package.

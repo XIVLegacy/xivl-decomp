@@ -263,9 +263,8 @@ them back.
 
 Slot 9 of `0x00FF2A9C` (`0x007FF260`) calls `0x007FEE00`, which acts only on
 a runtime point light and returns at once when the four floats are all 1.0
-(`0x007FEE3D..0x007FEECD`). Otherwise it measures the light position `+0x50`
-against a position it reads through the weather manager's `+0x114` object,
-not traced further.
+(`0x007FEE3D..0x007FEECD`). Otherwise it applies the
+[distance fade](#distance-fade-0x007fee00).
 
 ### Registration (V)
 
@@ -278,6 +277,50 @@ cached position (`0x007FC2F0`, `+0x50..+0x5C`). Slot 20 of `0x00FF2A9C`
 (`0x007FEDA0`) calls the base method `0x00A9FC10` and then calls it unless
 the layout type is `0x4000`, `0x4001` or `0x4002`
 (`0x007FEDD1..0x007FEDEF`).
+
+### Distance fade `0x007FEE00` (V)
+
+`0x007FEE00` runs only when bit 0 of property byte `+0x74` is set
+(`0x007FEE17`) and the runtime node's `+0xDC` is 3 (`0x007FEE3D`). It reads
+four floats through property slots `+0x84`, `+0x88`, `+0x8C` and `+0x90`,
+called near0, near1, far0 and far1 here, and skips when each equals 1.0
+(`FLD1` and `FUCOMIP` for the first, the float `0x00F54F70` for the rest,
+`0x007FEE4C..0x007FEECD`). An unordered compare does not skip.
+
+It reads a position through `0x00623C60` `+0x114`, `0x0060B360` and virtual
+`+0x88` of that object's `+0x64` (`0x007FEED3..0x007FEF0B`), subtracts the
+cached light position `+0x50` and takes the xyz length through
+`0x00800DF0` (`0x007FEF0D..0x007FEF58`). The base is the float at property
+`+0x60`, which the registration writes from node `+0xD0` right after
+`WeatherManager::AddPointLight` (`0x007FDC86..0x007FDC91`). So the base is
+the node intensity at registration.
+
+The near ramp `0x007FC3B0` (called at `0x007FEF82`): when
+`near0 <= d <= near1` it stores `(float)((d - near0) / (near1 - near0)) * base`
+at node `+0xD0`. Otherwise, when near0 differs from near1 and `d <= near0`,
+it stores 0.0. Otherwise it writes nothing.
+
+The far ramp `0x007FC440` (called at `0x007FEF9B` with the same stack
+arguments): when `far0 <= d <= far1` it stores
+`(1.0 - (float)((d - far0) / (far1 - far0))) * base` at node `+0xD0`, with
+the binary64 1.0 at `0x00F598A0`. Otherwise, when far0 differs from far1 and
+`d >= far1`, it stores 0.0. Otherwise it writes nothing.
+
+Both ramps compute in binary64 and store a float. I: the position is the
+camera's, the same object chain the sun and moon orientation takes its
+camera vector from. A light inside its near zone or between the ramps keeps
+the last value written, and the order of this write against a timeline
+clip's intensity write is U.
+
+### Point light clip (V)
+
+The vftables of `LayRapturePointLightClip` (`0x00FBE23C`),
+`LayRaptureDirectionalLightClip` (`0x00FBE16C`) and
+`LayRaptureAmbientLightClip` (`0x00FBE09C`) share slot 1 `0x0080FEB0` and
+slot 2 `0x00810800`. The class names come from the RTTI complete object
+locator at vftable -4. I: a point light clip writes its node through the
+same enter and update as the lane light clips. Which timelines play a zone
+point light clip, and when, is U.
 
 ### Assignment `0x007E5D10` (V)
 
@@ -444,9 +487,8 @@ Cube shapes from the installed weather bundles (counts): 128x128 RGBA8 cube,
 
 - How `LayEnvMapClip` blends between two cube keys (the blend ratio
   source). Slot 0 is the slot every character material record reads.
-- The axis roles of the orientation basis that decide the lane light
-  direction, and what the four distance fade floats of a light property do
-  past the early return of `0x007FEE00`.
+- The source of the distance fade position and the order of the fade
+  against a timeline clip's intensity write.
 - The holder of `0x007D5750`, the caller of kind 2 `0x007E6A30`, and the
   pass selection of a BG model with point lights.
 - Layout property byte offsets of Fog and DrawEnv objects.

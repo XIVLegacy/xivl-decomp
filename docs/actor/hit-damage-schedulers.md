@@ -174,6 +174,30 @@ passed, f being the record float `+0x10`. The writer and unit of that
 float are not traced. Any other record starts its damage schedulers in the
 update after the enter and never reaches `0x007BB990` from this routine.
 
+### Auto attack record float
+
+STATIC. The only instruction found that stores the immediate `0x00766678`
+is `0x0080C860` in `0x0080C830`, which writes it to the object's dword `+4`.
+A byte search of the executable finds 19 occurrences of the immediate.
+The other 18 are compares of a dword `+4` against it, the clip enter's at
+`0x0082140C` among them. `0x0080C830` ends by calling `0x0080C550` at
+`0x0080C8BF`.
+
+STATIC. `0x0080C550` stores the float -1.0 (`0x00F62F80`) at `+0x14`
+(`0x0080C570`) and 1.0 (`0x00F54F70`) at `+0x10` (`0x0080C57F`), 0 at the
+bytes `+0xB` and `+0xE` and `0xFF` at the bytes `+0xC` and `+0xD`
+(`0x0080C584..0x0080C58D`).
+
+STATIC. The drain's float argument is the float argument of the CharaActor
+update `0x006679C0` (`0x00667EF7..0x00667F04`), which the same routine adds
+to the float `+0x195C` and splits into a whole count
+(`0x00667A05..0x00667A2B`).
+
+INFERRED. A vfx parameter that keeps the constructor's `+0x10` gives an auto
+attack record the countdown 10.0. A writer of `+0x10` after construction
+was not found and is not excluded. The unit of the update argument was not
+traced to its source, so the delay in seconds is not established here.
+
 ## Guard and brace motion `0x007BB990`
 
 STATIC. `0x007BB990(record)` returns when the receiver's virtual `+0x268`
@@ -448,7 +472,8 @@ before `0x00FF543C` and `0x00FF54FC`, from the file-backed sections.
 ## Open
 
 - The first container's route to `0x007BFBD0`, the container walked from
-  `0x007C262A`, the writer and unit of the record float `+0x10`, and the
+  `0x007C262A`, any writer of the record float `+0x10` after
+  `0x0080C550`, the unit of the update argument, and the
   meaning of record words `+0x78`, `+0x68` and `+0x0D`.
 - `0x007A3EE0`, the row code byte, `record+0xB` and `0x0065DE40`.
 - The arms of `record+0x0D`, the scheduler pointers `0x012C4E0C` to

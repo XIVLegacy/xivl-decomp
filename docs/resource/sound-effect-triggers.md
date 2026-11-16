@@ -561,8 +561,8 @@ whose target is not the local actor returns false. A message ID of `0x8475`
 returns for the target ID, with volume 1.0, on the shared request object. A
 null actor skips the play and the function still returns true. Before each play
 it calls `0x007969D0` on the actor at `+0xE0C`, with 0 for `0x8475` and 1 for
-`0x846E`. What that call does was not read. Other message IDs play nothing
-there.
+`0x846E`. That call raises the [level-up popup](#level-up-popup). Other
+message IDs play nothing there.
 
 The drain chain is `CharaElement` slot 6 `0x0058DF90`, which calls `0x0058DA10`
 at `0x0058DFC8`. A type switch inside the `0x0058DA10` code calls `0x0058CA80`
@@ -579,6 +579,64 @@ with one of the two message IDs (INFERRED, because the staging of message IDs
 `0x846E` and `0x8475` was not observed). The record kinds that reach
 `0x0058CA80`, their opcodes and the capture frequency of the two IDs were not
 enumerated.
+
+### Level-up popup
+
+STATIC. `0x007969D0(kind)`, thiscall with ECX the object at actor `+0xE0C`:
+
+- returns at once unless `0x0091A1B0` answers nonzero and `0x00919D30`
+  answers zero (`0x00796A0D..0x00796A21`). Neither predicate was read.
+- keeps one widget per kind in the dword at `this+0x10+4*kind`. A null slot
+  allocates `0x48` bytes through `0x009D1B35`, constructs them through
+  `0x0096E4D0`, stores the result and registers it through `0x0096B3C0`
+  with the dword at `[0x0134C910]+4` (`0x00796A38..0x00796A7C`).
+- on that first creation only, passes the element name `EID_NAME`
+  (`0x00FE211C`) and the vector `(0, y, 0, 1.0)` to `0x0054AF00`, with `y`
+  the float -0.15 at `0x00FE22D0` for kind 0 and 0.15 at `0x00FE22CC` for
+  any other kind, and 1.0 the float at `0x00F54F70`
+  (`0x00796AFF..0x00796BB3`).
+- then raises a command on the widget by its UTF-16 name:
+  `RankUpAnime.Popup` (`0x00FE2128`) for kind 0, `LevelUpAnime.Popup`
+  (`0x00FE214C`) for kind 1 and `RankUpAnime.Popup` (`0x00FE2174`) for any
+  other kind (`0x00796C05..0x00796C26`).
+
+STATIC. `0x00796880` references the UTF-16 path
+`\system\ingame\LevelUpWidget.form` (`0x00FE20D8`, at `0x00796937`). Its
+one caller is `0x0058B4E0` at `0x0058B77F`. The RTTI name
+`.?AVLevelupPlate@Chara@Element@Main@Application@@` is at `0x012C4338`.
+
+MEASURED. `client/sqwt/system/ingame/LevelUpWidget.form` (decoded SHA-256
+`b03ca11c0ab2489bcac3657e8d42a291e063152d55e50e07b93b094d5e5ec138`) and
+`LevelUpWidget.tpl` (decoded SHA-256
+`1dca9b950b62bbdf5da55bf918ad8982f6d8b52348aecedd04711cd12df3a06a`),
+decoded with `xivl extract-resource`:
+
+- The root `Window_LevelUpWidget` takes the template
+  `TemplateControl_LevelUpPlate`, whose Setters give the root
+  `RenderTransform.ScaleX` and `ScaleY` 2.0. The root declares
+  `StringData.Value0="EID_BODY_DYN"`.
+- `Label_LevelUp` holds `TextBlock_LevelUp` (`@10501`, style `TBL_LevelUp`)
+  and `Label_RankUp` holds `TextBlock_RankUp` (`@10502`, style
+  `TBL_RankUp`). Both Labels declare `VisualOpacity="0"`. Each Label is
+  followed by a SparkleControl on `system/ingame/levelup.le.spk`.
+  `SparkleControl_Effect_2`, the one after `Label_RankUp`, declares the
+  tint `VisualOpacityRed="0.1"`, `VisualOpacityGreen="0.3"` and
+  `VisualOpacityBlue="0.8"`.
+- The template's CommandTriggers `LevelUpAnime.Popup` and
+  `RankUpAnime.Popup` drive `Label_LevelUp` with `SparkleControl_Effect_1`
+  and `Label_RankUp` with `SparkleControl_Effect_2`. Each storyboard takes
+  the Label's `VisualOpacity` from 0 to 1 over 0.3 s, its `ScaleX` and
+  `ScaleY` from 2 to 1 over 0.15 s with `SlowDown` at both ends, its
+  `Canvas.Top` from 0 to -30 over 2 s with `SlowDown`, and its
+  `VisualOpacity` from 1 to 0 over 0.2 s from 2.5 s. It sets the sparkle
+  `Sequence` to `stop` at 0, `start` at 0.06 s and `stop` at 2.5 s.
+
+INFERRED. Message `0x8475` raises kind 0 and so plays the `@10502` Label
+with the tinted sparkle, and message `0x846E` raises kind 1, the `@10501`
+Label. The widget is attached once, by `0x0054AF00`, at an element named
+`EID_NAME` with a vertical offset of -0.15 or 0.15. The meaning of the
+other arguments of `0x0054AF00`, the role of the form's `EID_BODY_DYN`, the
+two gates and the text of `@10501` and `@10502` are not established here.
 
 ## Reachability
 
@@ -713,6 +771,7 @@ A reimplementation of the UI sound path may rely on the following.
 - The meaning of the creation keys, the position 3 rule and any in-world voice
   rule.
 - The record kinds, opcodes and capture frequency behind the message sounds, and the sources of the drain filter flag and selector.
-- The effect of `0x007969D0` and the default value from `0x004055D0`.
+- The two gates of `0x007969D0`, the argument roles of `0x0054AF00` and the
+  default value from `0x004055D0`.
 - Module slot 4 callers that hold their own request object, beyond the module
   getter census and an immediate scan.
