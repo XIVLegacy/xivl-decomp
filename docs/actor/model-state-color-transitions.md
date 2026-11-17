@@ -189,6 +189,18 @@ This shared destination establishes a competing-write hazard, but not which
 effect or clip ran last for any historical encounter, nor the actor, selector,
 timing, or runtime state that chose it.
 
+STATIC. The consumer `0x008262A0` acts only while bit 0 of the clip byte
+`+0x38` is clear (`0x008262B7`), and sets the bit after the call
+(`0x008263EB`). It needs the actor found through `0x00A1FFA0` to cast to
+`CharaActor` (`0x012B7810`), whose address `+0x11B4` it passes on
+(`0x00826310`), and a record whose dword `+0x10` is 0 (`0x00826351`). It reads the duration `+0x14`, takes 1 when
+that value is negative, multiplies by 300000 and divides by 30 into ticks
+(`0x00826322..0x0082634F`, the `0x88888889` reciprocal of 30), turns the ticks
+back to frames with 30.0 (`0x00FA7B18`) over 300000.0 (`0x00F67020`) and passes
+the truncated count, the mask `+0x18` and the two quads at `+0x1C` and `+0x2C`
+to `0x0065EF60` (`0x0082635B..0x008263E6`). The duration is therefore in frames
+of 30 a second.
+
 ## m526 rock section masks
 
 The m526 BID bank at

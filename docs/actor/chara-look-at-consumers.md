@@ -380,9 +380,9 @@ switches the look-at off, which fits the name weight that this page uses for the
 float. That reading is INFERRED. The zero weight flag of the controller slot is
 the controller side of the same case.
 
-Slot 12 of `LookAtIKObject` is `0x00AEAB00`, a routine of 8,364 bytes that is
-the likely solver. Its angle limits, rotation order and blend speed were not
-traced.
+Slot 12 of `LookAtIKObject` is `0x00AEAB00`, a routine of 8,364 bytes that
+draws the object for debugging. The goal angles, the step and the weights are
+in [LookAtIKObject record, goal and step](look-at-ik-record-and-solver.md).
 
 ### LookAtIKObject storage
 
@@ -402,9 +402,9 @@ sets byte `+0x7C` to 1 when `0x00ACAE20` answers true (`0x00ACC117..0x00ACC120`)
 `0x00ACCB20` calls `0x00AED7D0` for each element with a stride of `0x180`
 (`0x00ACCB62`, `0x00ACCB67`).
 
-INFERRED. The joint names, limits and blend rate of a look-at object come
-from a Phieg IK definition resource that fills these elements. That
-resource and the solver `0x00AEAB00` are not traced.
+STATIC. The joint names, limits and speeds of a look-at object come from a
+definition record that the loader `0x00AED060` reads, described in
+[LookAtIKObject record, goal and step](look-at-ik-record-and-solver.md).
 
 ## Open questions
 

@@ -56,8 +56,96 @@ caller is `0x004E244C`. `0x004DA380`:
 `0x004DA380` has two further callers, `0x0076F1F0` and `0x0076F470`, which
 were not traced.
 
-INFERRED. `0x0059B880` requests the error dialog for the row. The consumer of
-its message was not traced.
+INFERRED. `0x0059B880` requests the error dialog for the row.
+
+## State left in place by the opener
+
+STATIC. `0x004DA380` runs on the RaptureElementContainer W (the fields
+`+0x1783C` and `+0x17834`, see
+[state ID transition helper](state-id-transition-helper.md)). The call at
+`0x004DA3CA` is the clear sentinel call `0x004D9980(0xC0000000)`, one of the
+callers that page lists. The call at `0x004DA3E8` passes W `+0x49C` as the
+receiver of `0x0059B880`. The constructor `0x004DBF40` writes the vtable
+`0x00F90FD0` (`MessageDialogEvent`) at `0x004DBF78` and then `0x00F91198` at
+`0x004DBFC5`. Slot 1 of `0x00F91198` is `0x004DB5B0`, listed in the
+[vtable slot catalog](../../config/ffxivgame.vtable_slots.jsonl).
+
+INFERRED. The opener removes no element and unloads no zone. The sentinel call
+clears the local actor id and saves the settings of the character as recorded
+in [game controller startup](../input/game-controller-startup.md).
+
+## Message dialog form
+
+STATIC. `0x0059B880` builds the message through `0x0059C2E0(3)`, stores the
+row at message `+0x60` and appends it through `0x0059B820` to the list at
+`+0x70` of its receiver. The `MessageDialogManager` constructor `0x0059B6A0`
+builds three `MessageDialogForManager` dialogs through `0x0059C060`,
+`0x0059C0C0` and `0x0059C120` into `+0x7C`, `+0x80` and `+0x84`. Its one
+caller is the W constructor (`0x004DC1B3`).
+
+STATIC. `0x0059BF90` passes its type to the `MessageDialog` constructor
+`0x0059AC20`, which stores the type at `+0x1B8` (`0x0059AC76`) and passes the
+row text to the base `0x006A5230`. The type picks the form:
+
+| Type | Form | Buttons | Strings at |
+| ---: | --- | --- | --- |
+| 1 | `\system\errordialog\ErrorDialogYesNo.form` | `Button_No`, `Button_Yes` | `0x00FA9CAC`, `0x00FA9CD8`, `0x00FA9CE4` |
+| 2 | `\system\errordialog\ErrorDialogMsg.form` | none | `0x00FA9CF0` |
+| other | `\system\errordialog\ErrorDialogOk.form` | `Button_Ok` | `0x00FA9C78`, `0x00FA9CA0` |
+
+The branches are `0x0059AC7C..0x0059AC94`. The Ok form is pushed at
+`0x0059ACA1` and its Button name at `0x0059ACFE`.
+
+INFERRED. The zone error reads as the Ok form, the one form with a single
+Button. Which type a kind 3 message takes was not traced through the pump of
+the manager.
+
+## Button handler and the screen after it
+
+STATIC. `0x004DB5B0(message, Button index byte)` is slot 1 of the event at W
+`+0x49C`, with ECX at that subobject:
+
+- Button 0 calls `0x004DAF00` on W. Then, when the phase controller pointer W
+  `+0x4BC` is not null, it calls `0x00565AA0(0xB)` (`0x004DB686`) and returns.
+  With a null pointer it runs the tail at `0x004DB5EC`.
+- Button 1 calls `0x004DAF00` and then `0x00565AA0(0xA)` (`0x004DB663`), or
+  sets byte W `+0x504` when the controller pointer is null. It then runs the
+  tail at `0x004DB5EC`.
+- Button 2 calls `0x004DAF00` and then `0x00565AA0(0x18)` (`0x004DB5E5`), and
+  runs the same tail.
+
+STATIC. `0x00565AA0(n)` stores `n` at `+0x98` of the phase controller, the
+requested phase. `0x004DAF00` sends the target clear described in
+[target lock decide senders](target-lock-decide-senders.md), calls
+`0x004D9980(0xC0000000)` again, sets byte W `+0x54B` and walks the element
+registry at W `+0x17804`, passing each element whose key is not `0xC0000024`,
+`0xC0000007` or `0xC0000005` to `0x00813050`.
+
+INFERRED. The elements are removed when a Button is pressed and not before.
+What `0x00813050` does to an element was not read.
+
+STATIC. The phase factory `0x0055E010` (see
+[bootup phase owners](../resource/bootup-phase-owners.md)) subtracts 1 from
+the phase and jumps through the table `0x0055E4DC`. Phase 10 (`0x0055E217`),
+11 (`0x0055E26B`) and 12 (`0x0055E297`) allocate `0x41F0` bytes and call
+`0x006B3210` with mode 0, 1 and 2 (pushes at `0x0055E237`, `0x0055E28B` and
+`0x0055E2B7`). Phase 24 (`0x0055E43D`) calls `0x006A5E40`.
+
+STATIC. `0x006B3210` installs the BootupManager vtables `0x00FD25FC` and
+`0x00FD25E0` (`0x006B325F`, `0x006B3266`). Mode 1 reaches the call of
+`0x004E1EB0` at `0x006B3B34` and, when it returns 0, shows the error
+`0x006A43A0(15001, 1010)` (`0x006B3B3D..0x006B3B49`). Mode 2 asks for phase
+`0x18` (`0x006B3B58`). Mode 0 reaches neither.
+
+STATIC. The credit phase asks for phase 10 when it ends (`0x006A5F33`). The W
+receive dispatcher `0x004DC690` asks for phase 11 at `0x004DCC86`, after the
+clear sentinel `0x004D9980(0xC0000000)` at `0x004DCC6C` and `0x004DAF00` at
+`0x004DCC73`, and for phase 12 at `0x004DCCB3`.
+
+INFERRED. Phase 11 is the BootupManager that dials the lobby again. It is the
+screen that the Button 0 of this dialog and the dispatcher path at
+`0x004DCC86` both reach. Phase 10 is the BootupManager that starts at the
+title. The dial of `0x004E1EB0` was not traced.
 
 ## ZoneClient state word writers
 
@@ -115,7 +203,8 @@ error text".
 
 ## Open
 
-- The consumer of the `0x0059B880` message and the dialog it opens.
+- The pump of the `MessageDialogManager` from its message list to the dialog
+  type, and the dial of `0x004E1EB0`.
 - The callers of RaptureChannelManager slots 5 and 6 and of `0x004DA380`
   from `0x0076F1F0` and `0x0076F470`.
 - The unit of the timed callback values, and which setup serves the zone
