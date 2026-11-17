@@ -337,8 +337,8 @@ STATIC. The update, slot 1 `0x007F27B0`, clamps `+0x14` to the range 1.0 to
 
 INFERRED. `+0x14` is the distance goal, so state 3 closes to 1.0 and state 2
 draws back to the 5.0 limit, the stored 8.0 reading as 5.0 after the clamp.
-The joints the three look-at helpers read and the sender of state 4 were not
-traced.
+The elements the three look-at helpers read and the sender of state 4 are in
+[character creation camera elements](character-creation-camera-elements.md).
 
 ### Facing setter `0x00587C10`
 
@@ -646,8 +646,7 @@ the binary64 values `0x01052110` and `0x01052118`, the strings at
 - The readers of `boot_charaTemp`, `boot_charaLook` and `boot_skillequip`,
   the vector `0x00867040` indexes by dword 1 of the window table, and the
   window that id 16 serves.
-- The joints the CharaCreate look-at helpers `0x00664100`, `0x00660090` and
-  `0x006601D0` read, and the sender of view state 4.
+- The poster of BootupManager command 34, which sends view state 4.
 - The consumer of the BootupBg Label commands and the sizes its init
   divides.
 - The resolution of `cbem_make_id0` and `avert1` to `avert4` against the

@@ -362,8 +362,53 @@ STATIC. Two native callers of `0x00675480` write the index:
 
 INFERRED. A `QuestMapIndex` write shows the `ssd_marker_data` row of that
 `ssdindex`, loads its layout and floor as the shown page, and centres the
-map on its `X` and `Z`. Who sets `MapNavigationWidget` mode 3 was not
-traced.
+map on its `X` and `Z`.
+
+### Navigation widget mode word
+
+STATIC. The `MapNavigationWidget` initializer, slot 4 `0x00529050`, stores 1
+at `+0x254` (`0x005293AC`) and 0 at `+0x258` and `+0x25C` (`0x005293B6`,
+`0x005293BC`). The `MapNavigationWidget` locator at `0x01143C68` is the
+dword before the vtable `0x00F9EFB4`.
+
+STATIC. A scan of every instruction in the code section that stores to a
+`disp32` of `0x254` (53 sites) finds these stores:
+
+- one immediate store of 3 to an object field, at `0x00504740` in `0x005046F0`. Its only caller
+  is `0x0050EDC0` (`0x0050EDD9`), which is slot 11 of the vtable `0x00F9EC6C`
+  whose locator names `LinkshellMenuSubWidget`
+- immediate stores through ESP, whose frames carry a try level and not an
+  object field: 0, 1, 2, 3, 4, 7 and -1 in `0x005127F0` and `0x00514510`, 10
+  and -1 at `0x006B13F1` and `0x006B13FC`, and -1 or an address constant in
+  `0x0043AF20`, `0x0050AE90` and `0x00859490`
+- immediate stores of 0 and 1 at `0x004FF799` and `0x004FF7AD` in `0x004FF780`,
+  which is slot 14 of the `SupportDeskWidget` vtable `0x00F9F90C`
+- register stores in `0x00510240`, `0x00510A90`, `0x005160F0` and `0x00519700`,
+  slots of the `PcMatchingFindWidget`, `ShopEditWidget`,
+  `PcMatchingEditWidget` and `PcMatchingViewWidget` vtables, and in
+  `0x004FBDE0`, which only `0x005046F0` calls
+- register stores in `0x004ED500`, `0x0051F900`, `0x0052A850`, `0x0052AC90`,
+  `0x0052AFE0`, `0x0052B3D0`, `0x0052B530`, `0x0052B630`, `0x0052BA40`,
+  `0x007A8F60`, `0x00884B00`, `0x008D6440`, `0x00908680`, `0x0092F640`,
+  `0x00933B80`, `0x00AFF0E0` and `0x00CBB1E0`, none of which is a slot of the
+  `MapNavigationWidget` vtable
+
+NOT FOUND. No store in the scan writes 3 to the mode word of a
+`MapNavigationWidget`. The scan covers `disp32` forms of `0x254` only. The
+register stores in the unattributed functions were not traced to their object
+type.
+
+INFERRED. In this build the native mode word of the navigation widget is 0 or
+1, so the mode 3 arm of slot 8 never writes `QuestMapIndex`. The
+`MapMenuTopJournal` route above is then the only native writer of the index.
+
+STATIC. The `MiniMapWidget.form` reader `ssd_marker_data` reads `2Dmap_marker`
+with the `XmlFormat`
+`,X,Y,,,,,Z,SparkleFile,SparkleSequence,Region,Layout,Floor,Template`, names no
+`Text` column and no `Row`. The `MapNavigationWidget.form` reader of the same
+name reads `quest_marker` with
+`,Type,X,Z,,,SparkleFile,SparkleSequence,Region,Layout,Floor,Template,Text,Visibility`
+and declares no `Row`.
 
 ## Navigation window markup
 
@@ -410,6 +455,39 @@ and `SparkleControl_MapMarker` (`Source="common/mapMarker.le.spk"`,
 
 INFERRED. The navigation window shows the self entry and no other actor
 entry, and party members reach it only as group rows.
+
+MEASURED. The same file holds these captions, in the `MapMarkerTemplate`
+(`Width="480"`, `Template` bound to `@Template`) families:
+
+- `MapMarker`, `MapMarkerUnder`, `MapMarkerLeft`, `MapMarkerRight`,
+  `MapMarkerPoint`, `MapMarkerSymbol`, `MapMarkerSymbolUnder`,
+  `MapMarkerSymbolLeft`, `MapMarkerSymbolRight`, `MapMarkerAetheryte`,
+  `MapMarkerAetheryteUnder`, `MapMarkerAetheryteLeft` and
+  `MapMarkerAetheryteRight` hold `TextBlock_Caption` (`Text` from `@Text`,
+  `Visibility` from `@Visibility`, `FontSize="13"`, `FontEdge="True"`,
+  `SqwtStyle="TBL_null"`) and a 32 by 32 `SparkleControl_MapMarker`. The
+  plain, `Point`, `Symbol` and `Aetheryte` shapes stack vertically with the caption first,
+  and the `Under` shapes stack vertically with the marker first. The `Left` and
+  `Right` shapes use a horizontal stack with the caption first or last, with
+  `TextAlignment` right for `Left`. The `Symbol` and `Aetheryte` captions
+  carry `Margin="0,0,0,4"`
+- `MapMarkerQuest` is a vertical stack of the caption (`Visibility` from
+  `@Visibility`, `SqwtStyle="TBL_map_null"`, `TextAlignment="Center"`,
+  `TextWrapping="Wrap"`) above the `SparkleControl_MapMarker`
+- `MapMarkerQuestArea` is a Grid holding the `SparkleControl_MapMarker` and
+  the same caption, both centred
+- `MapMarkerParty` is the vertical stack of the `TBL_chat_inputParty` caption
+  and the marker, with `@Visibility` also bound on the marker
+
+The decoded SHA-256 of `MapMarker.tpl` is the value above. The decoded SHA-256
+of `MiniMapWidget.form` is
+`7c3d9d8a0c69291d21b705c8823444fc5ab89d4ee3ae06eda80caab040e85c88`. The control
+of `MapNavigationWidget.form` sets `SsdMarkerDefaultTemplate` and
+`GlMarkerDefaultTemplate` to `MapMarkerTemplate`.
+
+INFERRED. A quest row caption is the `Text` cell of its row, drawn above the
+marker for `MapMarkerQuest` and over it for `MapMarkerQuestArea`, and hidden
+unless its `Visibility` cell is `Visible`.
 
 ## Marker packages
 
@@ -477,7 +555,17 @@ ghidra find bytes 001e6700
 ghidra x-ref to 0x00675480
 ghidra disasm 0x004FCA20 -n 20
 ghidra disasm 0x004FCEB0 -n 20
+ghidra disasm 0x00529380 -n 20
+ghidra disasm 0x005046F0 -n 40
+ghidra x-ref to 0x005046F0
+ghidra x-ref to 0x004FF780
+ghidra memory read 0x00F9EC6C 56
 ```
+
+For the mode word scan, list every `C7` and `89` instruction in the code
+section whose ModRM byte has mod 2 and whose `disp32` is `0x254`, with a SIB
+byte when the R/M field is 4, and name the function of each address
+with `ghidra function get`.
 
 For the event `0x55` scan, disassemble the instructions before each
 `0x007CE7B0` call site and read the third push before the call. Read the
