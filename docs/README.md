@@ -360,6 +360,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Attribute resource and native physics registration](resource/attribute-resource-and-scene-binding.md)
 - [PHB branching tree consumers](resource/phb-branching-tree.md)
 - [SceneThreadImpl world lifetime](resource/scene-thread-world-lifetime.md)
+- [Scene frame-rate setting consumer](resource/scene-frame-rate-setting.md)
 - [DivideMap block activation](resource/layout-block-activation.md)
 - [Layout manager block selection](resource/layout-block-streaming.md)
 - [Class metadata](resource/class-metadata.md)
