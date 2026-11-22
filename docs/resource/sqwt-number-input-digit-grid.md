@@ -59,7 +59,7 @@ row, column, row span and column span respectively.
 | Background FrameworkElement, style group Label | C+0x3658 | Ctor 0x0092F640 at 0x0069D242. Row 1, column 1 at 0x0069D5D3..0x0069D5DB. Type group Label set at 0x0069D60C and style at 0x0069D649. Its column span is the digit count at 0x0069EA93..0x0069EA9B. |
 | Maximize Button | C+0x2EF0 | Ctor 0x00974410 installs Button vtable 0x01073CAC. Row 1, column 0 default. HorizontalAlignment byte 2, vertical 1 at 0x0069D81E..0x0069D836. Command Slider.MaximizeValue at 0x0069D7F1..0x0069D7F8. |
 | Minimize Button | C+0x32A4 | Same Button ctor. Row 1, final column at 0x0069EAF6. HorizontalAlignment byte 0, vertical 1 at 0x0069D84E..0x0069D866. Slider.MinimizeValue at 0x0069D801..0x0069D80C. |
-| TextBox editor | C+0x11D0 | Ctor 0x0095C300 installs 0x0106EDB4. Row 1, column 1 at 0x0069D941/0x0069D9FA and column span equals digit count at 0x0069EAA0..0x0069EABE. Constructor sets VisualOpacity 0 (0x0069D9B9..0x0069D9C5, descriptor 0x0135988C, Visual+0x48). Digit Operate path sets opacity 1 and gives it focus at 0x0069C020..0x0069C064. |
+| TextBox editor | C+0x11D0 | Ctor 0x0095C300 installs 0x0106EDB4. Row 1, column 1 at 0x0069D941/0x0069D9FA and column span equals digit count at 0x0069EAA0..0x0069EABE. Constructor sets VisualOpacity 0 (0x0069D9B9..0x0069D9C5, descriptor 0x0135988C, Visual+0x48). Middle PreviewMouseDown handler sets opacity 1 and gives it focus at 0x0069C020..0x0069C064. |
 | NumberLabel digit cells | heap, one 0x1248-byte object per place | Allocates/constructs at 0x0069E4B7..0x0069E4DA and attaches to Grid child list at 0x0069E555..0x0069E55F. Row 0 default with row span 3 at 0x0069E62D..0x0069E630. |
 
 The rebuild at 0x0069E330 is called by both 0x0069EBE0 (slot 70, reached

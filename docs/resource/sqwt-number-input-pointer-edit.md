@@ -115,6 +115,104 @@ range clamps the resulting request. Only a changed effective value
 raises integer ValueChanged (`0x0135ADE8`, id `0x30`, strategy 0) with
 C as source and original source (`0x00967215..0x009672C8`).
 
+## Middle digit and embedded text editor
+
+STATIC. Let C be the complete NumberInputBox and D one current generated
+NumberLabel from C's digit vector. D's middle ContentPresenter is at
+`D+0x36C`, with its input interface at `D+0x420`. The rebuild installs a
+MouseEventHandler owned by C with callback `0x0069C020` on that interface
+at `0x0069E655..0x0069E6F9`. Its descriptor is `0x013596EC`,
+PreviewMouseDown. Initializer `0x00F22BE0` uses name `0x0106BFB0`, id 7
+and strategy 2. Each arrow has its own input interface.
+
+On that admitted callback, `0x0069C020..0x0069C06B` requests VisualOpacity
+1, IsHitTestVisible true and Focusable true on the embedded TextBox at
+`C+0x11D0`, then requests focus through that editor's input `+0x38` and
+marks event `+0x19`. The handler runs on the press and limits its
+writes to the editor and the event. The primary-press profile requires the
+native point route, current presenter attachment and handler store gates.
+The arrow handler selects on MouseDown and steps on release. The
+[generated digit geometry](sqwt-number-input-digit-grid.md#digit-controls-and-value-binding)
+owns the ContentPresenter and arrow layout.
+
+The constructor also registers `0x0069BF00` on C's own KeyDown descriptor
+`0x01359614` (`0x0069DB3C..0x0069DB64`). Initializer `0x00F22EE0` supplies
+name `0x0106C0EC`, id 2 and strategy 0. If event source `+8` equals complete
+C and key dword `+0x2C` is `0x30..0x39`, the handler replaces editor Text
+with the corresponding one-character ASCII digit. It then requests the same
+opacity, hit, focusable and focus state and marks the event
+(`0x0069BF2C..0x0069BFFA`). A separate `0x60..0x69` key arm subtracts
+`0x30` to derive the same character. The source comparison appears in the first arm. The
+contract starts with the routed KeyDown record. The OS key producer,
+modifier priority, repeat behavior and general text input remain unverified.
+
+Constructor `0x0069DA31..0x0069DA53` binds editor Text descriptor
+`0x0135A660` to C's Value descriptor `0x0135ADF4` with mode byte 1 at
+Binding `+0xA4`. The [binding mode](sqwt-keyframe-target-binding.md#observed-controltemplate-owner-and-binding)
+is OneWay. The constructor's `0x00959710` call sets TextAlignment
+descriptor `0x0135A588` to byte 1 (`0x0069D98F..0x0069D99F`).
+The current editor Text pointer is at editor `+0x1758`, complete
+`C+0x2928`. General TextBox character insertion, selection, deletion,
+paste, IME and accepted nondecimal input remain outside this trace.
+
+The middle handler preserves the current Text. NumberInputBox's
+focus-change callback `0x0069CE70..0x0069D044`, registered
+on the editor at `0x0069DAC0..0x0069DB1D`, compares the new focus interface
+at event `+0x2C` with editor input `C+0x1284`. On equality it makes the
+editor visible to painting/input and sets each generated digit's opacity
+and hit flag to zero. Otherwise it hides the editor and restores digit
+opacity and hit flags. It resets C's selected place `+0x3B84` to the first
+vector entry and refreshes the two affected arrow pairs. The editor
+keeps its current buffer under the middle press and this focus callback.
+The OneWay binding supplies later Value changes. General caret and selection
+behavior belongs to the separate focus and input-method path at
+`0x00930D20 -> 0x0098BB00`.
+
+### Commit and editor cancel
+
+STATIC. NumberInputBox Executed handler `0x0069C5E0` receives input C+0xB4
+and calls the Slider handler first. Its source comparison at
+`0x0069C619..0x0069C624` is input receiver `+0x111C`, exactly complete
+editor `C+0x11D0`, against event source `+8`. The comparison requires
+the exact embedded editor.
+
+| Admitted editor-source command | Ordered effect | Native locator |
+| --- | --- | --- |
+| `ApplicationCommands.Operate`, `0x01357C88` | Set editor opacity, hit flag and Focusable to zero. Read Text or empty fallback. Convert through `0x00988A30` and request C's typed Value. Save effective Value at `C+0x3B80`, request focus on C and mark handled | `0x0069C62A..0x0069C6A1` |
+| `ApplicationCommands.MoveFocus`, `0x01357968`, integer-0 low byte 10 | Set the same editor opacity, hit and Focusable to zero. The NumberInputBox arm ends after hiding the editor and preserves Text and Value | `0x0069C6AA..0x0069C6EA` |
+
+The constructor builds an Escape key gesture, key `0x1B` with modifier mask
+0, and a KeyBinding for MoveFocus with kind-1 integer 0 equal to 10
+(`0x0069D883..0x0069D8FA`). It inserts that binding into the embedded
+editor's collection at editor `+0xE0` (`0x0069D925..0x0069D939`). Actual
+key dispatch, admission and focus movement remain the ordinary binding and
+base-handler conditions.
+
+The integer converter and signed range are the
+[ordinary Value path](sqwt-number-input-box.md#range-properties-and-event).
+Only an effective changed Value raises ValueChanged. The existing template
+and current widget subscriptions remain necessary for the Lua quantity
+consumer. A decimal Text commit uses the integer converter and Value
+setter. The negative-place gate belongs to AddCommandParameter. ValueChanged
+requires an effective value change after clamping. Digit-source MoveFocus,
+saved-value rollback and general TextBox parsing have separate paths.
+
+The [Search form](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/search-recruitment-native-boundaries.md#begin-search-activation-and-first-use-filters)
+selects this constructed type for CustomControl_LevelFrom and
+CustomControl_LevelTo. The ShopEdit mode-12 section below identifies its
+CustomControl_NumberInput and numeric template. The three selected type
+attributes and form cipher round trips were independently checked. Their
+widget-specific persistence, subscription and result behavior remain separate.
+
+INFERRED bounded shared behavior. An admitted current middle-digit primary
+press can reveal the editor in Search or ShopEdit without changing Value.
+An admitted own-box key 7 can instead seed Text with `7`. With bounds 1..50
+and prior Value 12, editor-source Operate then requests effective Value 7
+and one changed ValueChanged event. Editor-source MoveFocus 10 before the
+commit leaves Value 12 and requests no ValueChanged. This derived fixture
+covers the same constructed NumberInputBox under each widget's callback
+and focus gates. The observations use static analysis.
+
 ## Conditional hand-in command delivery
 
 The Label that wraps each NumberInputBox selects
@@ -172,8 +270,8 @@ uses `0x008A3FE0` and `0x006F58A0`, which joins the supplied-context
 gate at `0x006F593C`. The resulting static chain is conditional on the
 ordinary input target, successful form and trigger attachment, accepted
 range write, live owner and eligible scheduler. Clamped no-change edits
-produce no new ValueChanged event. Keyboard, pad, editor focus, repeat
-cadence, alternate pointer targets, command loss under concurrent
+produce no new ValueChanged event. General keyboard and editor input, pad,
+repeat cadence, alternate pointer targets, command loss under concurrent
 priority-5 events, actual sound and original live delivery remain open.
 
 ## ShopEditWidget mode 12
