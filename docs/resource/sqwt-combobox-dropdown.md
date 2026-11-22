@@ -224,7 +224,8 @@ style `WIN_basis_comboList`. The Window's normal `Frame` selects
 skin `WIN_basis_comboList_frame_N`.
 
 The selected template's DockPanel has a `PART_DropDownButton_Text`
-ToggleButton that holds the `PART_Label` TextBlock. Under
+ToggleButton that holds the `PART_Label` TextBlock. At template line 44
+its `Text` binds OneWay to `Text` on the templated parent. Under
 `TextBlock.InputBindings`, that label declares one
 `MouseAction=LeftClick` MouseBinding to `ComboBox.OpenDropDown`
 on the templated parent.
