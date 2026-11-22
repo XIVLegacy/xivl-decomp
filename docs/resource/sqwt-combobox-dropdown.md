@@ -199,6 +199,49 @@ maximum. The result reaches virtual arrange slot `+0xD8` at
 `0x00930012`. This traces an arrange bound. The visible row count and
 popup scrollbar behavior depend on other controls.
 
+### Effective default drop-down height
+
+STATIC. The `MaxDropDownHeight` descriptor is `0x0135B1D4`,
+registered with ordinal 4 at `0x00F24300`. The ComboBox constructor
+`0x009695C0` initializes its holder at `+0x4BC` from the binary32
+constant at `0x01070348` at `0x009696CD..0x009696F5`. That constant
+is `-20000000.0`, the Sqwt `NaN` sentinel.
+
+The distinct ComboBox property bridge at `0x0135B1A0` is initialized
+at `0x00F24320`. It receives vtable `0x01070A50` and getter member
+`0x00968230` at `0x00F24348..0x00F24358`. Its getter wrapper at
+vtable slot 2, `0x009A71C0`, invokes that stored member. The generic
+[property read](sqwt-keyframe-target-binding.md#observed-controltemplate-owner-and-binding)
+reaches the property bridge through virtual `+0x08` of its property info.
+
+Getter case 4, table `0x009683A8` entry `0x00968316`, reads the
+holder and compares it with the sentinel at `0x00968320..0x00968331`.
+Equality takes the global Sqwt root pointer at `0x01356E10`, reads
+its `+0x1BC` float and divides by the binary64 `3.0` at `0x00F62FF0`.
+The result is stored as binary32 at `0x00968345`. A non-sentinel
+holder passes through unchanged. Both paths format that effective value
+through `0x00988D50` at `0x00968353` and return a successful read.
+The formatter's special values and numeric path are recorded under
+[special float values](sqwt-binding-converter-parameter.md#special-float-values).
+
+The root field is `Height`. Its setter
+`0x0092ED10` uses descriptor `0x01358934` and holder `+0x1BC` at
+`0x0092ED1F..0x0092ED38`. The descriptor identity is recorded under
+[dimension identities](sqwt-progress-template-style.md#value-and-indicator-layout-consumer).
+The [Desktop source](sqwt-desktop-relative-source.md#writers-of-the-dword) identifies the root
+as `Sqwt::DesktopWindow`. Resize `0x0091A310` stores incoming dimensions
+at `+0x470` and `+0x474`, then calls `0x0091A0D0` at `0x0091A36C`.
+That helper divides the stored height by virtual `+0xC4`, stores a
+binary32 result and calls the Height setter at `0x0091A131`. This
+normalizes the incoming height through the current layout scale.
+
+Consequently an attached owner binding with the default holder obtains
+root `Height / 3` before the popup's ordinary maximum-height arrangement.
+A finite positive root Height of at least 120 provides a cap of
+at least 40. The natural desired sizes and surrounding decoration determine
+whether two controls with `MinHeight=20` fit. A missing root, unattached binding, invalid Height,
+actual popup measure, scaling and clipping require their own qualification.
+
 ## Installed Journal category declarations
 
 MEASURED. The standard `widget/JournalListWidget.form` binds
