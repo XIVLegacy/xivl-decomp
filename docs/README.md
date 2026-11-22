@@ -313,6 +313,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt name lookup cache](resource/sqwt-name-lookup-cache.md) -
   Per-form name cache of the script property lookup and the second log window.
 - [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
+- [Sqwt ComboBox drop-down commands](resource/sqwt-combobox-dropdown.md)
 - [Sqwt ListBox constructed parts](resource/sqwt-listbox-constructed-parts.md)
 - [Sqwt Track and ScrollBar rectangle requests](resource/sqwt-track-rectangle-requests.md)
 - [LogControl and pool feed static contract](resource/logcontrol-pool-feed.md)
