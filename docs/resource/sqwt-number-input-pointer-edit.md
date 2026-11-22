@@ -152,8 +152,8 @@ Binding `+0xA4`. The [binding mode](sqwt-keyframe-target-binding.md#observed-con
 is OneWay. The constructor's `0x00959710` call sets TextAlignment
 descriptor `0x0135A588` to byte 1 (`0x0069D98F..0x0069D99F`).
 The current editor Text pointer is at editor `+0x1758`, complete
-`C+0x2928`. General TextBox character insertion, selection, deletion,
-paste, IME and accepted nondecimal input remain outside this trace.
+`C+0x2928`. The bounded ASCII insertion path is described below. General selection,
+deletion, paste, IME and accepted nondecimal input remain outside this trace.
 
 The middle handler preserves the current Text. NumberInputBox's
 focus-change callback `0x0069CE70..0x0069D044`, registered
@@ -167,6 +167,96 @@ keeps its current buffer under the middle press and this focus callback.
 The OneWay binding supplies later Value changes. General caret and selection
 behavior belongs to the separate focus and input-method path at
 `0x00930D20 -> 0x0098BB00`.
+
+### Ordinary ASCII text after the first digit
+
+STATIC. The ordinary TextInput descriptor is `0x01359710`, name
+`0x0106C150`, id `0x24`, strategy 0 (`0x00F23030..0x00F23046`).
+Dispatcher `0x0091D320` selects input virtual `+0x88` for that id. The
+constructed TextBox input table `0x0106EC8C` has cell `0x0106ED14` pointing
+to `0x0097A570`. This is a text record, separate from KeyDown.
+
+The desktop input handler `0x0091AC80` has an id-`0x57` arm at
+`0x0091ACBD`. It excludes exact Text strings LF and CR, then submits
+PreviewTextInput `0x01359780` and TextInput `0x01359710`, in that order,
+through current-focus router `0x0091EE90` (`0x0091ACE2..0x0091ACF8`).
+That router requires nonzero current focus `0x01357020`, builds the retained
+input route and supplies its current source/original source before invoking
+eligible entries. The producer of the id-`0x57` record and OS character
+notification order remain outside this trace. A host supplying one ordinary
+text record for one character is an interoperability input assumption.
+
+At `0x0097A579`, the TextBox handler first calls its inherited handler store.
+Editor IsReadOnly, complete editor `+0x371` mask `0x20`, consumes the event
+without insertion (`0x0097A57E..0x0097A58D`). This property is descriptor
+`0x0135D7E4`, name `0x01074AD8`, initialized at `0x00F251C0`.
+Otherwise insertion requires the handled pointer at event `+0x10` still
+to read zero (`0x0097A590..0x0097A596`). Event `+0x1C` points to the text
+string and `+0x20` to nonnull input metadata. The ordinary profile below
+requires no retained composition and an empty metadata string at `+0x58`.
+The handler forwards the text to complete TextBox virtual `+0x120` at
+`0x0097A611..0x0097A629`, then marks the event at `0x0097A6C0`.
+
+TextBox primary table `0x0106EDB4` selects `0x0095B3F0` at `+0x120`
+and `0x00958C80` at `+0x11C`. The first method checks any input-character
+restriction and MaxLength before calling the second. Restriction reader
+`0x0098B880` returns `0xFF` when attached
+InputMethod.SqwtInputAllowedChars, descriptor `0x013600E8`, is absent.
+Under that result `0x009568A0` leaves the supplied text unchanged. Other
+restriction modes and custom character matching are outside this profile.
+
+NumberInputBox rebuild sets editor MaxLength, descriptor `0x0135A4EC`,
+through `0x00959590` at `0x0069EAB7` to the generated digit count. The same
+count supplies the editor column span. MaxLength lives at editor `+0x1764`.
+Positive Maximum 50 therefore gives two digit cells and MaxLength 2. The
+MaxLength branch in `0x0095B3F0` accounts for the existing document and any
+selection before admitting or shortening input. The bounded case below
+requires that admission and uses one plain ASCII digit within two-character
+capacity. The numeric range clamp runs on commit.
+
+The underlying insertion `0x009586C0` starts from CaretIndex at editor
+`+0x1750`. A nonempty ASCII digit passes its first-byte checks
+(`0x009586E5..0x009586F4`). If SelectionLength at `+0x1748` is nonzero,
+`0x009585D0` removes the selected range and clears it before insertion.
+Otherwise insertion uses the current caret. It calls the document's `+0x14`
+at `0x009587B0` and returns the resulting position. The constructed editor
+uses WrapTextDocument, whose `+0x14 -> 0x0098C180` forwards to its contained
+LineTextDocument `+0x14 -> 0x0098C8F0`. That method splices the supplied text
+at the requested position and returns the original position plus the
+inserted character delta (`0x0098CBC7..0x0098CC0A`).
+
+`0x00958C80` stores that returned position in CaretIndex and synchronizes
+the resulting document back into Text through `0x00958A80` on the
+non-composition path. The latter requests the Text property notification
+after updating its retained string. The TextInput route updates the editor
+buffer and caret. Value keeps its prior setting until the commit route
+consumes the resulting Text.
+
+STATIC. The initial own-box digit seed uses whole-Text replacement. Text's
+ordinal-3 callback is `0x00958ED0 -> 0x00958800`. With ordinary writable
+selection and caret cells, the replacement clears SelectionStart to -1 and
+SelectionLength to 0, rebuilds the document from Text, then assigns
+CaretIndex from the returned insertion position
+(`0x00958829..0x00958953`, `0x009589CD..0x009589EE`). ASCII seed `1`
+gives caret 1 and clears the selection.
+
+A later top-row ASCII KeyDown originates from the focused editor. The
+NumberInputBox seed arm requires exact source C. The associated TextInput
+record can use the insertion route above. The separate numpad seed arm
+has its own source conditions. The middle-press and NumberInputBox focus
+callbacks preserve the current Text and selection. Physical pointer caret placement,
+selection overrides, composition, paste, held repeats and first-key character
+notification suppression remain unverified.
+
+INFERRED bounded case. With the current constructed editor writable,
+IsReadOnly false, no character restriction, no composition and admitted
+MaxLength 2, an own-box ASCII seed `1` followed by one TextInput record
+containing `2` yields Text `12`, CaretIndex 2 and no selection. For prior
+Value 7 and bounds 1..50, Value stays 7 until Operate commits 12 and raises
+one effective ValueChanged. The fixture starts with two admitted input
+records. OS event ordering and duplicate suppression remain unverified.
+LLVM instructions, descriptor and name data, vtable cells and PE identity
+checks corroborated the Ghidra leads.
 
 ### Commit and editor cancel
 
