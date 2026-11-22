@@ -1138,8 +1138,85 @@ loop. The caller requires control `+0x958 != -1` at
 `+0x3D` bits 0, 1 and 2 and a positive entry float at `+0x14`
 (`0x0067B9B5..0x0067B9DC`). It selects image `+0x900` in both the
 masked branch through `0x0067BC4A..0x0067BC78` and the unmasked
-request at `0x0067BD36..0x0067BD45`. The entry flags and positive-float gate control this later area pass.
-Entry population, selected geometry and live pass admission remain UNKNOWN.
+request at `0x0067BD36..0x0067BD45`.
+
+### Unmasked GL area on the player page
+
+MEASURED. `widget/MapNavigationWidget.form` declares `GLMakerData` with
+key `gl_marker_data` and XPath `/root/marker` at line 6. Its unmasked
+`CustomControl_MapNavigation` (line 23) uses `Function=0`, binds
+`GlMarkerSource` one way to that source and path, sets `GlAreaImageId` to
+`0x61C10004` and sets `PrivateAreaImageWidth` and `PrivateAreaImageMeter`
+to 64. The same three image and dimension properties are present in
+`widget/MiniMapWidget.form` line 19. The installed GL texture is the
+64-by-64 GTEX `data/61/C1/00/04.DAT`, 16416 bytes, SHA-256
+`d1c1f69e963cee91e39bf3210b09e9ffa78a0790cdb878e034795b1abead1d24`.
+[Installed navigation form identity](https://github.com/XIVLegacy/xivl-client-data/blob/fde484691c54e2d7348e641b95b7131af9f089d3/docs/sqwt-map-navigation-structure.md#map-control).
+
+STATIC. `MapNavigationWidget.setActiveGuildleveMarker` writes the supplied
+slot in `GLMakerData` through `setListProperty` four times, flooring X,
+Y and Z and then writing `Radius`, and calls `updateListProperty` on that
+maker (prototype 39, PCs 49-84, zero-based). The accepted slot range is
+0 through 8 and size codes 1, 2, and 3 write 32, 64, and 128.
+`clearActiveGuildleveMarker` calls `deleteListPropertyAll` on that maker (prototype 38,
+PCs 0-2). The install path under `client/script` is
+`n1635q/x9uw9o139q1vwn1635q.le.lpb`, carrier SHA-256
+`873ee821c979b9c0959743bc619444ec01bd39c96f71235235278bb602b4d0bb`, decoded
+Lua 5.1 payload SHA-256
+`21cc7f2f9c6e2a56e02620e18748fa9dd70bf02dab6a889fd6083826d60528c2`.
+The bytecode was checked with `unluac --disassemble` after decoding the
+LPB wrapper. [Director and map-open producers](https://github.com/XIVLegacy/xivl-client-scripts/blob/f573dce2997c1dee508726a85815cc41e3d3e92b/docs/content-director-ui-contracts.md#caravan-escort-director).
+
+STATIC. Subject to the dirty flag gate at `0x00679369`, the GL rebuild
+requires the loaded layout and page at `+0xA54/+0xA58` (set at
+`0x00679DAC..0x00679DB5`) to match the local actor layout and page at
+`+0x9F4/+0x9FC`. It also requires the bound holder `+0x490` and its list
+(`0x00679376..0x006793AE`). After an initial row-kind check, callback
+`0x00671E00` takes a row with empty `Layout` and nonempty `Y` (literal at
+`0x00FC29B0`) to the template factory `0x00670730` (`0x00671EB4..0x00671EB9`,
+`0x00671F8A..0x00671FDA`). A successful new admission in `0x0067FCE0` clears bit 0
+and sets bits 1 and 2 in the copied entry at `0x0067FF87..0x0067FFA6`.
+A replacement uses `0x0067FE35..0x0067FEE1` and an admitted retained
+entry sets bits 1 and 2 at `0x00680112` and `0x00680124`. The
+rebuild first clears bit 1 on the retained tree nodes at `0x0067DEF4`.
+Node `+0x49` is entry `+0x3D`, since the walker passes node `+0x0C`
+to `0x0067BEC0` at `0x0067DC1C`. The GL walk uses zero X/Z offsets and
+unit divisor. The parser writes X and Z to entry `+0x08/+0x0C` and the
+nonempty `Radius` to `+0x14`, setting bit 0. Consequently a successfully
+admitted stock row with positive radius has all three draw bits.
+[Entry fields and sources](minimap-marker-entries.md#entry-positions).
+
+STATIC. The outer draw has already submitted the viewport clip and pushed
+`T(W/2,H/2)` at `0x00676D6D`. It pops the base-piece transform at
+`0x006770A5`. The later GL walker takes entry list `+0x338` at
+`0x00677E03..0x00677E46`, followed by SSD `+0x300` and Map `+0x370`.
+The private actor pass precedes GL (`0x00677D9C..0x00677DC7`). It checks
+its two image IDs and visits actor list `+0x2C8` through `0x0067DA40`
+and `0x0067B430`. The viewport-centre transform is still active and the
+GL walker finishes before the outer transform and clip are popped at
+`0x00677EFD..0x00677F0D`.
+
+The unmasked GL draw in `0x0067B980` uses the following values for a
+finite row and positive finite control dimensions and scales.
+
+| Value | Native inputs and operations |
+| --- | --- |
+| Marker scale `k` | `f32(f64(+0x610) * f64(+0x60C) * f64(+0x614))`, stored at `0x0067BA1B`. |
+| Local centre | The translation from `T(E.X,E.Z) * T(-Px,-Py) * S(k,k)`, with retained centre `Px,Py` at `+0x640/+0x644` and entry coordinates at `+0x08/+0x0C`. The routine builds both translations and extracts the translation lanes at `0x0067BA47..0x0067BB53`, then pushes the result at `0x0067BBA8`. The outer centre and the arranged control origin apply to this point. |
+| Diameter | `m=f32((2 * f64(Radius) / f64(Meter)) * f64(k))` and `d=f32(f64(Width) * f64(m))` at `0x0067BBAD..0x0067BCA3`. Constants and slots are binary64 2 at `0x00F63028`, `Meter` at `+0x520` and `Width` at `+0x518`. The `PrivateAreaImageMeter` and `PrivateAreaImageWidth` setters name those slots at `0x00674009..0x00674059`. |
+| Image request | The unmasked branch (`+0x844 == -1`) sends `(-d/2,-d/2,d,d)` and source `(0,0,Width,Width)` to `DrawImage` slot `+0x1C` at `0x0067BC85..0x0067BD45`. The image and fallback are both embedded `+0x900`. The float draw argument is 1.0. |
+
+INFERRED. For an ordinary non-world map row the local centre is equivalent,
+before rounding, to projecting `(E-O)*r+O` through the base drawing centre
+`C=(P-O)*r+O` and scale `s=u*a`, then adding `(W/2,H/2)` and the
+arranged control origin. Here `O` is the pair at `+0x638/+0x63C`,
+`P` the retained centre, `r` the resolution at `+0x614` and `u,a` the
+scales at `+0x610/+0x60C`. Native arithmetic builds the relative
+translation directly as described above. The unmasked branch has no
+separate height fade, marker-edge fade, or per-row `Visibility` check.
+The viewport clip applies even when the area extends across the edge.
+The masked area quad, private actor-area geometry, exact live admission
+on other pages and historical runtime presentation remain UNKNOWN.
 
 ## Masked tile sampling
 
