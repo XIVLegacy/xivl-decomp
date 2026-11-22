@@ -123,7 +123,9 @@ consumed, remaining length minus 1 and consumed-tail count initially 0
 
 - Kind 1 reads a compressed literal at literalBase+(payload&~1). It compares
   the literal in order, skipping input spaces and bitmap characters and using
-  the mapped comparison `0x00457A40`. A mismatch or exhausted input fails
+  the mapped comparison `0x00457A40`. With mapping enabled, that helper maps
+  both the stored literal unit and the input unit before equality
+  (`0x00457A61..0x00457ABA`, `0x00457A80..0x00457ADB`). A mismatch or exhausted input fails
   (`0x00457B36..0x00457BB2`). Child-link index 0, or a zero child-link value,
   succeeds. Otherwise the link selects another node, advancing the input by
   the number of consumed characters and reducing the remaining length by
