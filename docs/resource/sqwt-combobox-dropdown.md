@@ -149,10 +149,17 @@ internal popup path above and supplies no `Placement` override.
 The script-side row keys and publish call are recorded in
 xivl-client-scripts:docs/journal-list-row-writes.md, Quest category rows.
 
+The standard form selects ComboBox style `COM_basis` from
+`common/default.style`. Its `ListBox` part points to ListBox style
+`LIB_basis_comboList`. The list's `Background` points to Window
+style `WIN_basis_comboList`. The Window's normal `Frame` selects
+skin `WIN_basis_comboList_frame_N`.
+
 | SQEX input below `client/sqwt` | Bytes | SHA-256 |
 | --- | --- | --- |
 | `widget/JournalListWidget.form` | 3434 | `c72aeec944ae2072d4189cd0890bba6ca25d414d21393ee5d6eb086e017a939d` |
 | `widget/JournalListWidget.tpl` | 8692 | `12f30656cf5b8945ebec43f7c7756bc47a3e67ab8fe9160d09a2f15abb8a616f` |
+| `common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` |
 
 ## Property callback
 
