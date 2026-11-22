@@ -64,6 +64,16 @@ conditionally invokes the object referenced at `+0x4CC`, constructs
 `+0x4C8` at `0x0096813E`. Handler registration, repeated requests
 and a live popup's focus and key precedence remain unverified.
 
+## Drop-down button style
+
+STATIC. The part setup at `0x009683C0` pairs string `PART_DropDownButton`
+at `0x010708B8` with the string at `0x010708E8`. The pair passes to
+`0x00930BA0` at `0x00968515`. The two paths in the second string name
+`ComboBox:DownButton:UncheckedButton:Frame` and
+`DownButton:CheckedButton:Frame`. This records the part names and their
+join. The callback that chooses a path during a live open or close
+remains unresolved.
+
 ## Reproduction
 
 Use the 1.23b program in an analyzed Ghidra project.
@@ -75,4 +85,5 @@ ghidra x-ref to 0x0135B0B0
 ghidra disasm 0x00968AA0 -n 150
 ghidra disasm 0x009680D0 -n 100
 ghidra disasm 0x0096ED40 -n 120
+ghidra disasm 0x009684CC -n 30
 ```
