@@ -120,6 +120,27 @@ The target-relative branch contains no screen-edge choice. Upstream
 writers of `Placement`, effective clipping, layer order and the
 runtime effect of the height cap require separate traces.
 
+## Installed Journal category declarations
+
+MEASURED. The standard `widget/JournalListWidget.form` binds
+`ComboBox_Category_Quest.ItemsSource` to resource
+`XmlData_QuestComboBox` at `/QuestComboBox`. That resource names the
+maker `QuestComboBox`. The control selects
+`ControlTemplate_ComboBox` and `DataTemplate_ComboBoxItem_Quest`.
+The selected template in `widget/JournalListWidget.tpl` has a
+`PART_Popup` with `PART_ListBox` as its list child. The child
+declares neither `ItemsSource` nor `ItemTemplate`. The popup's
+`PlacementTarget` binding refers to the templated parent. It binds
+`IsOpen` and `MaxHeight` to the same owner properties as the
+internal popup path above and supplies no `Placement` override.
+The script-side row keys and publish call are recorded in
+xivl-client-scripts:docs/journal-list-row-writes.md, Quest category rows.
+
+| SQEX input below `client/sqwt` | Bytes | SHA-256 |
+| --- | --- | --- |
+| `widget/JournalListWidget.form` | 3434 | `c72aeec944ae2072d4189cd0890bba6ca25d414d21393ee5d6eb086e017a939d` |
+| `widget/JournalListWidget.tpl` | 8692 | `12f30656cf5b8945ebec43f7c7756bc47a3e67ab8fe9160d09a2f15abb8a616f` |
+
 ## Property callback
 
 STATIC. `0x009680D0` examines the descriptor index reached from callback
