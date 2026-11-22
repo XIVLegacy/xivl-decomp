@@ -121,6 +121,74 @@ starting at 0.1, 0.2 and 0.3 seconds. All three ramp from 1 to 0 over
 These are declared setters and animation operands. Native attachment,
 stop/restart arbitration and observed pixels remain conditional.
 
+## Conditional LoopAnime group clock
+
+STATIC. The Storyboard primary table `0x0107C32C` selects group setup
+`0x009CAB40` at `+0x4C`, group evaluation `0x009CAC70` at `+0x50`,
+iteration reset `0x009CAC00` at `+0x5C`, and group Stop
+`0x009CACE0` at `+0x3C`. These cells and the following instruction ranges
+were checked with section-mapped PE reads and LLVM objdump. The
+[DoubleAnimation clock](sqwt-double-animation-clock.md#setup-current-value-and-repeated-begin)
+owns target resolution, endpoint capture, the timer epoch and scalar evaluation.
+
+Group setup walks its retained child vector at `+0x138..+0x13C`, calls
+`0x009AC360` on each child, and takes the unsigned maximum returned qword
+(`0x009CAB85..0x009CABCA`). It writes that maximum through the Duration
+setter at `0x009CABE1`, then calls `0x009AD020` at `0x009CABF0`.
+Child setup stores its returned span at child `+0xE8/+0xEC`
+(`0x009AC385..0x009AC38D`). For a finite child with repeat count one,
+SpeedRatio one and AutoReverse false, the span returned by
+`0x009AD169..0x009AD1E0` is BeginTime plus Duration.
+The [native defaults](sqwt-double-animation-clock.md#default-timericon-percent-evaluation)
+establish those omitted child properties.
+
+INFERRED. With the installed operands above, the group repeats at the end
+of the last fade, nominally 0.55 seconds. Its period is the maximum child
+span, not the maximum bare Duration. The
+[decimal parser qualification](sqwt-double-animation-clock.md#clock-source-units-and-epoch)
+still applies. This does not assign exact parsed millisecond values without
+closing the locale and x87 environment.
+
+STATIC. Forward finite-duration boundary handling evaluates the endpoint
+before incrementing the iteration count at `0x009ACB68..0x009ACB71`.
+For another non-reversing iteration, `0x009ACBA2..0x009ACBAC` calls
+virtual `+0x5C` with false. The group implementation visits each retained
+child through `0x009ACF40` (`0x009CAC44..0x009CAC59`). With false,
+that helper clears child counters `+0x118/+0x11C`, marks the child active,
+and zeroes previous and accumulated time `+0x100..+0x10C`
+(`0x009ACF50..0x009ACF9D`). It conditionally publishes AnimeTime and
+calls virtual `+0x48`, which reaches the DoubleAnimation no-op through
+`0x009AC3B0 -> 0x009AC3A0`. It neither recaptures endpoints nor writes
+the target opacity. The ordinary remainder path skips a zero remainder
+at `0x009ACBE7..0x009ACBF1`. An exact positive wrap therefore leaves
+the endpoint as the last target write on that visit.
+
+Group evaluation walks the retained vector in order and calls each child's
+`0x009AC820` (`0x009CACB4..0x009CACC9`). A child before BeginTime
+returns at `0x009AC990..0x009AC9A8`. A completed finite child returns
+at `0x009ACA30..0x009ACA3C`. An eligible DoubleAnimation converts its
+result and calls the ordinary property setter at
+`0x009B4C88..0x009B4CA0`. This group path has no separate blend step.
+
+INFERRED. For these installed non-overlapping rise and fade intervals, the
+completed rise does not keep overwriting the later fade. A delayed track
+does not impose its From value before BeginTime. The last admitted opacity
+write is retained between eligible samples, including across a group reset.
+Replaying the same ordered samples with retained property snapshots can
+therefore represent this hold. Writing every child's clamped start or end
+on every visit would change it. This does not settle arbitrary competing
+storyboards or property-listener side effects.
+
+STATIC. Group Stop calls every child's virtual `+0x3C` at
+`0x009CAD24..0x009CAD3A`, then enters Timeline Stop at `0x009CAD42`.
+`0x009AC3C0` disables its timer and clears the active byte without restoring
+the target property. Beginning the retained group again repeats setup and
+resets its clock. Setup and clock reset do not write target opacity.
+INFERRED. Stop preserves the last property write unless a separate setter
+changes it. A later Begin likewise retains it until an eligible sample writes.
+The level-0 through level-3 triggers above contain their own opacity setters
+before Stop. No original live pulse or rendered sample was observed here.
+
 ## Command and cache
 
 The null-terminated UTF-16 pointer table at `0x0126DA64` contains
