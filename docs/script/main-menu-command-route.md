@@ -811,6 +811,72 @@ routing to that Window's registered root. Root finalization and index release
 remain separate from command acceptance. OS arrival, capture, the live
 Window flag and focus recipient remain unobserved. No original client ran.
 
+### Show and current root recipient
+
+OBSERVED. For the admitted Main Menu row-7 PcSearch and row-10 mode-1
+Linkshell roots above, connector `processWidgetCreated` (`main/f532`
+PCs 59-60) calls the created widget's `show()` without arguments. Neither
+selected widget overrides common `show`, and the selected Linkshell
+AskBaseClass supplies no show override. Common `main/f40` refuses exact-true
+forceHideFlag or `isShow()`, enables input at PC 20, then requests
+`Anime="Show"` at PC 37 when its first argument is not exact false.
+The native focus attempt precedes the return to its `processAfterShow`
+call at PC 40. PcSearch's latter method requests player experience
+information. These selected Lua show methods do not establish an explicit
+named focus request to Button_Close.
+
+STATIC. The [Anime setter](../resource/sqwt-anime-property.md#setter)
+rewrites Show to ShowInactive. On admitted changed-value dispatch to the
+Window, the normal non-log arm calls `0x00925AA0(1,1,1)` at `0x00926403`.
+The [show attachment path](../resource/sqwt-window-trigger-order.md#attachment-and-conditional-focus-notifications)
+requests Visibility at `0x00925B17`, then calls `0x009237D0` at
+`0x00925B23`. It can request root input focus at `0x00923889` only when
+modal selection returns that same Window, the incoming byte is 1,
+IsKeyboardFocusWithin is clear and Focusable is set. Another modal Window,
+property refusal, equal Execute value, focus redirection or cancellation
+can prevent the intended root from acquiring focus. A successful Lua show
+return is not evidence that native focus was stored.
+
+The [holder identity](../resource/sqwt-window-trigger-order.md#attachment-and-conditional-focus-notifications)
+at complete Window `+0x15D` is IsKeyboardFocusWithin. Its value mask is
+0x20. This is the same byte and mask tested by Button's target fallback
+at `0x0097ED47..0x0097ED5F`. With the containing Window attached and that
+bit clear, Button_Close supplies its own interface as explicit target.
+The direct parent route can therefore reach its Window without a current
+keyboard-focus interface. Absence of focus, or focus known to be in another
+Window, does not alone refuse this direct branch.
+
+For the set-bit branch, the Button supplies null. Router `0x0091EE90`
+requires global focus `0x01357020` to be nonnull at `0x0091EEBD..0x0091EEC3`.
+It copies the scope pairs at `0x01357060`. Helper `0x0091C370` derives the
+scope key by walking input parents `+0x60` to the interface below the
+Desktop (`0x0091C370..0x0091C3AC`). A disjoint chain returns null with a
+Desktop present. The router requires a pair matching that key
+(`0x0091F0A0..0x0091F0D0`) before starting the candidate walk.
+
+On the admitted changed-focus arm of `0x0091E3E0`, the pair is inserted
+or updated with that scope key and the new focus interface before storing
+that interface in `0x01357020` (`0x0091E6E7..0x0091E75C`). With those
+publications retained, attached focus within the intended PcSearch or
+Linkshell Window supplies a matching pair whose recipient is that root or
+an input descendant. The null router takes its source and original-source
+fields from this pair (`0x0091F0F0..0x0091F115`), then can route the
+recipient and its ancestors at `0x0091F199`. Thus the originating physical
+Button_Close and the null command event's focus-derived source are distinct.
+This conditional route can reach the same Window's registered `_widget`
+close handler. The event descriptor, owner, parent chain, current pair,
+form gates and absence of an earlier route stop remain premises.
+
+The null router tries other retained pairs after the matching candidate
+unless event `+0x17` becomes exactly 1 (`0x0091F199..0x0091F1A5`). Known
+focus in another root therefore does not prove that the intended root can
+never receive a later candidate. Refusing that case in an implementation
+limited to the proven same-root join is AUTHORED scope, not a universal
+native refusal. Null-branch absent focus is a proven early exit. Neither
+rule changes the explicit Button target branch when the holder is clear.
+Actual focus after these stock opens, callback reentry, OS delivery and
+capture remain unobserved. No original client ran.
+
 ## Row button style
 
 MEASURED. `common/default.style` declares one `SqwtStyle` named
