@@ -1250,11 +1250,20 @@ The pending help record holds the type, values and location. The branch
 tests the popup's actual width and height
 at `+0x1B4/+0x1AC` against the Desktop `RenderSize` before writing X and
 Y through `0x00924050` and `0x009240C0` at `0x00536035` and `0x00536048`.
-An interior result requires nonnegative coordinates and a trailing edge
-strictly within each Desktop extent. Edge handling through `0x00536027`
-can revise the candidates. Type 2,
-location 1 and active anchor take separate paths. The coordinate inputs
-and geometry of a live pointer candidate remain unobserved.
+
+For finite coordinates and sizes, `0x00535F7F..0x00535F8F` keeps the
+first X when its trailing edge rounded to binary32 is strictly within
+the Desktop width. At or beyond the edge, `0x00535F91..0x00535F9F` uses
+cursor X minus popup width, rounded to binary32. `0x00535FA3..0x00535FCB`
+adds popup width to that X in binary64 and substitutes Desktop width
+minus popup width if the second trailing edge still reaches or exceeds
+the Desktop width. `0x00535FD1..0x00536008` tests the first Y's trailing
+edge rounded to binary32 and uses source visual top minus popup height
+if the edge reaches or exceeds Desktop height. `0x0053600E..0x00536021`
+clamps each negative coordinate to zero. Type 2 and location 1 take
+separate placement branches. Active anchor uses a separate initial X.
+The coordinate inputs and geometry of a live pointer candidate remain
+unobserved.
 
 #### Reproduction
 
