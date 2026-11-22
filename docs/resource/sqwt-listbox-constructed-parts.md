@@ -510,16 +510,70 @@ on the TextBlock, not a declaration on either ListBox. The
 pins the selected forms and template, while the style identity is recorded
 in [scrollbar geometry](#offset-application-and-scrollbar-geometry).
 
-The constructor enables the mask and the checked Search declarations supply
-no local override. This does not prove the effective mask after all property
-initialization and other writers. The first remaining qualification
-is whether an admitted StringValue2 notification/read at
-`0x0096048F..0x009604AF` changes that current ListBox's bit. Effective property
-lookup `0x0095EE10 -> 0x00911020` and its notification producer remain open
-for this installed Search instance. Current measured row extents, focus,
-container lifetime and original runtime are also UNKNOWN. The finite rule
-above remains conditional on those retained inputs and the enabled mask.
-No original client ran.
+### StringValue2 default and receiver qualification
+
+STATIC. The [qualified property lookup](sqwt-qualified-property-lookup.md#explicit-full-key-fallback)
+registers StringValue2 by its complete key. Read `0x0095EE10` requires an
+existing context `+0x21B0` register, a matching complete hash at register
+`+0x1C`, and incoming flag other than 1 (`0x0095EE8B..0x0095EE9A`).
+It passes the original receiver to register virtual `+4`, then calls
+`0x00911020` on the returned proxy with the register's suffix descriptor
+at `+0x28` (`0x0095EE9C..0x0095EEB6`). A failed read does not change the
+ListBox mask in the consumer above.
+
+The string register vftable `0x0107857C` selects owner lookup `0x009600E0`
+at `+4` and proxy factory `0x00993650 -> 0x009932A0` at `+8`.
+Lookup keys the register's map by the exact supplied receiver. A miss creates
+and inserts a proxy for that receiver, while a hit returns that entry's proxy
+(`0x009600E4..0x00960177`). Factory `0x009932A0` passes the same receiver,
+register descriptor `+0x10`, class metadata `+0x94` and default string
+`+0x40` to constructor `0x0095F990`. The constructor stores the owner at
+proxy `+0x2C` and the property descriptor at `+0x30`
+(`0x0095FA03..0x0095FA19`).
+
+The StringValue2 register call at `0x00991FB1` supplies empty Utf8String
+`0x01266B10`, copied into register `+0x40` by `0x00992F2E..0x00992F44`.
+Proxy construction copies that default through `0x0095DA80` and does not
+call its owner notification thunk. Its selected getter `0x0095E690`
+returns the stored string, or the same empty string for a null holder, with
+success 1 when its index argument is zero. It returns failure for nonzero
+indices. The getter prehook at proxy virtual `+0x30` selects no-op
+`0x00910B40`. Default creation or this read is not a property-change event.
+The Boolean converter `0x00988F90` compares against literal True at
+`0x010772F4`. Empty string therefore converts to false. The constructor's
+enabled mask is distinct from the attached property's empty default.
+
+Class metadata initializer `0x00F270B0` supplies `0x0135FBFC` with getter
+`0x0095E690` and setter `0x0095F6B0`. The descriptor's separate
+`+0x18 = 0x500` write at `0x00F27099` supplies the holder and notification
+flags, not the metadata field cleared at `0x0098B299`. Setter
+`0x0095F6B0` uses notification thunk `0x0095D890`. Notification builder
+`0x0095DCE0 -> 0x00590380` copies those descriptor flags into event `+0x74`
+unless holder mask 8 selects a separate override. The shown construction
+clears that mask. These flags do not satisfy the base handler's `+0x74`
+mask-1 branch at `0x0092DF2E`. The thunk loads stored owner `+0x2C` and
+tail-calls its primary virtual `+0x18`. It does not substitute an ancestor
+or a containing ListBox as receiver.
+
+For the Search row's TextBlock_Comment, this routes the StringValue2 change
+to TextBlock handler `0x00934B60`. Its matching branch reads that TextBlock's
+value and changes mask `0x20` at TextBlock `+0x350` and, when nonnull,
+its retained text object `+0x340` (`0x00934BB3..0x00934C2E`). It does not
+perform the ListBox `+0x47C` write. Separate listeners or explicit later
+assignments are not established by this receiver-local route.
+
+INFERRED. Fresh construction followed by the checked Search declarations
+and only the default proxy creation/read above leaves mask 4 enabled. The
+row comment's False declaration does not by itself disable that mask.
+A real matching notification addressed to the ListBox can change it, including
+a successful empty-string read converting to false. Synthesizing that
+notification merely because the attached default exists would therefore
+change the constructor state without the shown producer. The remaining
+current-instance qualification is a later explicit assignment, binding or
+other writer to that same ListBox, not the comment's receiver-local default.
+Current measured row extents, focus, container lifetime and original runtime
+remain UNKNOWN. The finite range rule remains conditional on its retained
+inputs and the enabled mask. No original client ran.
 
 ## Reproduction
 
@@ -549,6 +603,11 @@ ghidra disasm 0x009641E0 -n 64 --json
 ghidra disasm 0x00964C82 -n 45 --json
 ghidra disasm 0x0096499D -n 19 --json
 ghidra disasm 0x00960459 -n 33 --json
+ghidra disasm 0x0095EE8B -n 20 --json
+ghidra disasm 0x009600E0 -n 65 --json
+ghidra disasm 0x0095D890 -n 4 --json
+ghidra disasm 0x00F270B0 -n 12 --json
+ghidra disasm 0x00934BB3 -n 33 --json
 ghidra disasm 0x00964466 -n 9 --json
 ghidra disasm 0x0096453D -n 9 --json
 ghidra disasm 0x0092C2B0 -n 24 --json
