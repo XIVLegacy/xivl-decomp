@@ -53,9 +53,34 @@ The close path subtracts `0xB4` from the handler base at
 If equal, it compares the command with
 `Selector.SelectIndex` at `0x00968BC7` and takes the tested close update
 at `0x00968BDE..0x00968C1A`. The earlier `0x0096ED40` route compares
-the same command object at `0x0096EE26` and can call `0x0096EC00`.
-The conditional selection semantics and the resulting ListBox event
-order require a separate trace.
+the same command object at `0x0096EE26` before the retained-source
+branch.
+
+### Selector payload and events
+
+STATIC. In the earlier route, `0x0096EE2D` requires command argument
+kind `1` for the selection call. It takes the dword at argument
+`+0x7C` and passes it to `0x0096EC00` at `0x0096EE33..0x0096EE40`.
+The match writes argument byte `+0x19` at `0x0096EE45` even when
+the kind did not enter the selection call. The
+[kind switch](sqwt-command-parameter-consumer.md#kind-switch)
+identifies kind `1` as an integer record.
+
+The call at `0x0096EC4E` writes through the `SelectedIndex`
+descriptor `0x0135B680` to object `+0x480` with callback
+`0x0096F440`. The descriptor registers from the string at
+`0x0107263C` at `0x00F24700..0x00F24719`. After the call,
+`0x0096EC53` compares the requested index with `-1`. A
+different requested index takes the path that constructs
+`Selection` (`0x0135B518`) and dispatches it at `0x0096ECA5`.
+
+`SelectionChanged` is a distinct event (`0x0135B5CC` registered at
+`0x00F24860..0x00F24886`). The `SelectedIndex` descriptor has
+index zero. Its callback branch at `0x0096F489` calls
+`0x0096F080` with the stored index when `ItemsPanel` is present.
+That routine has a path that dispatches `SelectionChanged`.
+Its full row admission and the ListBox's physical input producer
+remain open.
 
 ## Retained template parts
 
@@ -224,6 +249,9 @@ ghidra x-ref to 0x0135B0B0
 ghidra disasm 0x00968AA0 -n 150
 ghidra disasm 0x009680D0 -n 100
 ghidra disasm 0x0096ED40 -n 120
+ghidra disasm 0x0096EE20 -n 22
+ghidra disasm 0x0096EC26 -n 46
+ghidra disasm 0x0096F473 -n 20
 ghidra disasm 0x009684CC -n 30
 ghidra disasm 0x0096853B -n 26
 ghidra disasm 0x009685C2 -n 90
