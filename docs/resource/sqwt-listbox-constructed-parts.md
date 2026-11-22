@@ -440,6 +440,87 @@ The measure cross-axis comparison at `0x009B80DD` skips replacement for
 unordered status, so its finite rule is not an unrestricted mathematical
 maximum over arbitrary nonfinite inputs.
 
+## Finite visible-range predicate and Search qualification
+
+STATIC. The container pass `0x00964940` first prepares its retained data
+through the `+0x47C` mask-1 and mask-2 branches. It then requires nonzero
+viewport height `+0x474` and a nonnull generator at `+0x368`
+(`0x00964940..0x009649C0`). The following finite rule additionally assumes
+unchanged bound rows, positive finite cached row extents, a finite current
+offset and viewport height, and ordinary nonoverflowing index arithmetic.
+It does not define zero-size or nonfinite layout behavior.
+
+Let N be the bound pair count from `[+0x3B4,+0x3B8)`, stride 8, V the
+current offset `+0x470`, H the viewport height `+0x474`, and F the stored
+SqwtFocusedIndex at `+0x388`. Each pair's second dword selects a cached
+extent in `[+0x3C4,+0x3C8)`. The generation walk accumulates those extents
+in original row order. S is a row's accumulated start and E is S plus its
+current cached extent (`0x00964C2F..0x00964C96`). This is not an interval
+computed by dividing V by a fixed declared Button height.
+
+With `+0x47C` mask 4 set, a row passes the range test if any of these holds:
+
+- Its original index is 0 or N-1 (`0x00964C9C..0x00964CA9`).
+- Its original index lies in F-1 through F+1, inclusive
+  (`0x00964CAB..0x00964CBB`).
+- E is at least V and S is at most V+H
+  (`0x00964CBD..0x00964CF3`).
+
+The disjoint first/last/focus exemptions mean the retained set need not be
+one contiguous visible interval. The geometric comparisons skip only when
+E is strictly less than V or V+H is strictly less than S. A row touching
+either viewport edge is eligible. The x87 status tests at `0x00964CCD`
+and `0x00964CEA` establish these finite boundaries. This is one neighboring
+index on each side of the stored focus, not a general extra row on each
+side of the viewport.
+
+The pass reads F unconditionally at `0x009649CE..0x009649D4`. The earlier
+IsKeyboardFocusWithin test at `0x0096499D` only controls a separate saved
+index for the later focus-restoration tail. A nonfocused list therefore
+does not lose the range exemptions around its retained F merely because
+that focus-within bit is clear.
+
+The preceding release walk uses the same first/last/focus exemptions and
+finite geometric bounds. On an ordinary offscreen retained row, it calls
+`0x00813050` on the retained pointer and zeros both dwords of its realized
+pair (`0x00964AF1..0x00964B46`). The later generation walk skips that row
+at `0x009650A9`. Admitted nonnull bound rows can obtain a generated or
+reused container and retain their original index and accumulated start
+through `0x00995E90/0x00995ED0`. These paths manage realized containers,
+not a smaller maker count or newly numbered result records. With mask 4
+clear, the generation range test is bypassed at `0x00964C9A`. These shown
+predicates supply no fixed row-count cutoff.
+
+STATIC. ItemsControl construction sets mask 4 in `0x00963B7F..0x00963BA2`.
+The ListBox primary property-change cell `0x0107222C` selects `0x00960410`.
+After its base call, this handler requires event `+0x78` mask 2 and descriptor
+`+0x70 == 0x0135FBD8`, SqwtDesignData.StringValue2. It reads through
+`0x0095EE10`, converts the returned string with `0x00988F90`, and changes
+mask 4 only if the read returned exactly 1
+(`0x00960459..0x009604BD`). The converted Boolean supplies that bit.
+
+MEASURED. The standard Search result and player-information ListBoxes have
+no local SqwtDesignData.StringValue2 declaration. Their selected trigger-only
+ListBox template has no Setter or visual root. Their LIB_basis style has
+only Background, RightDownSpace, HorizontalScrollBar and VerticalScrollBar
+part references (`common/default.style` lines 5726-5731). The result-row
+TextBlock_Comment separately declares StringValue2 False. That is a property
+on the TextBlock, not a declaration on either ListBox. The
+[Search scroll surface](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/search-recruitment-native-boundaries.md#search-result-scroll-surface)
+pins the selected forms and template, while the style identity is recorded
+in [scrollbar geometry](#offset-application-and-scrollbar-geometry).
+
+The constructor enables the mask and the checked Search declarations supply
+no local override. This does not prove the effective mask after all property
+initialization and other writers. The first remaining qualification
+is whether an admitted StringValue2 notification/read at
+`0x0096048F..0x009604AF` changes that current ListBox's bit. Effective property
+lookup `0x0095EE10 -> 0x00911020` and its notification producer remain open
+for this installed Search instance. Current measured row extents, focus,
+container lifetime and original runtime are also UNKNOWN. The finite rule
+above remains conditional on those retained inputs and the enabled mask.
+No original client ran.
+
 ## Reproduction
 
 Select the identified executable in an analyzed Ghidra project. Focused
@@ -465,6 +546,9 @@ ghidra disasm 0x0091B7B0 -n 8 --json
 ghidra disasm 0x00551DB6 -n 6 --json
 ghidra disasm 0x0092121F -n 17 --json
 ghidra disasm 0x009641E0 -n 64 --json
+ghidra disasm 0x00964C82 -n 45 --json
+ghidra disasm 0x0096499D -n 19 --json
+ghidra disasm 0x00960459 -n 33 --json
 ghidra disasm 0x00964466 -n 9 --json
 ghidra disasm 0x0096453D -n 9 --json
 ghidra disasm 0x0092C2B0 -n 24 --json
