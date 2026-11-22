@@ -56,6 +56,7 @@ loads per
 | `client/sqwt/widget/CommunityMenuWidget.form` | 1334 | `e19720c4c65f1a69ec2d2777d691dc4560c499634606cb93d7d9a4d3d6597786` | 1326 | `708c47bb442d8dd52d903bf15727b1997b91c7b3676bae967d2e1fe88866cea7` |
 | `client/sqwt/common/WINBasisWithTitle.tpl` | 7175 | `636d5dd7dbdb0b9d12b08cea875ee0bde729a1e9de9c1cd58eea2d7f66d06daa` | 7167 | `93c745038827c5608f09f4aeb2b4186c06138f8f7f7d45c0a2a2483faf11f88b` |
 | `client/sqwt/common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` | 353775 | `33bb178c3b172c62eeb65e8bcaf94f701a0ec3921564e27a619516900896d9f6` |
+| `client/sqwt/common/default.skin` | 141967 | `6788f2986d9cc8aeab83fcdbcf7a9115d3576ecfabf40529cc861f41f0df5640` | 141959 | `929e65e9d5f191292d9b044e3e659ba115f18f6b3d8a82894046a7c75cbcad5a` |
 
 The sheet rows are the `key_config` definition `0x01030169` with data
 `0x0103016A`, enable `0x0103016B` and offset `0x0103016C`. The four resources
@@ -708,6 +709,107 @@ complete it calls `desktopWidget:processWidgetDeleted(self)`, then
 `processWidgetDeleted` (`main/f534` PCs 0 to 25) clears the nonnil root
 entry for that index when the cached root is the same widget or its
 `_isAlive()` is not exactly true. A different live root at index 3 survives.
+
+## Shared title Close button
+
+MEASURED. The standard Player Search and mode-1 Linkshell list select the
+same `ControlTemplate_Window_WINBasisWithTitle` as Community. Their form,
+script identities and root-index-3 lifetimes are in
+[xivl-client-scripts: Player Search](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/search-recruitment-native-boundaries.md#main-menu-root-open-and-close)
+and [mode-1 Linkshell list](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/npc-linkpearl-client-contract.md#main-menu-mode-1-linkshell-list-lifetime).
+The following facts concern that selected template, not arbitrary title
+controls or the compact `widget_c` forms.
+
+### Title geometry and Frame
+
+MEASURED. In `common/WINBasisWithTitle.tpl`, the root Grid's first row has
+Height and MinHeight 23 (decoded lines 5-9). `Button_Close` is its direct
+child, with Margin 1, Right horizontal alignment and Top vertical alignment
+(line 11). It is a sibling of the title TextBlock, outside the second-row
+content Grid and ContentPresenter (lines 10-14). It declares
+`SqwtStyle=BTN_basis_winClose`, `Focusable=False`, Help type and location 0,
+and Help value 0 `@75001`. It omits Width, Height, Content, local Template,
+Visibility, opacity, IsEnabled, IsHitTestVisible, CommandTarget,
+CommandParameter and ClickMode. No Button-local trigger is present.
+
+MEASURED. `common/default.style` lines 1313-1324 select one `Frame` part.
+The condition-to-skin map is:
+
+| Condition | Skin |
+| --- | --- |
+| Normal, Active, Disabled | `BTN_basis_winClose_N` |
+| Hover, Anchored | `BTN_basis_winClose_H` |
+| Focused, Reserved, Droppable | `NULL` |
+
+`common/default.skin` names `common/default.dds` as its source (line 2).
+The H skin is one Stretch cell with rectangle `52,852,16,16` (lines
+158-160). The N skin is one Stretch cell with rectangle `280,877,16,16`
+(lines 161-163). Both declare `Cells=1,1` and omit HitMargin, SkinMargin
+and SkinBorderThickness. The style declares no Frame offset or opacity.
+The normal declaration is nonnull. A hover-only image is not supported by
+this markup. This does not establish which condition is selected in a
+particular live window or inspect the texture's alpha values.
+
+STATIC. The ordinary Button's resolved Frame contributes a size minimum,
+independently of Content. The [skin minimum](../resource/sqwt-number-input-button-frames.md#layout-minimum)
+walk at `0x00931720` obtains a 1x1 source span at
+`0x0092C4D7..0x0092C4F4`, then stores the scaled, HitMargin-adjusted bound
+through `0x00929C40/0x00929D00`. The ordinary Button measure slot returns
+that bound at `0x008E92C0`. Thus the two selected 16x16 sources supply a
+layout input for this contentless Button. A 16x16 arranged box is conditional
+on unit scale, zero effective HitMargin and available layout. It is not a
+fixed physical hit box. Right/Top alignment and Margin then apply in the
+first title row. The [pointer rectangle](../resource/sqwt-number-input-button-frames.md#frame-drawing)
+uses the arranged box and Visual clip at `0x0092B70A..0x0092B79A`, without
+paint overhang.
+
+MEASURED. No selected template trigger targets Button_Close Visibility.
+The four root MultiTriggers set root VisualOpacity to 1 for all combinations
+of IsKeyboardFocusWithin and IsMouseOver. RGB is 1 except when both are
+False, which selects 0.8 (lines 83-122). Opening fades the whole Window from
+0 to 1, while Closing and Hiding fade it from 1 to 0 (lines 17-58). Those
+root declarations do not prove trigger precedence or the current animation
+sample. They do not declare a title button that is hidden at rest.
+
+### Click owner and parameter
+
+STATIC. The [ordinary Button path](../resource/sqwt-command-parameter-consumer.md#button-mouse-source)
+requires eligible delivered left preview events. With the constructor's
+ClickMode 2 retained, release invokes Click only after the earlier pressed
+state is set (`0x0097F0A7..0x0097F11E`). Click names the Button as source and
+original source (`0x0097EBC4..0x0097EC53`). The default Command invocation
+at `0x0097ED73` precedes the template's separate Click sound action. That
+sound action is not the WidgetClose producer.
+
+With the omitted CommandParameter retained, the Button forwards the shared
+kind-0 record from `0x01361160` (`0x00954B58`, `0x0097ED6C..0x0097ED73`).
+The [default record](../resource/sqwt-keyframe-target-binding.md#default-completion-record-and-event-arguments)
+contains no integer payload. With no resolved target, the [Window fallback](../resource/sqwt-command-parameter-consumer.md#actionmenu-arrow-target-fallback)
+uses the Button interface only when the containing Window exists and its
+`+0x15D` mask 0x20 is clear. Otherwise it passes null, which selects the
+current keyboard-focus recipient subject to route gates. The template's
+Button -> Grid -> Window ancestry supplies the containing Window when its
+logical parent links are attached. A pointer position alone does not prove
+the eventual command receiver.
+
+OBSERVED. Both selected Lua initializers register WidgetClose on `_widget`
+with numeric condition 5. PcSearch uses the common close handler. The
+Linkshell handler requests direct close only for exact mode 1. Their linked
+contracts above own these bytecode locators and finalizer guards. On admitted
+root delivery, the [subscription sender](../resource/sqwt-command-parameter-consumer.md#subscription-gate)
+is the root that owns the handler store, not the original Button source.
+The native lookup substitutes `_widget` for its root name at `0x005365B1`
+and passes the root variant with empty template name at
+`0x005365E2..0x005365F7`. The default kind-0 record selects the no-payload
+adapter. Thus Button_Close is the physical source, while `_widget` is the
+registered Lua receiver identity.
+
+The bounded visible receipt is this selected Frame in the current Window's
+first title row. A corresponding scoped input requires the current selected
+Button, its arranged clipped hit box, an eligible press/release and admitted
+routing to that Window's registered root. Root finalization and index release
+remain separate from command acceptance. OS arrival, capture, the live
+Window flag and focus recipient remain unobserved. No original client ran.
 
 ## Row button style
 
