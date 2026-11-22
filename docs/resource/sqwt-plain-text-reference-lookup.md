@@ -663,6 +663,102 @@ locale, lookup result for a sparse slot, native callback activation or
 rendered output. Token validity and payload semantics are outside this
 count of string frames. Reproduction retains counts and resource identities.
 
+### UISTR-02: Selected English Tell editor prefill
+
+The installed
+[detail Tell request](https://github.com/XIVLegacy/xivl-client-scripts/blob/b9818af777c286b4105ee454934b521b2b50684b/docs/search-recruitment-native-boundaries.md#selected-player-detail-tell-and-invite-buttons)
+selects TextBox_ChatInput.TextUI with numeric identifier 2256 and the ordered
+arguments integer 103, then the retained selected-profile name. The same
+WidgetBaseClass and LogWidget call path supplies this order. This section
+qualifies its English lookup and TextBox application. It does not select a
+runtime locale or admit a detached or unfocused caller.
+
+INSTALLED-DATA. In the selected `lang="en"`, `mode="client"` UI definition
+above, row 2256 uses physical column 0 / logical field 1. Its framed row is
+`[0x2F4F,0x2F74)` in data `0x0B4502B5`, SHA-256
+`7d17bd9f2067fad566bdfad245a2a5c431731677527341330dce0c1a2d0bae99`.
+Its decoded content is 33 bytes, SHA-256
+`b4a3a2bc99d5e044c9f8eaedce3638533f27b81ee287ae9b3b16eaabd840e308`.
+The row has this syntax structure, not a copied row body:
+
+1. Handler `0x28` with literal sheet xtx/_textCommand, row from supplied
+   integer argument 1, literal logical field 9 and no further arguments.
+2. One ASCII space.
+3. Handler `0x29` with supplied string argument 2.
+4. One trailing ASCII space.
+
+[RT-03](rich-text-sheet-and-case-handlers.md#rt-03-handler-0x28-named-sheet-text)
+owns the named-sheet lookup and failure contract. SQTP-04 above owns the
+one-based typed argument selectors and the nonrecursive string append.
+The nested command cell receives an empty argument vector. It does not
+inherit the selected-name argument of row 2256.
+
+INSTALLED-DATA. Master `0x01030000` also names xtx/_textCommand through
+definition `0x0B4508F3`. Its English client definition is sheet ordinal 1,
+with physical types `u8,u8,s8,s8,s8,str,str,str` and logical indices
+`0,1,2,3,4,5,9,10`. Field 9 therefore maps to physical column 6, a string.
+Its explicit block begins at row 100 with 250 slots and names data
+`0x0B4508F7`, enable `0x0B4508F8` and offsets `0x0B4508F9`. Enabled row
+103 occupies slot 3 and data span `[0x3B,0x58)`. That row's SHA-256 is
+`cd12c07201651ad7541836b5911c913759509ab91cd11a24cc46c932a069b591`.
+The selected field 9 is the long command syntax `/tell`. Field 10 holds the
+distinct short syntax `/t` and is not selected by row 2256. Neither command
+cell contains a further rich token. Under successful lookup and formatting,
+the resulting command buffer is `/tell ` + selectedName + ` `, without
+added quotes and without concatenating prior editor contents. The spaces
+are part of the selected row's syntax.
+
+| Additional named input | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Definition `0x0B4508F3` | 3367 | `ed438fe3babe55d5f9e57ac00a7e3ccb72f3453f1b49d658a0d51928f7f131d2` |
+| Decoded definition | 3366 | `0faab144d8250b32fa377b8aff31a0541c0e677c535719d4686965ab0416e12d` |
+| Data `0x0B4508F7` | 4760 | `1d646ee9b79a01440ee993f99e7fe92b17a80f5bbce67dbc44372e14e7118de9` |
+| Enable `0x0B4508F8` | 128 | `8364792725b60b89b01e10a60580ca447fa9758b983931e2ca15e9a8a265b471` |
+| Offsets `0x0B4508F9` | 1000 | `465322be6b9f67fa13756768bbc3b4c1b187389f332d672ce71f0f7ab3106543` |
+
+STATIC. Initializer `0x00F23AB0..0x00F23AC9` names TextUI descriptor
+`0x0135A5D0` from literal `0x0106EB98` and assigns ordinal 13. TextBox's
+named-property parser cell is initialized to `0x009591F0` at `0x00F23B5E`.
+Its ordinal-13 branch is `0x009593D6`, selected by cell `0x00959488`.
+The branch supplies control `+0x1788` to `0x00932610 -> 0x009322D0`,
+which conditionally invokes the same preprocessing at `0x00932306`.
+Construction sets the string cell's preprocessing bits `0x60` at
+`0x0095C48A..0x0095C4AE`.
+A pending lookup marks property bit `0x10` and defers its store. This
+preserves the existing interface, schema, resource, locale and property gates.
+
+On effective TextUI notification, callback `0x00958ED0` uses descriptor
+ordinal 13, table cell `0x009591EC`, to enter `0x00959186`. It forwards
+TextUI's current string through Text setter `0x00958A10` at `0x0095919E`,
+then requests empty TextUI through `0x00958A50` at `0x009591AE`.
+The Text setter supplies descriptor `0x0135A660` and callback `0x00958ED0`.
+The normal admitted string store compares the new string before notification
+(`0x00936850`). Equal Text is not proof of a repeated replacement callback.
+
+STATIC. Changed Text reaches callback ordinal 3 (`0x00958EF6`). Its
+control `+0x20` bit-0-set branch calls `0x00958800` at `0x00958F09`.
+With ordinary writable selection/caret cells, this clears SelectionStart to
+-1, SelectionLength to 0, rebuilds the document from Text and assigns
+CaretIndex from the insertion result (`0x00958829..0x00958953`,
+`0x009589CD..0x009589EE`). The
+[whole-Text replacement contract](sqwt-number-input-pointer-edit.md#ordinary-ascii-text-after-the-first-digit)
+records the shared insertion path. For a changed short ASCII buffer this
+puts the caret after the trailing space. Bound, intercepted, unchanged or
+otherwise unadmitted property cells retain their separate conditions.
+
+Reproduce with the pinned master, UI definition and backing resources above,
+then only the explicit command definition and backing triple. Verify row
+enablement, schema mapping, exact row-span consumption and both selected
+operand references. A synthetic selected name Example Person yields a
+21-character `/tell Example Person ` buffer. With a distinct prior Text
+and writable cells, its replacement leaves no selected range and caret 21.
+These are static interpretation and replay expectations, not original runtime
+observations. `setMacroText("TextBox_ChatInput",2256,103,name)` and the
+published focused LogWidget helper are the actual script entry points. The
+shown path does not invoke PressEnter, text-command execution or a chat-send
+helper. Message submission, OS focus success, IME, arbitrary name escaping,
+other locales and live rendering remain outside this contract. No client ran.
+
 ## Reproduction bounds
 
 Verify the executable identity, PE32 base and section raw-file bounds.
