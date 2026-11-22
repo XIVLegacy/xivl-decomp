@@ -414,6 +414,36 @@ the retained list at `0x00968B1B..0x00968B4A`, whose input cell
 `0x01072124` also selects `0x0091E3E0`. The delivered visible state and
 final focus recipient depend on the admitted binding and focus operations.
 
+### Recipient after the Popup focus request
+
+STATIC. LLVM 21.0.0 x86-32 disassembly and file-backed PE table reads
+qualify the retained Popup request at `0x0096815B`. For Popup input
+table `0x0107BD64`, guard cells `0x0107BD68` and `0x0107BDC0` select
+`0x0091C3D0` (Focusable bit) and `0x00939AA0` (effective visibility).
+The latter tests the receiver and walks its logical ancestry through
+primary slot `+0x60`. The keyboard-focus store requires effective
+visibility.
+
+At `0x0091E610..0x0091E61E`, input slot `+0x68` receives mode
+`0x0F`. Popup cell `0x0107BDCC` selects `0x0092E650`, whose mode
+calls `0x0092E5F0` at `0x0092E6BC`. That helper's own-candidate test
+calls primary slot `+0xE4` at `0x0092E622` after its input gates. Popup
+cell `0x0107BF70` selects the constant-false `0x009A4D90`. The helper
+can therefore search current descendants through `0x0092E020` at
+`0x0092E635`. If this yields no candidate, mode `0x0F` attempts the
+logical ancestor at `0x0092E6C7 -> 0x0092B150`, then logical scope and
+Desktop fallbacks at `0x0092E6E1..0x0092E71A`.
+
+A distinct nonnull result redirects through its focus slot at
+`0x0091E620..0x0091E62F` and leaves the original request's direct
+store arm. A null or equal result can continue to the preview
+and remaining guards for the store at `0x0091E75C`. A redirect or a
+preview result can leave the Popup absent from the actual focused
+interface's current route. The standard System template sets its
+ListBox and inline items to IsTabStop False. The realized descendant,
+ancestor or fallback still determines the recipient.
+[Selected stock parts](https://github.com/XIVLegacy/xivl-client-scripts/blob/9d09a659b4f71f54550c1f230c4b728ede4fce4b/docs/config-system-widget-contract.md#closed-frame-rate-presentation).
+
 ### Escape on the popup route
 
 STATIC. The key parser's table row `0x012E2DE0` pairs `Escape` string
@@ -437,8 +467,27 @@ With the declared target resolved and the binding admitted, the owner's
 `ComboBox.CloseDropDown` branch at `0x00968B58..0x00968BB6` requests the
 close and marks the command handled. The observed branch requires an
 unhandled command and checks the current open bit before the close write.
-The initial Journal focus recipient, focus after an actual popup open,
-and precedence against other Escape consumers remain unobserved.
+The ordinary KeyGesture constructor installs table `0x00FC5AA4` at
+`0x0068C5A3`. Its slots 5 and 9 are `0x0068C5D0` and `0x005584F0`.
+If the command returns exactly 1 and the binding collection's saved
+`+0x20` is unchanged, the walker calls slot 9 at `0x0092126D`. That
+sets the key event handled byte at `0x005584F4`. Later bindings
+without HandledEventsToo then skip the event. The route-stop byte
+has its own producer.
+
+The selected System Popup has its own Escape binding to the templated
+ComboBox. The selected ListBox style's separate `UILuaCommands.Cancel`
+trigger requests the same close command. Stock Escape row 20 can
+request `UILuaCommands.Cancel`, for which System Lua also registers
+the root. These use their own delivery conditions. Popup-local Escape
+requires an actual KeyDown route visiting the selected current Popup
+and successful binding admission. The Popup itself or an attached
+descendant can qualify when it holds current keyboard focus and the
+route reaches the binding before it is handled.
+The initial Journal focus recipient and the System route order
+between the binding, ListBox trigger and root remain conditional.
+[Stock row](../net/target-command-handler.md#key-bindings).
+[System root and close](https://github.com/XIVLegacy/xivl-client-scripts/blob/008ae872632c3c6dee818d9c3ddd3baf5d03fb7b/docs/config-system-widget-contract.md#system-child-and-shared-close).
 
 ## Drop-down button style
 
