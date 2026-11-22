@@ -1135,20 +1135,161 @@ names. The slot 42 and 43 bodies of the seven classes are not followed.
 
 ### Popup help positioning
 
-Command object `0x0133BD38` is `PopupShowHelp` (initializer `0x00F0F6E0` passes
-the string at `0x00FA8770`). When the global at `0x0133664C` equals the form
-element and the command is `PopupShowHelp`, the handler calls `0x00535D00` and
-then continues (`0x0053651D..0x00536535`). The global holds the form that owns
-the element named `Window_PopupHelpWidget` (`0x00FA0658`), set at
-`0x0053893D`. `0x00535D00` returns at once when the byte at `0x01336654` is zero.
-Otherwise it reads the pending state at `0x01336638..0x01336650`, takes the
-popup window root element, and moves it with the two coordinate setters
-`0x00924050` and `0x009240C0`, clamping against the extent at `+0x14C` of the
-root global. It never
-touches the subscription map or the Lua call, so it is a layout side effect.
-STATIC for the control flow, INFERRED for the placement purpose. The same call
-runs from the `RenderSizeChanged` branch (`0x00536433`) when the sender is the
-popup root element.
+#### Pointer source and popup owner
+
+MEASURED. The standard `MainMenuWidget.tpl` line 170 gives the ordinary
+menu row's `Button_Command` `Help.Type=1` and binds `Help.Value0` to
+`@Help`. The installed MainMenu Lua `root/proto0` PCs 213-218
+(`0x712..0x726`) writes help key 75726 to maker row 5. Its selection
+handler identifies that row as Journal. The standard template and script
+identities are in the [Main Menu route](../script/main-menu-command-route.md).
+
+STATIC. In the [child-first point query](#local-hit-flags-and-child-first-query),
+`0x0092B640` checks the candidate's attached `Help.Type` and the auxiliary
+result field `+0x08` before the containment and help branches. The direct
+arm at `0x0092B7D6..0x0092B7ED` stores a help owner in that field and calls
+`0x0092A970`. A prior arm can resolve a help-bearing logical ancestor
+through `0x0092A6E0`. The desktop query calls `0x0092ABC0(0)` at
+`0x0091AC70` when the auxiliary help result remains zero.
+
+`0x0092A970` checks for a nonzero help type and, when its containing Window
+is nonnull, compares it with the Window selected by `0x00922E10`. It builds
+a kind-6 record with type, four `Help.Value` dwords and `Help.Location`,
+then sends `ApplicationCommands.ShowHelp` (`0x01358188`) to the Desktop
+interface at `0x0092AB5B..0x0092AB68`. The location helper `0x0092A8C0`
+returns zero when no applicable owner supplies the attached property.
+The show helper retains its source at `0x013587C8` at `0x0092AB71`.
+The close helper `0x0092ABC0` requires a retained source. Its zero-argument
+path sends `ApplicationCommands.CloseHelp` (`0x013582C8`) at `0x0092AC75`
+and clears that source at `0x0092AC7E`.
+
+The form loader registers its form handler on `Window_PopupHelpWidget`
+at `0x00538938..0x0053894A` and stores the owning form at `0x0133664C`.
+The matching release path clears that owner and its active flag at
+`0x0053AC7D` and `0x0053AC99`. The installed `DesktopWidget` connector
+requests `createStaticWidget(21, "PopupHelpWidget", nil, 1, false)` in
+`root/proto142` PCs 152-158 (`0x14B68..0x14B80`). Its script identity is
+listed in the [Main Menu route](../script/main-menu-command-route.md#input-and-method).
+
+#### Show, Lua text and the opening wait
+
+STATIC. Desktop Executed passes the application show command to
+`0x00536070` at `0x004DA008`. The handler requires a registered popup
+root. Type 1 passes only when `0x004B5150` returns true, reading GameConfig
+group 2, key `0x14` (`popup_help`). With an active popup, equality of the
+first five payload dwords returns early at `0x00536111..0x00536134`.
+The admitted show saves the six dwords at `0x01336638..0x01336650`, raises
+`RaptureCommands.ShowHelp` (`0x0133BB58`) on the popup at `0x005361B3`,
+then requests Window show at `0x005361BE` and sets the active byte at
+`0x01336654` at `0x005361C3`.
+
+MEASURED. The popup style's ShowHelp trigger at `PopupHelpWidget.tpl`
+lines 11-15 sends `RaptureCommands.CloseHelp` and `RaptureCommands.ShowHelp`
+to targets bound by `RelativeSource Desktop`, then begins `OpeningWait`.
+
+STATIC. If the desktop target resolves and the show reaches its Executed
+handler with event byte `+0x14` clear, `0x004DA0F4..0x004DA105` calls
+`0x00534690`.
+That function supplies the stored type and four values to the popup's
+wrapper at `+0x80`. Call through `0x00574C20` selects slot 16
+(`0x00FDFB6C -> 0x0075D6D0`). The adapter `0x008A4100` calls
+`0x00707610`, which supplies `_onHoverHelp` (`0x00FD4DE8`) and the five
+arguments to the script call at `0x0070772B`.
+
+MEASURED. In the installed popup LPB, `_onHoverHelp` `root/proto1`
+PCs 2-12 and 25-36 (`0x2E5..0x30D`, `0x341..0x36D`) select text help
+for type 1, request the float user work value 0.8 in window slot 1, and
+show `Grid_HelpType_1` while collapsing `Grid_HelpType_2`. The common
+writers `root/proto128`, `proto125` and `proto183` turn slot 1 into the
+window property `FloatData.Value0`. The popup's text helper `root/proto2`
+PCs 0-15 (`0x43F..0x47B`) sends the help text key and the three optional
+substitutions to `TextBlock_HelpType_1`, replacing zero substitutions
+with nil.
+
+The selected form at lines 1 and 9-14 starts with `VisualOpacity=0`,
+`FloatData.Value0=1`, and the type-1 Grid collapsed. Its root declares
+`Focusable=False` and `IsHitTestVisible=False`. Its `OpeningWait`
+Storyboard has no child. `BeginTime` binds the owner's `FloatData.Value0`
+and its completion command is `PopupShowHelp`. At template lines 4-7
+that command begins the `VisualOpacity` animation to 1, duration 0.2
+seconds, with no `From` attribute. The [BeginTime and completion
+trace](../script/timed-inform-widgets.md#storyboard-begintime) records the
+native timer and completion route through `0x009AC4B0` and `0x009A6490`.
+These are declarations and conditional calls for an admitted fresh
+type-1 show. The live bound-value handoff and first sampled frame of the
+wait and animation remain unobserved.
+
+Desktop passes application close to the popup handler at `0x004DA126`.
+For an active popup and close payload integer 0, the handler sends
+`RaptureCommands.CloseHelp` (`0x0133BBF8`) to the popup at `0x00536212`,
+requests Window hide at `0x00536219`, and clears the active byte.
+At template lines 18-23, that close stops `OpeningWait` and
+`OpeningAnimation` and starts the zero-duration `VisualOpacity` animation
+to 0. The `Hiding` event also stops both opening storyboards at lines
+27-29. Focus and anchor entry, and replacement of an already visible help
+episode, require separate validation.
+
+#### Interior placement
+
+STATIC. `PopupShowHelp` (`0x0133BD38`) reaches the owning form's placement
+call at `0x0053651D..0x00536535`. The initializer `0x00F0F6E0` names the
+command using string `0x00FA8770`. The same call follows the popup root's
+`RenderSizeChanged` at `0x00536433` and the active `MoveHelp` branch at
+`0x0053623B..0x00536248`. The helper `0x00535D00` requires nonzero active
+state, a popup root and a retained help source.
+
+For type 1, `Help.Location` other than 1 and the anchor predicate
+`0x0091B7B0` clear, the interior candidates are cursor X plus 32 and
+the retained help source's visual top plus its `RenderSize.Height`.
+`0x0053CA40` sums source visual offsets at `+0x24/+0x28` through parents
+at `+0xA4`. `0x00535ECD` copies the source `RenderSize` pair from
+`+0x14C/+0x150`. `0x00535F27..0x00535F60` reads X from `0x0090EED0` and
+adds the binary64 32 at `0x00F86D30`, then adds the source height to the
+visual top for Y. It reads these inputs on each placement invocation.
+The pending help record holds the type, values and location. The branch
+tests the popup's actual width and height
+at `+0x1B4/+0x1AC` against the Desktop `RenderSize` before writing X and
+Y through `0x00924050` and `0x009240C0` at `0x00536035` and `0x00536048`.
+An interior result requires nonnegative coordinates and a trailing edge
+strictly within each Desktop extent. Edge handling through `0x00536027`
+can revise the candidates. Type 2,
+location 1 and active anchor take separate paths. The coordinate inputs
+and geometry of a live pointer candidate remain unobserved.
+
+#### Reproduction
+
+Use the identified `ffxivgame.exe` in an analyzed Ghidra project.
+
+```sh
+ghidra disasm 0x0092B7A3 -n 32
+ghidra disasm 0x0091AC61 -n 12
+ghidra disasm 0x0092A970 -n 157
+ghidra disasm 0x0092ABF3 -n 45
+ghidra disasm 0x00538918 -n 14
+ghidra disasm 0x004D9FEF -n 9
+ghidra disasm 0x004DA0F1 -n 20
+ghidra disasm 0x00536070 -n 119
+ghidra disasm 0x00534690 -n 16
+ghidra memory read 0x00FDFB6C 4
+ghidra disasm 0x00707610 -n 84
+ghidra disasm 0x00535E5B -n 125
+ghidra disasm 0x0053CA40 -n 20
+ghidra disasm 0x0090EED0 -n 25
+ghidra memory read 0x00F86D30 8
+```
+
+Decode the standard form and template with the SQEX basename rule. Read
+the form's root and style selection at lines 1 and 9-14, then the
+template triggers at lines 4-29. Read the installed Lua operands with
+`xivl-client-scripts:tools/retail_script.py` and `ChunkReader` from
+`xivl-client-scripts:tools/build_quest_contracts.py`. The common Lua identity
+is in the [Main Menu route](../script/main-menu-command-route.md#input-and-method).
+
+| Resource below `client` | Raw bytes / SHA-256 | Decoded bytes / SHA-256 |
+| --- | --- | --- |
+| `sqwt/widget/PopupHelpWidget.form` | 5592 / `cb99af0a8585d18f0bcc44f235cc7240a4cbb6d394b4e86c5545b59cc80d6e87` | 5584 / `4317e4e9ffcd0e4f65dbf8675e0d9433c45873d3ff0aab4aea163b01288a5660` |
+| `sqwt/widget/PopupHelpWidget.tpl` | 1895 / `c914db575a00f9f37ae7a1156f58e48ad6bf394ba90e6f23592f45acc236c2ce` | 1887 / `00569baa91ca2299ec5ddb22e41dcbae820562e9f8d832bf317383395774a248` |
+| `script/n1635q/uvupu25yun1635q.le.lpb` | 2490 / `a9171b9d4c89afa4f8c735fbe267788be68ae0f67e81f8bac4235d80ad2168c2` | 2477 / `c67b53003aee9cd5c94efb6a7138491e7a0eff8ec01b1c30bd1ae581a7dafd72` |
 
 ### Per-frame debounce
 
@@ -1728,8 +1869,6 @@ Implement as an approximation and label it:
   those widgets need their own pad UI controller to reach retail behavior.
   Without it the handler skips straight to the lookup.
 - The entry flag as never set.
-- The popup positioning call as a layout side effect of `PopupShowHelp` only,
-  and never as a condition of delivery.
 
 Do not assume:
 
