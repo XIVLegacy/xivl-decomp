@@ -69,9 +69,16 @@ names through `0x00910980` and retains their results on the ComboBox.
 | `PART_EditableTextBox` | `0x01070970` | `+0x4CC` | `0x009686F9` |
 
 The list and popup lookup branches explicitly clear their fields when the
-result is null (`0x0096862F` and `0x00968708`). For the list, a
-nonnull result also starts a lookup of its `PART_ListBox_ScrollViewer`
-at `0x0096865D` using the name at `0x01070954`.
+result is null (`0x0096862F` and `0x00968708`). A nonnull list supplies
+its `ItemsPanel` field at `+0x35C` to the ComboBox's ItemsPanel setter
+`0x00963540` at `0x00968641..0x0096864B`. See
+[constructed ListBox parts](sqwt-listbox-constructed-parts.md#constructed-members).
+The routine also looks up `PART_ListBox_ScrollViewer` on the list at
+`0x0096865D` using the name at `0x01070954`.
+
+The same setup pairs `PART_ListBox` at `0x01070934` with
+`ComboBox:ListBox:Background` at `0x010708CC`. It passes those
+strings to `0x00930BA0` at `0x00968590`.
 
 ## Popup bindings
 
@@ -147,6 +154,7 @@ ghidra disasm 0x00968AA0 -n 150
 ghidra disasm 0x009680D0 -n 100
 ghidra disasm 0x0096ED40 -n 120
 ghidra disasm 0x009684CC -n 30
+ghidra disasm 0x0096853B -n 26
 ghidra disasm 0x009685C2 -n 90
 ghidra disasm 0x009693B3 -n 42
 ghidra disasm 0x009A5650 -n 18
