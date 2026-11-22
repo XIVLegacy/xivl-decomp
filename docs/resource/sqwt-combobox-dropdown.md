@@ -212,6 +212,8 @@ declares neither `ItemsSource` nor `ItemTemplate`. The popup's
 `PlacementTarget` binding refers to the templated parent. It binds
 `IsOpen` and `MaxHeight` to the same owner properties as the
 internal popup path above and supplies no `Placement` override.
+Under `Popup.InputBindings`, line 52 binds `Escape` to
+`ComboBox.CloseDropDown` with `CommandTarget` bound to the templated parent.
 The installed `PlacementTarget` and `MaxHeight` strings omit the
 outer closing brace of their binding expression. The `MaxHeight`
 string names `Mode=OneWay` and the `IsOpen` string is balanced
@@ -332,7 +334,68 @@ conditionally invokes the object referenced at `+0x4CC`, constructs
 `0x0091F1E0` at `0x00968210`. The set branch checks the popup pointer at
 `+0x4C8` at `0x0096813E`, invokes its slot `+0x38` if present and
 constructs `DropDownOpened` at `0x00968169` for the same dispatch.
-The receiving handlers and live focus and key precedence remain unverified.
+The receiving handlers remain unverified.
+
+### Popup visibility and focus request
+
+STATIC. Popup constructor `0x009A5B70` requests `Focusable=true` at
+`0x009A5DA6..0x009A5DAE` through `0x0093C3C0`, which writes via the
+`Focusable` descriptor `0x0135975C`. The installed `PART_Popup` has no
+local `Focusable` override.
+
+The ComboBox callback calls primary slot 6 at `0x00968102` before its
+open-state branch. Cell `0x01070BC4` selects `0x00960410`, which takes
+the property notification path through `0x0092DF20` at `0x00960454`.
+With the declared binding attached and listening, a matching source
+notification can transfer the new `IsDropDownOpen` value to `Popup.IsOpen`
+through the [forward binding route](sqwt-keyframe-target-binding.md#observed-controltemplate-owner-and-binding).
+The Popup setter arm `0x009A57FA..0x009A581B` addresses `+0x2CA` for
+descriptor `0x0136155C` and calls `0x009321D0` with callback `0x009A4EA0`.
+The callback's descriptor index 6 arm tests bit `0x20` in `+0x2CA` and
+requests Visibility 2 (Visible) at `0x009A4ED8` when set, or Visibility 1
+(Hidden) at `0x009A4EE5` when clear.
+
+After notification returns, the ComboBox checks its open bit and retained
+popup pointer at `0x00968135..0x00968144`. If both pass, it calls input
+slot 14 on the popup at `0x0096815B`. Popup cell `0x0107BD9C` selects
+focus request `0x0091E3E0`, which checks the receiver's Focusable and
+visibility slots before admitting the request. The path can redirect or
+be canceled before the keyboard-focus store at `0x0091E75C`.
+[Focus transfer guards](sqwt-window-trigger-order.md#focus-transfer-and-refresh).
+
+This orders the opportunity for the binding to request popup visibility
+before the owner's popup focus request. It applies to a changed owner
+value from the arrow's reverse binding as well as a command. The explicit
+Open command can make another request after this callback. It prefers
+the retained list at `0x00968B1B..0x00968B4A`, whose input cell
+`0x01072124` also selects `0x0091E3E0`. The delivered visible state and
+final focus recipient depend on the admitted binding and focus operations.
+
+### Escape on the popup route
+
+STATIC. The key parser's table row `0x012E2DE0` pairs `Escape` string
+`0x0106CF90` with code `0x1B`, which `0x00946DD8` reads on a match.
+For delivered down input, the Desktop calls `0x0091EE90` first with
+`PreviewKeyDown` (`0x0091AD53`), then with `KeyDown` (`0x0091AD62`).
+The current focus entry and ancestor walk determine whether the ordinary
+event visits `PART_Popup`.
+[Routed key-down producer](../input/keyboard-movement-bindings.md#routed-key-down-and-key-up).
+
+On a visit to that Popup, `KeyDown` dispatch at `0x0091D400..0x0091D40B`
+selects input slot 38 (`0x0107BDFC -> 0x0091F440`). After its callback,
+command-associated matcher and any provider collection, the method passes
+the popup's own input binding collection at interface `+0x28` to
+`0x00921110` at `0x0091F4A5`. The walker checks handled state, the resolved
+target's current eligibility and the gesture before invoking the retained
+command with its target at `0x00921233`.
+[Keyboard binding consumer](../input/keyboard-movement-bindings.md#keyboard-binding-consumer).
+
+With the declared target resolved and the binding admitted, the owner's
+`ComboBox.CloseDropDown` branch at `0x00968B58..0x00968BB6` requests the
+close and marks the command handled. The observed branch requires an
+unhandled command and checks the current open bit before the close write.
+The initial Journal focus recipient, focus after an actual popup open,
+and precedence against other Escape consumers remain unobserved.
 
 ## Drop-down button style
 
@@ -414,3 +477,22 @@ with `xivl-tools:tools/blowfish.py`, using each file basename as the key.
 Read the template trigger and action at lines 34 and 35 and the two
 ToggleButtons at lines 42 and 43. Resolve the arrow style by the named
 `DownButton`, `CheckedButton` and `UncheckedButton` entries.
+
+Check the Popup's local binding at template line 52 and inspect the
+visibility and focus sequence in the same analyzed program.
+
+```sh
+ghidra disasm 0x009A5DA6 -n 6
+ghidra memory read 0x01070BC4 4
+ghidra disasm 0x0096044A -n 6
+ghidra disasm 0x009A57FA -n 15
+ghidra disasm 0x009A4EA0 -n 32
+ghidra memory read 0x0107BD9C 4
+ghidra memory read 0x01072124 4
+ghidra disasm 0x00968B1B -n 19
+ghidra memory read 0x012E2DE0 8
+ghidra disasm 0x0091AD4C -n 12
+ghidra memory read 0x0107BDFC 4
+ghidra disasm 0x0091F440 -n 49
+ghidra disasm 0x00921198 -n 48
+```
