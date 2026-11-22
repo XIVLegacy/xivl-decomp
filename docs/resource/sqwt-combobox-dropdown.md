@@ -4,9 +4,10 @@
 values of the ComboBox's `IsDropDownOpen` property. A
 `Selector.SelectIndex` command from a retained source can also request
 closure. The property callback sends `DropDownClosed` on its closed branch.
-These are static command paths. A Popup with a placement target also
-has a target-relative arrange path. Native key routing and the conditions
-that give a Journal list row input ownership remain open.
+The named left-button release handlers also request selection and closure
+when their source maps to a row. A Popup with a placement target has a
+target-relative arrange path. Native key routing and the conditions that
+give a Journal list row input ownership remain open.
 
 ## Input and method
 
@@ -78,9 +79,47 @@ different requested index takes the path that constructs
 `0x00F24860..0x00F24886`). The `SelectedIndex` descriptor has
 index zero. Its callback branch at `0x0096F489` calls
 `0x0096F080` with the stored index when `ItemsPanel` is present.
-That routine has a path that dispatches `SelectionChanged`.
-Its full row admission and the ListBox's physical input producer
-remain open.
+That routine has a path that dispatches `SelectionChanged` at `0x0096F3E9`.
+The index setter `0x00926E80` compares the stored and incoming values at
+`0x00926ED7` and skips its write and callback on equality.
+
+## Named left-button release
+
+STATIC. The [paired Desktop release](../input/sqwt-mouse-preview-producer.md#preview-production-and-specialization)
+routes `PreviewMouseUp` at `0x0091ABCE` and, when it returns a target,
+routes ordinary `MouseUp` at `0x0091ABF2`. Each dispatch can specialize
+its event when the mask at argument `+0x40` still equals 1. The preview
+specialization is `PreviewMouseLeftButtonUp`, descriptor `0x013593CC`.
+The ordinary arm writes `MouseLeftButtonUp`, descriptor `0x0135978C`, at
+`0x0091D57F` after its base virtual call. Initializer `0x00F22D30` supplies
+id `0x10` and routing strategy 0 for that ordinary descriptor.
+
+| Event | Dispatch call | ComboBox interface cell and target | ListBox interface cell and target |
+| --- | --- | --- | --- |
+| `PreviewMouseLeftButtonUp` | `0x0091D4D0`, slot 44 | `0x01070B34` -> `0x0096ED00` | `0x0107219C` -> `0x0096ED00` |
+| `MouseLeftButtonUp` | `0x0091D5AE..0x0091D5B9`, slot 50 | `0x01070B4C` -> `0x00968A20` | `0x010721B4` -> `0x0091C970` |
+
+The shared preview handler `0x0096ED00` calls `0x0091C970`, then tests
+the handled byte through argument `+0x10`. When clear, it passes the
+routed source at argument `+0x08` to `0x00960DE0` on the receiving
+selector's item accessor at interface `+0x2EC`. A nonnegative result
+enters `0x0096EC00` at `0x0096ED34` with that index and flags `0, 1`.
+The index belongs to this receiver's lookup. This handler has no call
+to forward a ListBox selection to the owning ComboBox.
+
+The ordinary ComboBox handler `0x00968A20` calls `0x0091C970` and runs
+its own lookup of the routed source at `0x00968A2E..0x00968A3F`. With a
+nonnegative result, the property guards and open bit `0x20` permit the
+close write at `0x00968A83..0x00968A8B`. It sets bit `0x04` and invokes
+the `IsDropDownOpen` callback through `0x0099C680` at `0x00968A8D`.
+This branch does not test whether the preview changed `SelectedIndex`.
+
+The producer order permits a selector to request its index during
+preview, followed by the ComboBox requesting closure on ordinary
+release. Both requests depend on delivery to their respective handlers
+and each source lookup. The Journal row's concrete native event source,
+the item-container construction that makes it recognizable to each
+receiver, and its effective route through the retained popup remain open.
 
 ## Retained template parts
 
@@ -191,8 +230,21 @@ ToggleButton that holds the `PART_Label` TextBlock. Under
 on the templated parent.
 The template also declares `ApplicationCommands.Operate` to open
 and `SelectionChanged` on `ComboBox` to
-`UILuaCommands.SelectionChanged`. The markup names those routes.
-The presented hit region and routed source at runtime remain open.
+`UILuaCommands.SelectionChanged`. The trigger at template line 34 has
+`RoutedEvent=SelectionChanged` and `SourceType=ComboBox`. Its action at
+line 35 has only the `Command` attribute. It omits `CommandTarget`,
+`CommandParameter`, `PropertyName1` and `PropertyName2`.
+
+STATIC. The `ExecuteCommandAction` constructor `0x009B2D00` calls
+`0x00954C00` at `0x009B2D2B`. The base constructor passes descriptor
+`0x0135A244` and holder `+0x54` to `0x00953B10` at
+`0x00954C82..0x00954C99`. That helper stores the shared default record
+`0x01361160` at `0x00953B1F`, with kind 0 as in the
+[Storyboard default record](sqwt-keyframe-target-binding.md#default-completion-record-and-event-arguments).
+When the action retains those defaults, the native command uses kind 0
+without an index payload. Its default target is the trigger event
+source if that casts to `FrameworkElement`.
+[Action substitution and dispatch](sqwt-command-parameter-grammar.md#executecommandaction-text-substitution).
 
 | SQEX input below `client/sqwt` | Bytes | SHA-256 |
 | --- | --- | --- |
@@ -255,6 +307,20 @@ ghidra disasm 0x0096ED40 -n 120
 ghidra disasm 0x0096EE20 -n 22
 ghidra disasm 0x0096EC26 -n 46
 ghidra disasm 0x0096F473 -n 20
+ghidra disasm 0x00926ED3 -n 20
+ghidra disasm 0x0096F39E -n 20
+ghidra disasm 0x0091D4D0 -n 8
+ghidra disasm 0x0091D558 -n 36
+ghidra disasm 0x00F22D30 -n 9
+ghidra memory read 0x01070B34 4
+ghidra memory read 0x01070B4C 4
+ghidra memory read 0x0107219C 4
+ghidra memory read 0x010721B4 4
+ghidra disasm 0x0096ED00 -n 25
+ghidra disasm 0x00968A20 -n 45
+ghidra disasm 0x009B2D25 -n 10
+ghidra disasm 0x00954C82 -n 9
+ghidra disasm 0x00953B10 -n 12
 ghidra disasm 0x009684CC -n 30
 ghidra disasm 0x0096853B -n 26
 ghidra disasm 0x009685C2 -n 90
@@ -268,3 +334,7 @@ ghidra disasm 0x0094875A -n 72
 ghidra disasm 0x00947666 -n 20
 ghidra disasm 0x0094D9B6 -n 27
 ```
+
+For the installed action, verify the template's identity above and decode
+its SQEX body with `xivl-tools:tools/blowfish.py`, using the file basename
+as the key. Read the trigger and action attributes at lines 34 and 35.
