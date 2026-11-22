@@ -172,6 +172,25 @@ The presented hit region and routed source at runtime remain open.
 | `widget/JournalListWidget.tpl` | 8692 | `12f30656cf5b8945ebec43f7c7756bc47a3e67ab8fe9160d09a2f15abb8a616f` |
 | `common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` |
 
+### LeftClick gesture
+
+STATIC. The MouseBinding reader `0x00948720` installs
+`LeftClick` (string `0x0106D16C`) with value zero in the
+primary action table at `0x0094876E..0x00948778`. The parser
+at `0x0094883E` writes a matched action to markup `+0x174`.
+`0x00947679..0x00947684` passes that byte to `0x0094D870`,
+which stores it at MouseGesture `+0x18` at `0x0094D8AE`.
+
+The MouseGesture vtable at `0x0106D7F0` has slot 4
+`0x0094DB20`. It calls `0x0094D8E0` at `0x0094DB53`.
+On the ordinary branch, the matcher accepts event descriptor
+byte `+0x05 == 0x08` at `0x0094D9BD..0x0094D9C2`.
+After the common modifier and optional device-result checks,
+action zero selects `0x0094D9F8` through table `0x0094DAF8`.
+That case requires event byte `+0x24 == 1`. The producer of
+this event byte and the state that delivers the event to the
+Journal label remain open.
+
 ## Property callback
 
 STATIC. `0x009680D0` examines the descriptor index reached from callback
@@ -214,4 +233,7 @@ ghidra disasm 0x009A5230 -n 90
 ghidra disasm 0x009A5C41 -n 17
 ghidra disasm 0x0092EDF0 -n 17
 ghidra disasm 0x0092FEFC -n 80
+ghidra disasm 0x0094875A -n 72
+ghidra disasm 0x00947666 -n 20
+ghidra disasm 0x0094D9B6 -n 27
 ```
