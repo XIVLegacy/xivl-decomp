@@ -266,6 +266,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt qualified property lookup](resource/sqwt-qualified-property-lookup.md)
 - [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Sqwt plain text reference lookup](resource/sqwt-plain-text-reference-lookup.md)
+- [Text word filter and ASCII no-match output](resource/text-word-filter.md)
 - [Rich-string entry count controls](resource/rich-string-entry-counts.md)
 - [Rich-text sheet and case handlers](resource/rich-text-sheet-and-case-handlers.md)
 - [Rich-text colour tokens](resource/rich-text-colour-tokens.md)
