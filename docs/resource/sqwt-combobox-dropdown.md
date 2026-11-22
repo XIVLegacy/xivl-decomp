@@ -3,7 +3,8 @@
 `ComboBox.OpenDropDown` and `ComboBox.CloseDropDown` request opposite
 values of the ComboBox's `IsDropDownOpen` property. A
 `Selector.SelectIndex` command from a retained source can also request
-closure. The property callback sends `DropDownClosed` on its closed branch.
+closure. The property callback sends `DropDownOpened` or `DropDownClosed`.
+The Journal arrow binds the same property to its ToggleButton checked state.
 The named left-button release handlers also request selection and closure
 when their source maps to a row. A Popup with a placement target has a
 target-relative arrange path. Native key routing and the conditions that
@@ -22,6 +23,7 @@ property objects. The branch and call claims below come from disassembly.
 | `ComboBox.OpenDropDown` | `0x01070794` | `0x0135B008` | `0x00F24189`, `0x00F2419C` |
 | `ComboBox.CloseDropDown` | `0x010707AC` | `0x0135B0B0` | `0x00F24209`, `0x00F2421C` |
 | `IsDropDownOpen` | `0x010707C4` | `0x0135AFC0` | `0x00F24260`, `0x00F24265` |
+| `DropDownOpened` | `0x01070818` | `0x0135B0A4` | `0x00F24380`, `0x00F2438E` |
 | `DropDownClosed` | `0x01070828` | `0x0135B170` | `0x00F243B0`, `0x00F243BE` |
 | `Selector.SelectIndex` | `0x01072624` | `0x0135B530` | `0x00F246A9`, `0x00F246BC` |
 
@@ -223,9 +225,13 @@ The standard form selects ComboBox style `COM_basis` from
 style `WIN_basis_comboList`. The Window's normal `Frame` selects
 skin `WIN_basis_comboList_frame_N`.
 
-The selected template's DockPanel has a `PART_DropDownButton_Text`
-ToggleButton that holds the `PART_Label` TextBlock. At template line 44
-its `Text` binds OneWay to `Text` on the templated parent. Under
+At template line 42 the DockPanel's childless `PART_DropDownButton` is a
+ToggleButton docked right, aligned left and top, with `Focusable=False`.
+Its `IsChecked` binds TwoWay to `IsDropDownOpen` on the templated parent.
+It leaves `ClickMode` and `Command` at their defaults. The next child,
+`PART_DropDownButton_Text`, is a separate ToggleButton with the same
+checked binding. It holds the `PART_Label` TextBlock. At line 44 the
+label's `Text` binds OneWay to `Text` on the templated parent. Under
 `TextBlock.InputBindings`, that label declares one
 `MouseAction=LeftClick` MouseBinding to `ComboBox.OpenDropDown`
 on the templated parent.
@@ -272,6 +278,49 @@ That case requires event byte `+0x24 == 1`. The producer of
 this event byte and the state that delivers the event to the
 Journal label remain open.
 
+### Arrow release and checked-state binding
+
+STATIC. The ToggleButton interface table at `0x0106F18C` selects the
+ButtonBase named preview handlers at slots 43 and 44 (`0x0097EFF0`,
+`0x0097F080`). The constructor `0x0095D620` calls the default ButtonBase
+constructor at `0x0095D64A`. With default `ClickMode=2`, the release handler
+calls `0x0097EBA0` at `0x0097F11E` after the handled, hit-test and prior
+pressed-state gates. The helper raises `Click` id `0x38`.
+[ButtonBase release and Click](sqwt-command-parameter-consumer.md#button-mouse-source).
+
+The ToggleButton's interface slot 13 (`0x0106F1C0`) selects `0x0097ECE0`.
+It calls primary slot 71 at `0x0097ED20` before checking the optional
+Command at `0x0097ED22`. Slot 71 (`0x0106F3D0`) selects `0x0095D2B0`,
+which calls slot 75 (`0x0106F3E0`) at `0x0095D2BB`. Slot 75 selects
+`0x0095D470`. That method reads the complement of checked bit `0x20` in
+object byte `+0x3B4`. After the property guards it stores the changed bit
+at `0x0095D4D6` and invokes `0x0099C680` at `0x0095D4D8` with the
+`IsChecked` descriptor `0x0135A79C` and callback `0x0095D2F0`.
+[IsChecked descriptor and guards](../input/game-controller-startup.md#gameconfig-and-checked-state-identity).
+
+The callback first calls primary slot 6 (`0x00934B60`) at `0x0095D321`.
+It reaches property listeners through `0x0092DF20`, `0x0093BD80` and
+`0x00912AC0`, which checks notification mask `0x02` and calls `0x009114A0`
+at `0x00912B69`. This precedes the callback's checked-bit test at
+`0x0095D331` for checked or unchecked presentation.
+
+The binding parser selects mode 2 for `TwoWay` at `0x00912777`.
+With a registered matching target object and descriptor, the notification
+handler takes `0x00998A82..0x00998AB4` and calls reverse transfer
+`0x00998AD0`. With no converter, it reads the target property at
+`0x00998B4E` and on success writes the source property at `0x00998B65`.
+For the declared arrow endpoints these are `ToggleButton.IsChecked` and
+the owner `ComboBox.IsDropDownOpen`. The latter's text setter arm at
+`0x00968DC8..0x00968DE9` addresses `+0x4A8` and calls `0x009321D0`.
+The boolean update at `0x0099C7DD..0x0099C806` compares the old and new
+values before writing and dispatching the callback. A matching source
+notification uses the same mode's forward transfer at `0x00998A96`.
+[Binding listener registration](sqwt-style-reverse-binding.md#observed-listener-and-reverse-transfer).
+
+This join requires the installed binding to attach and the named release to
+reach the arrow's handler. The live hit footprint and routing precedence
+while the popup is open remain unobserved.
+
 ## Property callback
 
 STATIC. `0x009680D0` examines the descriptor index reached from callback
@@ -280,9 +329,10 @@ descriptor's index at `0x00F2426F`. For index zero, the callback tests
 object byte `+0x4A8` bit `0x20` at `0x00968135`. When clear, it
 conditionally invokes the object referenced at `+0x4CC`, constructs
 `DropDownClosed` at `0x009681D8` and dispatches it through
-`0x0091F1E0` at `0x00968210`. The set branch instead checks the pointer at
-`+0x4C8` at `0x0096813E`. Handler registration, repeated requests
-and a live popup's focus and key precedence remain unverified.
+`0x0091F1E0` at `0x00968210`. The set branch checks the popup pointer at
+`+0x4C8` at `0x0096813E`, invokes its slot `+0x38` if present and
+constructs `DropDownOpened` at `0x00968169` for the same dispatch.
+The receiving handlers and live focus and key precedence remain unverified.
 
 ## Drop-down button style
 
@@ -291,8 +341,11 @@ at `0x010708B8` with the string at `0x010708E8`. The pair passes to
 `0x00930BA0` at `0x00968515`. The two paths in the second string name
 `ComboBox:DownButton:UncheckedButton:Frame` and
 `DownButton:CheckedButton:Frame`. This records the part names and their
-join. The callback that chooses a path during a live open or close
-remains unresolved.
+join. In `common/default.style`, `COM_basis` selects `TOG_basis_comboDown`
+for `DownButton` at line 5801. That style selects `BTN_basis_comboDown`
+for both `CheckedButton` and `UncheckedButton` at lines 3437 and 3438.
+The Frame at lines 1337-1346 lists Normal, Hover and Active skins. The
+frame chosen during a live open or close remains unobserved.
 
 ## Reproduction
 
@@ -334,8 +387,30 @@ ghidra disasm 0x0092FEFC -n 80
 ghidra disasm 0x0094875A -n 72
 ghidra disasm 0x00947666 -n 20
 ghidra disasm 0x0094D9B6 -n 27
+ghidra memory read 0x0106F238 8
+ghidra memory read 0x0106F1C0 4
+ghidra memory read 0x0106F3D0 20
+ghidra disasm 0x0097ECE0 -n 29
+ghidra disasm 0x0095D2B0 -n 9
+ghidra disasm 0x0095D470 -n 45
+ghidra disasm 0x0095D315 -n 10
+ghidra memory read 0x0106F2CC 4
+ghidra disasm 0x00934BA4 -n 5
+ghidra disasm 0x0092DF20 -n 12
+ghidra disasm 0x0093BDBB -n 8
+ghidra disasm 0x00912B60 -n 7
+ghidra disasm 0x0091275E -n 11
+ghidra memory read 0x00998ABC 16
+ghidra memory read 0x01079CE8 8
+ghidra disasm 0x00998A40 -n 46
+ghidra disasm 0x00998B40 -n 18
+ghidra disasm 0x00968DC8 -n 17
+ghidra disasm 0x0099C7CF -n 25
+ghidra disasm 0x00F24380 -n 9
 ```
 
-For the installed action, verify the template's identity above and decode
-its SQEX body with `xivl-tools:tools/blowfish.py`, using the file basename
-as the key. Read the trigger and action attributes at lines 34 and 35.
+Verify the template and style identities above and decode their SQEX bodies
+with `xivl-tools:tools/blowfish.py`, using each file basename as the key.
+Read the template trigger and action at lines 34 and 35 and the two
+ToggleButtons at lines 42 and 43. Resolve the arrow style by the named
+`DownButton`, `CheckedButton` and `UncheckedButton` entries.
