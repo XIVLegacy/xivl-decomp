@@ -117,8 +117,21 @@ subtracts the Popup's current actual height instead
 The field identities are in [Visual offsets](sqwt-render-transform.md#arranged-position-in-draw-and-hit-testing)
 and [Point containment](sqwt-number-input-button-frames.md#painted-dimensions-and-point-containment).
 The target-relative branch contains no screen-edge choice. Upstream
-writers of `Placement`, effective clipping, layer order and the
-runtime effect of the height cap require separate traces.
+writers of `Placement`, effective clipping and layer order require
+separate traces.
+
+### Height limit
+
+STATIC. The `MaxHeight` setter at `0x0092EDF0` targets FrameworkElement
+`+0x1CC` through descriptor `0x013588EC`. The arrange core calls
+`0x0092FD20` at `0x00930412`. At `0x0092FEFC..0x0092FF1F`
+that function takes a non-sentinel maximum from `+0x1CC` and scales
+it by virtual slot `+0xC4`. The height branch at
+`0x0092FFC8..0x0092FFF4` checks the effective minimum first. When
+the candidate is above that minimum it caps the height by the staged
+maximum. The result reaches virtual arrange slot `+0xD8` at
+`0x00930012`. This traces an arrange bound. The visible row count and
+popup scrollbar behavior depend on other controls.
 
 ## Installed Journal category declarations
 
@@ -181,4 +194,6 @@ ghidra disasm 0x009693B3 -n 42
 ghidra disasm 0x009A5650 -n 18
 ghidra disasm 0x009A5230 -n 90
 ghidra disasm 0x009A5C41 -n 17
+ghidra disasm 0x0092EDF0 -n 17
+ghidra disasm 0x0092FEFC -n 80
 ```
