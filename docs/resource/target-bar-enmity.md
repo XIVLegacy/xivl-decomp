@@ -279,3 +279,78 @@ corroborated the frame call, vtable cells, colour stores, comparisons and
 Foreground identity. Authenticated original Lua 5.1 bytecode corroborated
 the named script branches. No original client ran and no target-switch
 pixels or live difficulty colours were observed.
+
+## Target status icons and level-text boundary
+
+STATIC. After sampling the name foreground, the same target operator frame
+`0x008D8A20` samples NamePlate icon slots 1 through 3. Constructor
+`0x008D8BA0` formats `IconControl_StatusIcon_%d` from literal `0x01063620`
+and resolves each named form control through `0x00696030`
+(`0x008D8C58..0x008D8CA4`). It retains slots 1, 2 and 3 at operator
+`+0x4C`, `+0x50` and `+0x54`. Their separate integer caches at `+0x38`,
+`+0x3C` and `+0x40` initialize to -1. The authenticated base form declares
+those exact three IconControls at lines 40, 41 and 43, each with Width and
+Height 24, IconDatas 220, IsHitTestVisible False and Visibility Collapsed.
+The [caption input](../script/target-caption-text.md#lua-choice-and-form)
+pins this form's carrier and decoded identity.
+
+The frame's existing null-cursor and null-actor returns precede this loop.
+On its admitted current cursor actor, NamePlate is actor `+0xBA0`.
+Frame `0x008D8B22..0x008D8B89` calls its virtual `+0x18` with indices 1,
+2 and 3. Cell `0x00FCF9A4` selects `0x006A29E0`, which reads the integer
+at NamePlate `+0x30 + index*4`. These are icon IDs, distinct from the
+four float lanes read by the foreground getter.
+
+Each sample is compared with its corresponding cache. An equal sample
+skips both property requests (`0x008D8B41..0x008D8B44`). A changed sample
+below zero requests Visibility 0, Collapsed, through `0x0093C2A0` with
+arguments 0,1 (`0x008D8B6C..0x008D8B78`). That branch does not clear
+IconDatas. A changed sample at least zero first requests Visibility 2,
+Visible, with the same arguments, then calls `0x00695470` on the retained
+IconControl (`0x008D8B4E..0x008D8B65`). This helper formats one signed
+decimal integer with `%d` and requests IconDatas through `0x0096A010`
+with arguments 0,1 (`0x006954A8..0x006954F5`). Both branches cache the
+sample at `0x008D8B7D`.
+
+The [nameplate native contract](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/presentation-native-contract.md#nameplate-natives)
+records `_setNameplateIcon` and its category/position/ID arguments.
+`0x006A2B30` stores a positive supplied ID in the slot sampled here and
+stores -1 for an ID at most zero. The target consumer itself accepts a
+stored zero as nonnegative, but that setter does not produce zero.
+A position greater than 1 can form a multi-cell world NamePlate IconDatas
+string. This target consumer formats only the retained scalar ID, not that
+string. Its slots map to NamePlate's primary-left, primary-right and
+secondary-left controls, not the separate secondary-right slot 4.
+
+The [installed icon producer](../actor/player-nameplate-icons.md#other-controls-and-native-state-icons)
+owns the Lua classification and icon identities. For example, the admitted
+non-player property-3 battalion arm supplies primary-right 517 when
+getAggro is positive and 518 otherwise. Their authenticated images are the
+red spiked disc and green disc. A retail-dealer arm supplies 220 in that
+same slot. Player and group/status branches supply slot 1, while repair and
+dealer branches can supply slot 3. This is a reuse of actor NamePlate
+status/service icons. Neither the slot names nor those branches establish
+a self-versus-target level comparison or a difficulty colour table.
+
+MEASURED. The same base form's TextBlock_LebelText at line 42 selects
+`TBL_namePlate_levelText`. In authenticated `common/default.style`, lines
+3306-3315, its Frame part has Skin NULL and FontColor `#ffffff99` for
+SkinNormal, SkinHover, SkinActive, SkinFocused, SkinAnchored and
+SkinReserved. Those conditions have FontEdgeColor `#ff262626`.
+SkinDisabled has FontColor `#80ffff99` and FontEdgeColor `#801a1a1a`.
+SkinDroppable declares Skin NULL without either colour. The common style
+identity is in the
+[numeric presentation input table](damage-plate-numeric-presentation.md#identity-and-method).
+These selected declarations supply no relative-level binding. The installed
+setRank path described above supplies text and visibility, not a colour.
+
+The native icon loop has no separate actor-identity cache or null-target
+reset. Equal icon IDs across actor changes skip writes. A fresh -1 cache
+and a first -1 sample preserve the form's declared collapsed state.
+The loop itself has no additional per-control null test, so its property
+requests require the named current controls to have resolved and their
+property types to be admitted. The frame's actor admission, property
+priority, other writers, actual icon resource loading and rendered pixels
+remain conditions. These findings do not establish a relative-level
+classifier elsewhere in the executable. Its producer and a visual consumer
+remain UNKNOWN. No original client ran.
