@@ -100,7 +100,8 @@ achieved rate. Zero and invalid settings are outside the positive-rate case.
 
 After its wait and timestamp update, the callback calls `0x00A48A70` at
 `0x004E8F90`. That base method returns immediately. It can then call
-`0x0061C9A0` through the current world's `+0x80` object when nonnull.
+`0x0061C9A0` on the nonnull `+0x80` object of the current world's
+actor container (`0x004E8F95..0x004E8FAA`).
 This finding does not identify a D3D Present call or result at either edge.
 The [final gamma blit](present-gamma-blit.md) is a separate rendering contract.
 Its complete ordering against this callback, utility selector 0x44,
