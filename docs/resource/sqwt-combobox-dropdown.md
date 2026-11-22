@@ -4,8 +4,9 @@
 values of the ComboBox's `IsDropDownOpen` property. A
 `Selector.SelectIndex` command from a retained source can also request
 closure. The property callback sends `DropDownClosed` on its closed branch.
-These are static command paths. Native key routing, popup placement and
-the conditions that give a Journal list row input ownership remain open.
+These are static command paths. A Popup with a placement target also
+has a target-relative arrange path. Native key routing and the conditions
+that give a Journal list row input ownership remain open.
 
 ## Input and method
 
@@ -87,8 +88,30 @@ two bindings on the popup through `0x00911ED0`.
 | `MaxDropDownHeight` (`0x0135B1D4`) | `MaxHeight` (`0x013588EC`) | `0x0096943A` |
 
 The target descriptors register at `0x00F28CE0` and `0x00F21EA0`,
-respectively. Placement orientation, screen-edge handling and
-the runtime effect of the height cap remain open.
+respectively.
+
+## Target-relative popup rectangle
+
+STATIC. The Popup constructor initializes `Placement`, descriptor
+`0x01361538`, with zero at `0x009A5C49..0x009A5C66`. The property
+setter `0x009A56B0` addresses the stored byte at Popup `+0x2C8`.
+When `PlacementTarget` at `+0x2B4` is nonnull, the arrange override
+`0x009A5230` sums that target's `+0x24` and `+0x28` offsets along
+the visual parent chain at `+0xA4` (`0x009A5282..0x009A52BE`).
+The rectangle width comes from the target's actual width `+0x1B4`
+and its height from the incoming rectangle's `+0x10` word. The
+callback adds the two Popup offset terms, scaled by its virtual
+`+0xC4` result, to the summed origin. The zero placement branch
+then adds the target's actual height `+0x1AC` to Y. The other branch
+subtracts the Popup's current actual height instead
+(`0x009A52C0..0x009A5310`). The resulting rectangle goes to
+`0x009302F0` at `0x009A534B`.
+
+The field identities are in [Visual offsets](sqwt-render-transform.md#arranged-position-in-draw-and-hit-testing)
+and [Point containment](sqwt-number-input-button-frames.md#painted-dimensions-and-point-containment).
+The target-relative branch contains no screen-edge choice. Upstream
+writers of `Placement`, effective clipping, layer order and the
+runtime effect of the height cap require separate traces.
 
 ## Property callback
 
@@ -127,4 +150,6 @@ ghidra disasm 0x009684CC -n 30
 ghidra disasm 0x009685C2 -n 90
 ghidra disasm 0x009693B3 -n 42
 ghidra disasm 0x009A5650 -n 18
+ghidra disasm 0x009A5230 -n 90
+ghidra disasm 0x009A5C41 -n 17
 ```
