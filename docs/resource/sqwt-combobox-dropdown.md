@@ -146,6 +146,10 @@ declares neither `ItemsSource` nor `ItemTemplate`. The popup's
 `PlacementTarget` binding refers to the templated parent. It binds
 `IsOpen` and `MaxHeight` to the same owner properties as the
 internal popup path above and supplies no `Placement` override.
+The installed `PlacementTarget` and `MaxHeight` strings omit the
+outer closing brace of their binding expression. The `MaxHeight`
+string names `Mode=OneWay` and the `IsOpen` string is balanced
+and names `Mode=TwoWay`.
 The script-side row keys and publish call are recorded in
 xivl-client-scripts:docs/journal-list-row-writes.md, Quest category rows.
 
@@ -154,6 +158,13 @@ The standard form selects ComboBox style `COM_basis` from
 `LIB_basis_comboList`. The list's `Background` points to Window
 style `WIN_basis_comboList`. The Window's normal `Frame` selects
 skin `WIN_basis_comboList_frame_N`.
+
+The category template's `PART_Label` declares a `LeftClick`
+MouseBinding to `ComboBox.OpenDropDown` on the templated parent.
+The template also declares `ApplicationCommands.Operate` to open
+and `SelectionChanged` on `ComboBox` to
+`UILuaCommands.SelectionChanged`. The markup names those routes.
+The presented hit region and routed source at runtime remain open.
 
 | SQEX input below `client/sqwt` | Bytes | SHA-256 |
 | --- | --- | --- |
