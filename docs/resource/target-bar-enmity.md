@@ -213,3 +213,69 @@ These static joins establish the form's command input and thresholds.
 The exact selected form, resource attachment, command admission, rendered
 skin and original live timing remain conditional. The word's interpretation
 as a percentage, a server enmity formula and update cadence remain unknown.
+
+## Target name foreground
+
+STATIC. The form gate also constructs TargetParameterWidgetOperator,
+constructor `0x008D8BA0`, primary table `0x0106376C`. Its frame slot
+`+0xA0`, cell `0x0106380C`, selects `0x008D8A20`. FormElement calls
+that slot at `0x00539A15`, before the separate AutoAttack-part guard
+used by the enmity helper. The constructor resolves TextBlock_Name
+through `0x00696030` and retains it at operator `+0x20`
+(`0x008D8C29..0x008D8C48`). The installed form declares this unique
+TextBlock at line 45, as the [caption contract](../script/target-caption-text.md#lua-choice-and-form)
+records. The four cached colour lanes at operator `+0x24..+0x30`
+start as binary32 1.0 (`0x008D8BFD..0x008D8C1A`).
+
+Frame `0x008D8A20` obtains TargetElement through `0x004D7310`, reads
+current cursor `+0xB4`, then actor `cursor+0x0C`. A null cursor or actor
+returns without a foreground write or cache reset
+(`0x008D8A2D..0x008D8A45`). For the admitted character actor it reads
+NamePlate at actor `+0xBA0`, virtual `+0x14`, with literal part 1
+(`0x008D8A4D..0x008D8A62`). NamePlate table cell `0x00FCF9A0`
+selects `0x006A29D0`, which returns `this+0x68+part*0x10`.
+Part 1 therefore supplies the four lanes at NamePlate `+0x78..+0x84`.
+
+The [nameplate native contract](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/presentation-native-contract.md#nameplate-natives)
+traces the int and four float `_setNameplateColor` arguments through
+`0x006E3E00 -> 0x0075B570 -> 0x006A3AD0`. The leading int is the part.
+The setter stores the final float first, followed by the preceding three
+floats, in that selected record. For part 1 it returns after these stores. The
+record is A,R,G,B under the documented RGBA interpretation. Those four
+lanes supply the target foreground sample.
+
+It compares the four sampled lanes with its cache at
+`0x008D8A64..0x008D8AE3`. A difference requests the typed colour setter
+`0x00938020(sample,0,1)` on retained TextBlock_Name at `0x008D8AF1`,
+then copies the sample into all four cache lanes at
+`0x008D8AF6..0x008D8B1D`. This setter supplies descriptor
+`0x01359244`, named Foreground by `0x00F22540..0x00F2254A`.
+The [inherited property contract](sqwt-qualified-property-lookup.md#unqualified-foreground-and-completion)
+owns that descriptor. The typed call uses it directly. Property admission
+and later drawing remain conditions. Equal samples skip the setter across
+frames and actor changes. The absent-target return precedes sampling.
+
+The actor's [depiction rules](../net/work-field-inventory.md#npcworkhatetype-is-a-single-field-client-should-populate)
+already record the NPC claim/occupancy and party colour inputs.
+Authenticated DepictionJudge.judgeNameplate supplies part-1 colours in
+`main/f0`, including the getHateType arms at zero-based PCs 425-475
+and 482-556. The selected branches read the claim and party
+inputs. The enmity word feeds the separate indicator described above.
+Server claim policy remains outside this trace.
+
+The installed TargetParameterWidget Lua has separate HP and rank paths.
+`setParameter`, `main/f7` PCs 0, 12-16 and 29-32, requests
+PRB_basis_newHpLarge by default and PRB_basis_newUdLarge when isUndead
+returns exactly true. `setRank`, `main/f11` PCs 0-44, requests the numeric
+level or `??` text and its visibility under the
+[published actor guards](../script/target-selection-receivers.md#populacestandard-work-and-target-guards).
+Their authenticated LPB identity is in the caption contract. The examined
+paths establish depiction-driven target-name foreground and an undead HP
+skin choice. A relative-level colour table and additional difficulty
+writers remain untraced.
+
+Ghidra CLI supplied focused leads. LLVM disassembly and direct PE reads
+corroborated the frame call, vtable cells, colour stores, comparisons and
+Foreground identity. Authenticated original Lua 5.1 bytecode corroborated
+the named script branches. No original client ran and no target-switch
+pixels or live difficulty colours were observed.
