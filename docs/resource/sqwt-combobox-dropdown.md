@@ -40,17 +40,55 @@ Bit `0x02` gates the update. Open sets bit `0x20` when clear
 and pass the property and callback `0x009680D0` to `0x0099C680`.
 The full set of flag roles is unresolved.
 
-Open also checks two retained pointers following the property
-branch at `0x00968B1B..0x00968B4A`. Close does not take that branch.
+Open checks the retained list first and then the popup at
+`0x00968B1B..0x00968B4A`. On the first nonnull result it calls slot
+`+0x38` of the subobject at `+0xB4`. Close does not take that branch.
 The virtual call's purpose and its effects are unresolved.
 
-The later branch compares argument `+0x08` with handler-relative
-`+0x410` at `0x00968BBF`. If equal, it compares the command with
+The later branch compares argument `+0x08` with the retained
+`PART_ListBox` at handler-relative `+0x410` at `0x00968BBF`.
+The close path subtracts `0xB4` from the handler base at
+`0x00968BD0`, so this field is object-relative `+0x4C4`.
+If equal, it compares the command with
 `Selector.SelectIndex` at `0x00968BC7` and takes the tested close update
 at `0x00968BDE..0x00968C1A`. The earlier `0x0096ED40` route compares
 the same command object at `0x0096EE26` and can call `0x0096EC00`.
 The conditional selection semantics and the resulting ListBox event
 order require a separate trace.
+
+## Retained template parts
+
+STATIC. The template part setup at `0x009683C0` resolves these
+names through `0x00910980` and retains their results on the ComboBox.
+
+| Part | String VA | Retained field | Assigned at |
+| --- | --- | --- | --- |
+| `PART_ListBox` | `0x01070944` | `+0x4C4` | `0x0096863B` |
+| `PART_Popup` | `0x01070988` | `+0x4C8` | `0x00968715` |
+| `PART_EditableTextBox` | `0x01070970` | `+0x4CC` | `0x009686F9` |
+
+The list and popup lookup branches explicitly clear their fields when the
+result is null (`0x0096862F` and `0x00968708`). For the list, a
+nonnull result also starts a lookup of its `PART_ListBox_ScrollViewer`
+at `0x0096865D` using the name at `0x01070954`.
+
+## Popup bindings
+
+STATIC. The ComboBox type registers `MaxDropDownHeight` at
+`0x00F24300` with descriptor `0x0135B1D4`. The internally constructed
+popup at `0x00969170` takes the ComboBox supplied by its caller
+`0x00969830`. This path sets the popup's `PlacementTarget` to that
+owner through `0x009A5650` and descriptor `0x01361514`. It installs
+two bindings on the popup through `0x00911ED0`.
+
+| Source on the owner | Destination on the popup | Attach call |
+| --- | --- | --- |
+| `IsDropDownOpen` (`0x0135AFC0`) | `IsOpen` (`0x0136155C`) | `0x00969404` |
+| `MaxDropDownHeight` (`0x0135B1D4`) | `MaxHeight` (`0x013588EC`) | `0x0096943A` |
+
+The target descriptors register at `0x00F28CE0` and `0x00F21EA0`,
+respectively. Placement orientation, screen-edge handling and
+the runtime effect of the height cap remain open.
 
 ## Property callback
 
@@ -86,4 +124,7 @@ ghidra disasm 0x00968AA0 -n 150
 ghidra disasm 0x009680D0 -n 100
 ghidra disasm 0x0096ED40 -n 120
 ghidra disasm 0x009684CC -n 30
+ghidra disasm 0x009685C2 -n 90
+ghidra disasm 0x009693B3 -n 42
+ghidra disasm 0x009A5650 -n 18
 ```
