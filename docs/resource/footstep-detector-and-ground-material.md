@@ -165,6 +165,42 @@ INFERRED. The low seven bits are the ground material of the footstep play, so
 its tens digit less one indexes the A2 table and a word of 0 to 9 plays no
 footstep.
 
+## Surface record, ground name and weather id
+
+STATIC. The array at ground object `+0x94` has a `0x30` byte stride and is
+built by `0x007D49F0` (`ADD EAX,0x30` at `0x007D4AB2`). The probe
+`0x007D4130` fills each record it is given: dword `+0x04` from the hit
+(`0x007D41D0`), the low seven bits of the word at `+0x08` (`0x007D422B`),
+bytes at `+0x0C` and `+0x0D` (`0x007D41B6`, `0x007D41C3`) and a name copied to
+`+0x0E` (`LEA ECX,[EDI+0xE]` at `0x007D4183`). Bit 12 goes through the
+output pointer argument. The caller `0x007D8840` forwards the record dword
+at `+0x00` to the actor through `0x00662440` (`0x007D8A80`) and the two bytes
+through `0x00662510` and `0x00662540` (`0x007D8A8F`, `0x007D8A9E`). Those
+three setters store their value at actor `+0x2B88`, `+0x2B8C` and `+0x2B90`
+when it changed and raise actor messages `0x5B`, `0x5D` and `0x5E` through
+`0x007CE7B0` (`0x0066252C`, `0x00662554`). What the message handlers do with
+the values is not traced.
+
+The ground name read by A5 is written by `0x007D85D0`. It looks up the surface
+entry at `[this+0x6D8]` through `0x007D3B70` (`0x007D86AA`, `0x007D86B3`),
+reads a name through `0x00C1F430` (`0x007D8739`) and copies it into ground
+`+0x64` with a sixteen byte bound (`0x007D8750..0x007D8753`). The same routine
+copies the global at `0x012C5EB8` into ground `+0x74` with the same bound
+(`0x007D8731`, `0x007D8744..0x007D8747`), and the use of that string is not
+traced. INFERRED: the name is the DrawEnv name that the
+[weather path](weather-sky-fog-environment-path.md) resolves from bits 7 to 11,
+so which entries hold `_00` follows from the DrawEnv names.
+
+The dword at `0x012C5EC0` is written at `0x007D8CE9` in `0x007D8AF0` from
+`0x007E2480` on the weather manager returned by `0x007E02F0`, and at
+`0x007D8375` in `0x007D8360` from a register value that is not traced.
+`0x007E2480` divides the byte span `[manager+0x70, manager+0x74)` by 12 to get
+an entry count. One entry answers the dword at entry `+0x04`. Two entries
+answer that dword when the fraction returned by `0x007E2330` is below the f32
+0.5 at `0x00F62F60` and the dword at entry `+0x10` otherwise. Any other count
+answers -1. So the A5 test of `0x007D0900` compares the key of the current
+weather resource entry, not a client-side weather name.
+
 ## Reproduction
 
 ```text
@@ -180,6 +216,10 @@ ghidra disasm 0x006B6F40 -n 10
 ghidra disasm 0x007D1180 -n 20
 ghidra disasm 0x007D4130 -n 120
 ghidra disasm 0x007D8840 -n 120
+ghidra disasm 0x007D85D0 -n 120
+ghidra disasm 0x007E2480 -n 80
+ghidra disasm 0x00662440 -n 14
+ghidra x-ref to 0x012C5EC0
 ghidra x-ref to 0x007D0D70
 ghidra x-ref to 0x007D11E0
 ghidra x-ref to 0x0065EFE0
@@ -196,6 +236,7 @@ record, and tally the words by mask.
 
 - What handle slot `+0x40` does with A9, and the unit of the update argument.
 - The writer of V`+0x37E` and the resource property behind it.
-- The object whose string becomes the ground name, and which names hold `_00`.
+- The surface entry name field that `0x00C1F430` reads, and which names hold `_00`.
+- The actor handlers of messages `0x5B`, `0x5D` and `0x5E` and the use of ground `+0x74`.
 - The second probe `0x007D5D50` and the masks of both probes.
 - The gate `0x0065B1A0` and the path for kinds 0 and `0x12`.

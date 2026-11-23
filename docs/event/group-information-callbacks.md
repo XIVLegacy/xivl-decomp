@@ -44,9 +44,10 @@ loop caller `0x006C3720` takes the index from `0x006C3320`.
 ## Boundary
 
 The guards in `0x006C33F0` and `0x006C0080` that select between the
-information and member routines are not decoded here. The receiver and numeric
-argument of `_onUpdateGroupCurrent` are untraced, and which packet reaches
-`0x006C2200` is not established by this page.
+information and member routines are not decoded here. The walk of `0x006C2200` and the
+identity that receives `_onUpdateGroupCurrent` are in
+[group-work-request-and-current-consumer.md](../net/group-work-request-and-current-consumer.md).
+Which packet reaches `0x006C2200` is not established by this page.
 
 ## Reproduction
 

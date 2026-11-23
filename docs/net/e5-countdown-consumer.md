@@ -69,5 +69,6 @@ through the PE section table and expect `@%d` followed by a zero byte.
 
 ## Boundary
 
-The two gate predicates, the object built at `ESI+0x14`, the widget that
-displays the countdown and the time unit are open.
+The two gate predicates and the object built at `ESI+0x14` are open. The
+per-frame update, the time unit and the popup form are in
+[countdown-popup-update.md](countdown-popup-update.md).
