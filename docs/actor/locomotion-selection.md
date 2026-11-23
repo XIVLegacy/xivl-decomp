@@ -1064,13 +1064,55 @@ toward zero and packs the integer into bits 18 to 29 of a local word
 evidence of a rate.
 
 The integer arguments 3 to 5 of `0x007B9030` pack into an 8-bit field at bits
-20 to 27 and two 10-bit fields at bits 10 to 19 and 0 to 9 of that word. The
-roles of the three fields were not traced. Three byte arguments set bits 28, 29
-and 31. The callers pass bit 28 set when the new state is 1, 12 or 21 (INFERRED
+20 to 27 and two 10-bit fields at bits 10 to 19 and 0 to 9 of that word
+(`0x007B92BB..0x007B92FD`). The fields at bits 10 to 19 and 0 to 9 are the
+blend count and the phase, see
+[Blend count and phase fields](#blend-count-and-phase-fields). The role of the
+8-bit field was not traced. Three byte arguments set bits 28, 29 and 31. The callers pass bit 28 set when the new state is 1, 12 or 21 (INFERRED
 loop states) and bit 29 set when both the previous and new states are 12 or 21
 (INFERRED shared loop phase). With bit 28 set the function takes the other
-branch (`param_1[0x1C] = 0` instead of `0x007C2DF0`). Blend units were not
-traced.
+branch (`param_1[0x1C] = 0` instead of `0x007C2DF0`). The blend unit is read
+in the next section.
+
+## Blend count and phase fields
+
+The consumer `0x007B7700` reads the packed word back. STATIC.
+
+- Bits 10 to 19 are read into a local, converted to a float and stored in the
+  layer record it queues. Bits 20 to 27 are read into a second local and
+  stored as the low byte of the record's flag word. Both locals are also
+  passed to `0x00851E00` when the request names a resource at argument
+  offset `+0x28`.
+- When the owner already has a playing scheduler (`[this+0x14]` nonzero and
+  the float at `+0x70` of the object `0x007C5600` returns above zero) and the
+  count is below 1, the function replaces the count with 10 and zeroes the
+  8-bit field.
+- Bits 0 to 9 are multiplied by 300000 and divided by 30 (`0x1E`) before they
+  are passed to the clip object's virtual at `+0x0C`, with a nonzero flag when
+  the field is nonzero. This is the carried phase argument of the transition
+  callback. The unit of the count was not traced, so reading it as 30 Hz
+  frames is INFERRED from that neighbouring constant.
+
+Literal counts, read from the pushes before each call:
+
+| Caller | Count |
+| --- | --- |
+| Walk handler `0x008B3600`, call sites `0x008B379A` and `0x008B37EF` | 10 |
+| Run handler `0x008B46D0`, call sites `0x008B486A` and `0x008B48BF` | 10 |
+| Stop handler `0x008B2970`, call sites `0x008B2B48`, `0x008B2BA1`, `0x008B2D1E` and `0x008B2D77` | 5 |
+| Stop handler `0x008B2970`, call site `0x008B2EFF` | 15 |
+| End-of-clip callback `0x008ABDF0` through `0x008B2610`, whose count argument is passed on to the packed field | 10 |
+| `cbbm_dedpose` and `cbnm_dedpose` requests, call sites `0x007BB4FF`, `0x007BB552` and `0x007BB5B7` | 0 |
+
+The dedpose names are the literals at `0x00FE73E0`, `0x00FE7400` and
+`0x00FE7440`. Each of the three calls pushes 0 for integer arguments 3 to 5
+and 1 for the byte that sets bit 28, so a death pose is requested with no
+blend and no phase. The local actor 5 and other actor 15 split in the stop
+rows is the one in the Stop paragraph above.
+
+Not traced: the blend weight curve, whether the outgoing clip keeps advancing
+during the blend, and the blend carried by hit-reaction and stance schedulers,
+which keep it in their own scheduler data.
 
 ## Selection summary
 
@@ -1095,12 +1137,12 @@ traced.
 - Full posture-phase admission, actual machine activation and selection for
   other states, and the separate 03f weapon-stance producer for a PC.
 - The `H+0x100` rule that repeats the last reported moveState.
-- The role of the 100-scaled float argument of `0x007B9030`, and of the three
-  integer fields packed beside it.
+- The role of the 100-scaled float argument of `0x007B9030`, and of the 8-bit
+  field packed beside the blend count and phase.
 - The clip a start or stop state resolves to when its `cbnm` name has no entry
   in the bank (states 7 and 16, `cbnm_01f_f_rs` and `cbnm_02f_f_rs`). The retry
   `0x007B9030` makes with a `cbbm` name and the fallback of `0x007B1AA0` are the
   candidates and neither was traced against the census.
-- Blend units, the meaning of the metadata record fields, and the foot
-  parity object at `C+0x2130`.
+- The blend weight curve, the meaning of the metadata record fields, and the
+  foot parity object at `C+0x2130`.
 - No live retail session was observed.
