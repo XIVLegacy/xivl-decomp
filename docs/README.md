@@ -513,6 +513,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Desktop and CharaElement selection producers](input/chara-selection-producers.md)
 - [Keyboard movement bindings](input/keyboard-movement-bindings.md)
 - [Sqwt delivered mouse preview producer](input/sqwt-mouse-preview-producer.md)
+- [Sqwt scroll and drag events](input/sqwt-scroll-and-drag-events.md)
 - [Sqwt RaptureMouseDevice report provider](input/sqwt-rapture-mouse-device.md)
 - [Sqex mouse numeric callback and repeat state](input/sqex-mouse-numeric-callback.md)
 - [Text command parser core](input/text-command-parser.md)
@@ -567,6 +568,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Work-callback readiness gate](script/work-callback-readiness-gate.md)
 - [DesktopWidget user config reads](script/desktop-user-config-reads.md)
 - [Main menu command route](script/main-menu-command-route.md)
+- [ExpPopup raise and form](script/exp-popup-raise.md)
 - [Timed inform widgets](script/timed-inform-widgets.md)
 
 ## Type notes
