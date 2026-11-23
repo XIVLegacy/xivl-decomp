@@ -469,7 +469,9 @@ Custom arrange submits `(0,0,W,H)` to each non-null end button at
 reads `+0x1B4` and `+0x1AC` from that child. With nonzero Orientation,
 it submits `(0,a,W,H-a-b)` to the non-null Track at `+0x380`, where
 `a` and `b` are the first and second `+0x1AC` post-request scalar
-reads. Missing child contributions remain zero. It returns `(W,H)` unchanged.
+reads. With Orientation zero it instead submits `(c,0,W-c-d,H)`, where `c` and
+`d` are the first and second `+0x1B4` post-request scalar reads. Missing
+child contributions remain zero. It returns `(W,H)` unchanged.
 STATIC. There is no clamp of `H-a-b` in this body.
 
 The scalar reads are inputs to this request. Their broader semantic identity
