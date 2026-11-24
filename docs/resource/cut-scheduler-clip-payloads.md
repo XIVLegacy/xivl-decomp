@@ -284,6 +284,31 @@ writer `0x00853B50` at `0x00854873`. The slot layout and the default node name
 are in the
 [actor controller section](../actor/chara-look-at-consumers.md#actor-controller).
 
+STATIC, passes. Slot 1 of the clip, `0x00821B40`, loops a pass index from 0
+to 1 (`XOR EBX,EBX` at `0x00821C4C`, the increment and test at `0x00821F9D..0x00821FA3`). Pass 0
+runs only when `u8(D+0x15)` is nonzero and pass 1 only when `u8(D+0x16)` is
+nonzero (`0x00821C26..0x00821C3C`, `0x00821C6E..0x00821C75`). The presence
+byte `u8(D+0x14)` and the flag byte `u8(D+0x17)` are read once and passed to
+every pass. The mode is `u32(D+0x1C)`, dispatched at `0x00821C80`, with mode 1
+at `0x00821E50`, mode 0 at `0x00821EAA` and mode 2 reached by falling through
+at `0x00821C9E`. The pass index is the slot argument of the wrappers, for
+example `PUSH EBX` at `0x00821E3E` before `0x0065E7C0` in mode 2. A pass
+therefore writes slot `pass` of group 0 of the actor controller (see the
+[slot layout](../actor/chara-look-at-consumers.md#actor-controller)), the slot
+bound to `k0` for pass 0 and to `s0` for pass 1.
+
+STATIC, modes 1 and 2. Mode 2 reaches the `0x80` writer through
+`0x0065E7C0`, which returns without a write when the target's virtual `+0x268`
+is nonzero (`0x0065E7C5..0x0065E7D7`), then `0x008548E0` and `0x00853C50`
+(`0x0065E810`, `0x00854919`). When `0x00A1C050` answers true on the
+scheduler object, the clip also calls virtual `+0x48` of the object loaded at
+`0x00821BA3` with the vector before `0x0065E7C0`
+(`0x00821D1B..0x00821E0C`). The arguments of that call were not traced. Mode
+1 calls `0x00662BE0`, which calls `0x006617F0` (`0x00662C24`). That routine
+calls `0x0042FDC0`, `0x00669250`, `0x0042EDB0`, `0x0042F210` and finally the
+`0x100` wrapper `0x00854D20` (`0x0066191F`). The matrix product order and
+the angle convention of those helpers were not traced.
+
 ## ClipSyncClip
 
 ClipSyncClip slot 1 clears the byte at clip +0x38 and calls slot 12 with 1.

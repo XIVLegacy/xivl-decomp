@@ -324,6 +324,21 @@ the three indexes at the slot positions of both groups. A name the set lacks
 leaves a negative index. The constraint lookup `0x00AC93A0` compares the name
 with each constraint.
 
+STATIC. The slots are 0x40-byte records from controller `+0x10`, three per
+group, and group 1 follows group 0 at `+0xC0`. The binder loops twice over
+the pointer table `0x012D135C`, stores each lookup result in the first dword
+of the next record and advances 0x40 bytes per name
+(`0x008540E7..0x0085410D`). Slot 0 therefore takes `k0` (`0x010427EC`), slot
+1 `s0` (`0x010427E8`) and slot 2 `t0` (`0x010427E4`), in each group. The
+writer `0x00853B50` takes the group as its first and the slot as its second
+argument, skips the write when the slot is 3 or more (`0x00853B5C..0x00853B64`)
+and addresses the record at `(slot + 3 * group) * 0x40 + 0x10`
+(`0x00853B6D..0x00853B79`). `0x00854830` passes the literal group 0
+(`0x00854871`), so a caller's slot argument selects the slot of group 0.
+`0x00854D20`, the `0x100` wrapper, tests its slot argument below 3 and
+addresses `slot * 0x40 + 0x10` (`0x00854D24..0x00854D4C`), which is also
+group 0.
+
 The state machine `0x00854600` handles one slot per call and acts only when its
 second argument equals whether the state is 0. `0x00854B20` runs every slot once
 with 1, which reaches the state 0 slots, and once with 0, which reaches the

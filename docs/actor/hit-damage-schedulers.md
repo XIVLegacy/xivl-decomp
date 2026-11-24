@@ -372,6 +372,17 @@ that is true it answers that object's virtual `+0x11C(out, selector)`, else
 it copies the 64 bytes that the object's virtual `+0x64` returns
 (`0x00A5FEFC..0x00A5FF4C`).
 
+### Foot element arm
+
+STATIC. `0x008552D0(out, A, id)` answers the foot names of indexes 1 to 8.
+It calls A's virtual `+0x64(out, id)`, the node transform of the element
+(slot 25, `0x008552E4..0x008552F8`), then A's virtual `+0x88(tmp)`, the
+position (`0x008552FA..0x00855309`). It stores the float at position `+4`
+(y) into `out+0x34` (`0x0085530B..0x00855312`) and returns `out`. The
+answer is the posed element matrix with its translation y replaced by the
+height of A's position. The other 15 floats come from the node transform
+unchanged.
+
 ### Nearest damage element
 
 STATIC. `0x008553F0(out, P, Q)` returns a translation matrix through
@@ -475,12 +486,12 @@ before `0x00FF543C` and `0x00FF54FC`, from the file-backed sections.
   `0x007C262A`, any writer of the record float `+0x10` after
   `0x0080C550`, the unit of the update argument, and the
   meaning of record words `+0x78`, `+0x68` and `+0x0D`.
-- `0x007A3EE0`, the row code byte, `record+0xB` and `0x0065DE40`.
+- The row code byte, `record+0xB` and `0x0065DE40`.
 - The arms of `record+0x0D`, the scheduler pointers `0x012C4E0C` to
   `0x012C4E18`, and kinds 6, 13 and 14.
 - The writer of `this+0x94` before `0x0055FB40`, and what loads
   `0x15D90000` once it is requested.
 - Which element an effect binds to when the skeleton lacks the name, the
   model answer (virtual `+0x11C`) for an element id it does not hold, and
-  the arms `0x008552D0` and `0x00855610`.
+  the arm `0x00855610`.
 - The writer of RaptureVfxActor `+0x58` and `+0x5C`, and `0x0080AA50`.
