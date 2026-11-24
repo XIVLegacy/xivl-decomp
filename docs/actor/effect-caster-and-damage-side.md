@@ -178,6 +178,58 @@ INFERRED. Code 1 is the front, 4 the back, 2 and 8 the two flanks, from the
 pi offset of mode 1, the pi/2 offsets of modes 2 and 3, and the `_f`, `_b`,
 `_r` and `_l` suffixes of the names each code tries.
 
+### Full-body gate `0x007A3EE0`
+
+STATIC. `0x007A3EE0(S)` is the `receiver+0x590` predicate above. It switches
+on the committed state byte `S+0x5A9` through the byte table `0x007A3F48`
+and the jump table `0x007A3F30` (`0x007A3EE0..0x007A3EF3`). A state above
+`0x5C` and every state not listed below returns true
+(`0x007A3F2B`). The listed states forward to a machine predicate on a
+member of S, each of which reads the machine's current state dword at
+machine `+0x2C`:
+
+| `S+0x5A9` | Predicate | Machine at | Current state read | True for |
+| --- | --- | --- | --- | --- |
+| `0x00`, `0x46` | `0x008AA020` | `S+0x04` | `S+0x30` | 0 and 1 |
+| `0x02`, `0x51` | `0x008A8C50` | `S+0x64` | `S+0x90` | 0 to 7, `0x1D`, `0x1E` |
+| `0x0F` | `0x008AA610` | `S+0x1D0` | `S+0x1FC` | 0, 1, `0x18`, `0x19` |
+| `0x5B` | `0x008A9560` | `S+0x230` | `S+0x25C` | 0 to 7, `0x1D`, `0x1E` |
+| `0x5C` | `0x008AACC0` | `S+0x28C` | `S+0x2B8` | 0, 1, `0x18`, `0x19` |
+
+The true sets come from the byte tables `0x008A8C74`, `0x008AA634`,
+`0x008A9584` and `0x008AACE4` read through their jump tables, and each
+predicate returns false above its table range (above `0x1E` for `0x008A8C50`
+and `0x008A9560`, above `0x19` for `0x008AA610` and `0x008AACC0`). The machines at `S+0x04` and `S+0x64` are the
+field and battle locomotion machines installed for states `0x00`/`0x46` and
+`0x02`/`0x51` in
+[locomotion selection](locomotion-selection.md#posture-inputs-and-selected-machine).
+INFERRED: the dwords at `S+0x30`
+and `S+0x90` are the state numbers of the
+[state machine](locomotion-selection.md#state-machine) (idle 0 and 1, turns
+2 to 5, walk starts 6 and 7 among the first eight), so a walk or run loop and
+a stop are outside the field machine's true set. The battle machine's state
+numbering was not traced.
+
+### Installed additive damage names
+
+MEASURED. A byte search of every file below `client/chara` for the strings
+`cbba_add_dmg` and `cbna_add_dmg` finds the following. The strings are
+names inside bank files, which does not by itself show a clip body.
+
+| Directory | Names found |
+| --- | --- |
+| `pc/c001` to `pc/c009` | Each holds `cbba_add_dmg_f` 55 times and `cbna_add_dmg_f` 5 times, in 12 bank files |
+| `pc/c022`, `pc/c023` | `cbba_add_dmg_f` 5 times and `cbna_add_dmg_f` 5 times |
+| `pc/c021` | `cbna_add_dmg_f` 10 times |
+| `pc/c010`, `pc/c024`, `pc/c025` | None |
+| `mon` | `cbba_add_dmg_f` 405 times, `cbna_add_dmg_f` 60 times, and `cbba_add_dmgh_f`, `_b`, `_l`, `_r` 65 times each |
+
+No `pc` bank holds `add_dmg_b`, `add_dmg_l` or `add_dmg_r`. A code 2, 4 or 8
+hit on a `pc` model therefore reaches its `add_dmg_f` fallback from the
+name list above, if the bank resolves that name. Reproduce with
+`grep -rlaE "cb[bn]a_add_dmg" client/chara/pc/c001` and the same search with
+`-o -h` piped to `sort | uniq -c` on each directory.
+
 ## Installed `dead` schedulers
 
 MEASURED. No file below `client/chara/pc/c001/act` (995 files) holds a
