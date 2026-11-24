@@ -105,7 +105,34 @@ Disassemble `0x00797FE0` and match the locators. Read the UTF-16 strings at
 installed files with the Blowfish key equal to the file name over the bytes
 after the first 16 and match the form and template attributes above.
 
+## Widget creation and control binding
+
+The consumer `0x00797C80` creates the widget on first use. STATIC.
+
+- `0x00797CEE..0x00797D2D` allocates `0x48` bytes through `0x009D1B35`,
+  constructs them with `0x0096E4D0`, stores the result at `+0x14` and
+  registers it through `0x0096B3C0` against the dword at `[0x0134D3C8] + 4`.
+  The static at `0x0134D3C8` is zero in the file image and is set at run time.
+- The widget's field `+0x2C` goes to `+0x18` (`0x00797D42..0x00797D4A`). The
+  rect `(0, 0, [0x01356E10] + 0x1B4, [0x01356E10] + 0x1AC)` is applied through
+  `0x0092EBD0` at `0x00797DBF`.
+- On the creation path only, the widget is attached through `0x0054AF00` at the
+  element named by the ASCII string `EID_NAME` at `0x00FE2F6C`, with an offset
+  vector of zero and w `1.0` from `0x00F54F70` (`0x00797DDA..0x00797E7F`). The
+  form's own `StringData.Value0` is `EID_BODY_DYN`.
+- Every call then resolves the control named by the UTF-16 string
+  `TextBlock_Text` at `0x00FE2F78` through `0x006A4270` on the widget and stores
+  it at `+0x1C` (`0x00797EA8..0x00797ED2`). When it exists the control text is
+  set to an empty string through `0x009556A0` (`0x00797EE2..0x00797F12`). The
+  literal is `0x00FE2DC6`, whose first two bytes are zero.
+- The literal pushed at `0x00798210` by the update is `0x00FE2DC7`, whose first
+  byte is zero, so the text written when `remaining` is negative is the empty
+  string. This closes the open literal in the update section above.
+
+Reproduce with `ghidra disasm 0x00797C80` and a PE section read of 48 bytes at
+`0x00FE2F6C`, 16 bytes at `0x00FE2F78` and 8 bytes at `0x00FE2DC6`.
+
 ## Boundary
 
-The consumer's entry gates, the literal pushed at `0x00798210`, what
-`0x0054AF00` attaches and which owner hosts the form natively are open.
+The consumer's entry gates `0x0091A1B0` and `0x00919D30`, what `0x0054AF00`
+resolves `EID_NAME` to and which owner hosts the form natively are open.
