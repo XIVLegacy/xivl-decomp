@@ -83,10 +83,13 @@ The descriptors of `DragDrop.Id`, `DragDrop.SourceCategory` and
 the `SkinDroppable` condition is declared without a skin in the style
 resources.
 
+The move, release and argument object that raise these events are in the
+[drag and drop pipeline](sqwt-drag-drop-pipeline.md).
+
 ## Open
 
 - The scroll action behind each event byte of `0x009701C0` and its producer.
 - The consumer of `DragDelta`, `DragCompleted` and `UICommands.Dropped`.
-- Whether `DragEnter`, `DragLeave` and `DragOver` have any subscriber in the
-  shipped forms.
+- Whether `DragEnter` and `DragLeave` have any subscriber in the shipped
+  forms. No code raises `DragOver`.
 - No live retail session was observed.
