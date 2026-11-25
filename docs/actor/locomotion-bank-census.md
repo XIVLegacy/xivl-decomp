@@ -282,6 +282,14 @@ c006 matches c005 on the idle and gait lengths and differs in key counts. c021
 to c025 carry fewer clips: c021, c024 and c025 hold one MTB (`cbnm_id0`) in their
 `emp_emp/bid/base/0000` file, and c022 and c023 hold seven.
 
+MEASURED. The 76 monster banks that match `mon/*/act/emp_emp/bid/base/0000` were
+searched for `cbbm` and `cbnm` entries with the walk and run stop forms
+`_f_ls`, `_f_rs`, `_stp_ls` and `_stp_rs` after a two digit gait number and
+`f`. Two banks hold such names. m039 holds `cbbm_01f_f_ls`, `cbbm_02f_f_ls`,
+`cbbm_01f_stp_ls` and `cbbm_02f_stp_ls`. m516 holds the `cbnm` names of the same
+four. Each has `mcc`, `miga` and `cibt` entries. This does not show that the
+client requests them.
+
 ## What the gait clips encode
 
 The scalar translation channels of kinds 4 to 6 on the loop clips are bounded.

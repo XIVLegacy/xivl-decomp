@@ -483,6 +483,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Qix effect runtime](resource/vfx-effect-runtime.md)
 - [Qix DrawResource, model shaders and render state](resource/vfx-drawresource-and-shaders.md)
 - [VFX MatrixRoot mode-zero calculation](resource/vfx-root-matrix-mode-zero.md)
+- [VFX matrix modes 1 and 3](resource/vfx-matrix-camera-modes.md)
 - [Legacy VFX model geometry](resource/vfx-legacy-model-geometry.md)
 - [Modern VFX model geometry](resource/vfx-modern-model-geometry.md)
 - [VFX model material values and texture requests](resource/vfx-model-material-values.md)
