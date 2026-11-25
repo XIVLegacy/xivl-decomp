@@ -306,8 +306,38 @@ scheduler object, the clip also calls virtual `+0x48` of the object loaded at
 (`0x00821D1B..0x00821E0C`). The arguments of that call were not traced. Mode
 1 calls `0x00662BE0`, which calls `0x006617F0` (`0x00662C24`). That routine
 calls `0x0042FDC0`, `0x00669250`, `0x0042EDB0`, `0x0042F210` and finally the
-`0x100` wrapper `0x00854D20` (`0x0066191F`). The matrix product order and
-the angle convention of those helpers were not traced.
+`0x100` wrapper `0x00854D20` (`0x0066191F`).
+
+### Mode 1 angle vector
+
+STATIC. At `0x00821E50..0x00821EA0` the clip multiplies `f32(D+0x20)` and
+`f32(D+0x24)` by pi over 180 and passes them with the `f32(D+0x18)` weight to
+`0x00662BE0`. Call the converted values `a` from `+0x20` and `b` from `+0x24`.
+`0x00662BE0` hands both to `0x006617F0` when the actor's virtual `+0x268`
+returns 0 (`0x00662BE9..0x00662C24`).
+
+STATIC. `0x009D6280` computes a cosine (`FCOS` in its fallback at
+`0x009D62D8`) and `0x009D63B0` a sine (`FSIN` at `0x009D6408`). Number the 16
+floats of a matrix `f0` to `f15`. `0x0042FDC0(out, b)` writes `f0 = cos b`,
+`f2 = -sin b`, `f5 = 1`, `f8 = sin b`, `f10 = cos b` and `f15 = 1`.
+`0x00669250(out, a)` writes `f0 = 1`, `f5 = cos a`, `f6 = sin a`,
+`f9 = -sin a`, `f10 = cos a` and `f15 = 1`. All other elements are 0.
+`0x0042EDB0` has the `b` matrix as `this` and the `a` matrix as its second
+argument. Through `0x0042EC50` each four-float group of its result is the sum
+of the four groups of `this` scaled by the lanes of the matching group of the
+argument. `0x0042F210` applies that result to the point `(0, 0, 1, 1)` set up
+at `0x006617F6..0x00661826`, with each four-float group as a column.
+
+INFERRED. With column vectors the product is the Y rotation by `b` times the X
+rotation by `a`, and the vector is
+`(sin b * cos a, -sin a, cos b * cos a)`. `+0x20` is therefore a pitch whose
+positive value points down and `+0x24` a yaw. `0x00854D20` receives the
+vector, and the writer `0x00853D30` stores it at slot `+0x30` with a zero
+fourth lane, setter flag `0x100`, the node name `EID_LOOK_AT` at `+0x20`, the
+target `0xC0000000` and the weight at `+0x18`. The
+[resolver branch](../actor/chara-look-at-consumers.md#actor-controller) turns
+it into a goal. The other caller of `0x006617F0`, the record `0x0E` case at
+`0x00663569`, was not read for its argument order.
 
 ## ClipSyncClip
 

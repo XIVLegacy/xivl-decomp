@@ -11,6 +11,7 @@ Each finding records its evidence and the limits of what it establishes.
 ## Actors and gameplay presentation
 
 - [Actor action queue](actor/action-queue.md)
+- [Cast selectors and cast schedulers](actor/cast-selector-schedulers.md)
 - [Integer-to-float setter candidate](actor/integer-float-setter.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md) -
   category dispatch and the automatic bow-shot binding boundary.

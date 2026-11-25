@@ -360,12 +360,27 @@ The target resolver `0x00853720` returns a world position. With flag `0x200` it
 looks the target identity up in the registry reached through actor `+0x118`,
 asks the target for the node of the slot name and reads the translation of the
 node matrix. When the target has no such node it uses the target position. It
-adds the vector at `+0x30`. With flag `0x80` the vector is used as a position. With
-flag `0x100` the vector holds two angles and the position follows from them
-and the node `EID_LOOK_AT1` of the own actor. With flag `0x400`, which
-`0x008549E0` sets for a caller in `0x00664460`, the position follows the own
-actor. The angle and `0x400` branches were read less closely than the other
-two.
+adds the vector at `+0x30`. In that branch, a nonzero answer of `0x0065D080`
+(`0x0085388D`) leads to a further use of the node name `EID_LOOK_AT1`
+(`0x0085389F`), which was not traced. With flag `0x80` the vector is used as a
+position. With flag `0x100` the vector is a direction in the axes of the own
+model, described below. With flag `0x400`, which `0x008549E0` sets for a
+caller in `0x00664460`, the position follows the own actor. The `0x400` branch
+was read less closely than the others.
+
+STATIC, flag `0x100` branch. The flag byte test at `0x008539A8` sends a slot
+with none of `0x400`, `0x200` and `0x80` to `0x008539E3`. The routine asks the object
+at controller `+0x200` for the node `EID_LOOK_AT` (`0x010427C8`) through
+virtual `+0x54` and reads the translation row at `+0x30` of the matrix from
+virtual `+0x60` (`0x008539E3..0x00853A3E`). A negative node index selects
+`(0, 1.5, 1.0)` instead, from the floats at `0x00FA2CB4` and `0x00F54F70`. It
+adds the stored vector to that point (`0x00853A49..0x00853A5B`), rotates the
+sum through `0x0042FDC0` by the float at `+4` of the result of the same
+object's virtual `+0x94`, and adds the result of its virtual `+0x88`
+(`0x00853A9A..0x00853B1C`). INFERRED: virtual `+0x94` returns the actor
+rotation and `+0x88` the actor position, so the goal is fixed in the looker's
+own axes before world placement. The builder of the stored vector is on the
+[look-at clip section](../resource/cut-scheduler-clip-payloads.md#mode-1-angle-vector).
 
 ## IK constraints
 

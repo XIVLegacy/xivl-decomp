@@ -166,8 +166,9 @@ table through `FUN_007982D0` and reach visual virtual slots `+0x54` and
 `+0x58`. The concrete table resolves these to `FUN_00798BF0` and
 `FUN_00799C90`, whose selected routes are documented in the
 [bank-routing finding](animation-bank-routing.md). Other values at or above
-`0x6F` first use visual virtual `+0x60` at `0x00798564..0x0079857A`;
-that route is outside the selected bank trace. None of these calls alone
+`0x6F` first use visual virtual `+0x60` at `0x00798564..0x0079857A`.
+That route is outside the selected bank trace and is recorded on the
+[cast selector page](cast-selector-schedulers.md). None of these calls alone
 proves resource compatibility or animation completion.
 
 ## Boundary with wire and VFX systems

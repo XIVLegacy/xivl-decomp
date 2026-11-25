@@ -336,6 +336,18 @@ Each name goes to `0x0065BD70(name, 9)` on the object at `+0xE4`, with
 (`0x01043344`) skips the first lookup. `EID_CRAFT_MAT` (`0x01043350`) takes
 its second argument from `0x0065AE60` in place of 9.
 
+STATIC. `0x007CCF10` jumps to `0x00A5F960`, which tail calls virtual `+0x10C`
+of the object at its `this` `+0x0C` with the name. RaptureModelObject vtable
+`0x010653A4` holds `0x008DE8D0` in that slot. It returns -1 when `+0xD8` is
+null and otherwise jumps to the drawable name lookup `0x008DD880`, whose
+provider, skeleton and `CDevDefault` order is on the
+[nameplate attachment page](nameplate-layout-and-attachment.md#eid_name-model-record-and-world-position).
+The matrix side `0x00A5FEF0` calls virtual `+0x11C` of the same member when
+its virtual `+0x14` returns nonzero. In that vtable the slot is `0x008DEE90`,
+which calls the drawable index getter `0x006693C0`. INFERRED: when the
+fallback object is a RaptureModelObject, a name that the helper lookup misses
+can resolve to a model joint. The run-time class at `+0x0C` was not proved.
+
 ## Element query and facing elements
 
 STATIC. CharaActor slot 93 is `0x0065D4D0` (vtable cell `0x00FC0EA8`). It

@@ -112,6 +112,37 @@ INFERRED. The caster motion of these effects lives in `ws_main`, one
 RaptureCasterManagedSchClip below the `main` that `0x00844330` finds, and its
 motion names resolve in the character bank of the weapon set.
 
+## m023 weaponskill banks
+
+MEASURED. These are
+`client/chara/mon/m023/act/emp_emp/wss/base/<NNNN>`. Each of `0001` to `0005`
+holds `vfx\system\shoot_mon\main` and its own `mon_main`. Each `main` starts
+RaptureCasterManagedSchClip `sht00` at frame 0 and `mon_main` at frame 10, and
+holds no MotionClip. None of the five banks holds a scheduler named `sht00`.
+
+| Bank | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `0001` | 264528 | `f418fe9f0fc8f848b60935ed88552705f05318e50e285fe2e567f18ba6b0da76` |
+| `0002` | 235088 | `3c2d7091f860b6ae43e27e7c9426bd417d34470f6bbdb54fece35520829a802a` |
+| `0003` | 253296 | `67c6edeb2607f6c16e02e5bd0c02e6ea7524ddc2bd52a432fca842bd9e27709f` |
+| `0004` | 195488 | `8c65150d10a9dbddcf8f34972aed7ee617edfa6cb2feffa3f1ff761e6819b877` |
+| `0005` | 355696 | `5f72eacf48b33fa20ac305d855ab54c38c4fcd4eac1c93b5c1b71e2fd52abfeb` |
+
+Frames in this table are on the `mon_main` clock. The motion strings are those
+inside each `mon_main` span.
+
+| Bank | Motion names | MotionClip end frames | Damage route |
+| --- | --- | --- | --- |
+| `0001` | `cbbm_throw` | 60 | RaptureCasterSchClip `m023_0001` at 30 |
+| `0002`, `0003` | `cbbm_abl_3` | 60 | RaptureActionSelectDamageMccClip at 40 |
+| `0004`, `0005` | `cbbm_sp_a01_1`, `cbbm_sp_a01_2` | 55 and 90, the second starting at 55 | RaptureCasterSchClip `m023_0004` or `m023_0005` at 27 |
+
+The `m023_0001`, `m023_0004` and `m023_0005` schedulers are in their own banks
+and each holds a RaptureActionSelectDamageMccClip at frame 0. INFERRED: with
+each child starting on its parent clip's frame, the damage select of banks
+`0004` and `0005` falls 37 frames after `main` starts. The run-time start of
+each child and the bank that answers `main` were not observed.
+
 ## Damage side `0x007BF8C0`
 
 STATIC. `0x007BF8C0(record, flag, mode)` has one caller, `0x0065E50E` in
