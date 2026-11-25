@@ -193,8 +193,10 @@ state: 1 calls `0x007A0D80`, 2 calls `0x007A9520` and 3 calls `0x007A0E40`.
 STATIC. The reaction helper `0x007BA0E0` receives each of the
 [damage motion names](../actor/effect-caster-and-damage-side.md#damage-motion-names-0x007bbdd0).
 It builds a default request with `0x006690D0` at `0x007BA155` and calls
-`0x007B9920` at `0x007BA162`. Under the submission path above, an accepted hit
-reaction therefore reaches these CIBT lookups.
+`0x007B9920` at `0x007BA162`. An accepted hit reaction therefore passes the
+request byte `+0x0F` test. It reaches these CIBT lookups only when
+`0x0065A580` returns zero and the CIBT query stored a nonzero pointer at
+`+0x40`.
 
 ## Blend curve table
 

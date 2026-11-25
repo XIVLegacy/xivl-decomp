@@ -1096,10 +1096,11 @@ The consumer `0x007B7700` reads the packed word back. STATIC.
   [CIBT override](#cibt-override).
 - The running blend test passes when the motion stack is not empty
   (`[this+0x14]` nonzero) and the float at `+0x70` of its back item, which
-  `0x007C5600` returns, is above zero. The function then sets a local flag to 1
-  (`0x007B79B2`). It replaces the count with 10 only when the count is below 1:
-  `JG 0x007B79C1` at `0x007B79B7` skips only the count store at `0x007B79B9`.
-  The write at `0x007B79C1` zeroes the 8-bit curve field on both paths.
+  `0x007C5600` returns, is above zero. The function then sets the flag byte that
+  the CIBT lookup writes to 1 (`0x007B79B2`), whatever the record held. It
+  replaces the count with 10 only when the count is below 1: `JG 0x007B79C1` at
+  `0x007B79B7` skips only the count store at `0x007B79B9`. The write at
+  `0x007B79C1` zeroes the 8-bit curve field on both paths.
 - Bits 0 to 9 are multiplied by 300000 and divided by 30 (`0x1E`) before they
   are passed to the clip object's virtual at `+0x0C`, with a nonzero flag when
   the field is nonzero. This is the carried phase argument of the transition
@@ -1138,6 +1139,9 @@ own the record layout, the name match and the installed values. The running
 blend test above follows the override.
 
 ### Blend state and weight
+
+In this section and the next, the flag is that byte. It is nonzero when the
+CIBT record set it or when the running blend test passed.
 
 STATIC. The motion stack starts at owner `+0x04` and holds its item count at
 `+0x14`. While request bit 30 is clear, a count of 0, or a previous name equal
@@ -1187,16 +1191,19 @@ command 2, after a registration call when the stored value is 0. An argument of
 command setter `0x00A1B7D0` writes the scheduler dword at `+0x88`.
 `0x00A1D1F0` dispatches it through the table at `0x00A1D308`: command 2 leaves
 state 2 at `+0x8C` and command 3 moves state 2 to state 3. The step
-`0x00A1F3C0` advances a scheduler in state 2. It also advances one in state 3
-when bit `0x80` of byte `+0x90` is set and its virtual `+0x38` returns 1,
-subject to the further test through `0x00A03510` at `0x00A1F43A`.
+`0x00A1F3C0` first requires a nonzero dword at `+0x50`. When virtual `+0x38`
+returns 1, a nonzero object at `+0xB8` for which `0x00A03510` returns 1 blocks
+any advance (`0x00A1F42C..0x00A1F441`). Otherwise the step advances a scheduler
+in state 2. It advances one in state 3 only when virtual `+0x38` returned 1 and
+bit `0x80` of byte `+0x90` is set.
 
 INFERRED. The five motion objects of a layer item are of this class. Their
 slot `+0x30` arguments match it, but the
 [object conversion](../resource/motion-resource-request.md#immediate-submission-and-motion-object-boundary)
-that creates them is not bound to the vftable. On that reading a flag of 0
-stops the outgoing motion where it is, and a nonzero flag leaves it advancing
-through the blend. Holding the reached pose is also INFERRED. The setting of
+that creates them is not bound to the vftable. On that reading a flag of 0,
+which means neither the CIBT record nor the running blend test set it, stops the
+outgoing motion where it is. A nonzero flag leaves it advancing through the
+blend. Holding the reached pose is also INFERRED. The setting of
 the bit `0x80` case was not traced.
 
 The [named motion path](../resource/motion-resource-request.md#named-motion-blend-path)
