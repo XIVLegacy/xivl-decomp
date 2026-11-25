@@ -1,7 +1,9 @@
 # VFX matrix modes 1 and 3
 
-The [matrix switch](vfx-root-matrix-mode-zero.md#module-work-and-argument-joins)
-has two arms that replace the provider rotation with a camera orientation. Mode
+This page describes two arms of the
+[matrix switch](vfx-root-matrix-mode-zero.md#module-work-and-argument-joins),
+modes 1 and 3, that replace the provider rotation with a camera orientation.
+Other arms also call the shared placement and are not described here. Mode
 1 uses the inverse of the switch's matrix operand. Mode 3 also turns that
 matrix toward the eye from the placed position. Reading the operand as the view
 matrix is INFERRED. No runtime or rendered result follows.
@@ -24,20 +26,26 @@ and 3 to `0x00BA8447`, `0x00BA8482` and `0x00BA858A`.
 
 Both arms below pass these structure dwords on. The names follow the mode 0
 page: B in dword 1, scale operand S in dword 3, angle operand A in dword 4 and
-vector V in dword 5. Dword 2 is a matrix operand W. Each caller stores in
+vector V in dword 5. Dword 2 is a matrix operand W. `0x00BA9D30` stores in
 dword 2 the pointer returned by virtual `+0x0C` of the object that
-`0x00E39FA0` returns. The
+`0x00E39FA0` returns, at `0x00BAA204..0x00BAA218`. `0x00BAA950` instead
+forwards the dword at `+0x0C` of its own input structure. Its three direct
+callers fill that input dword from the same virtual call. The
 [camera matrix selection](limsa-rain-presentation.md#camera-matrix-selection)
 describes that selector and two example getters.
 
-- `0x00BA69C0`, the MatrixRoot helper, makes the call at
-  `0x00BA6A15..0x00BA6A24`.
+- `0x00BA69C0`, the MatrixRoot helper, makes the virtual call at
+  `0x00BA6A15..0x00BA6A24` and calls `0x00BAA950` at `0x00BA6A91`.
 - `0x00BA6B60`, reached from the MatrixLink method `0x00BA6D80`, reads
-  parameter bytes `+0` and `+1` and calls `0x00BAA950` at `0x00BA6BC6`.
+  parameter bytes `+0` and `+1`, obtains the pointer at
+  `0x00BA6BA0..0x00BA6BBA` and calls `0x00BAA950` at `0x00BA6BC6`.
+- `0x00BA7780`, MatrixSolo slot `+0xB0`, makes the virtual call at
+  `0x00BA77D1..0x00BA77E0` and calls `0x00BAA950` at `0x00BA77F7`.
 - `0x00BA7030`, reached from the MatrixLinkEx method `0x00BA7220`, reads the
-  same two bytes and calls `0x00BA9D30` at `0x00BA7070`.
+  same two bytes and calls `0x00BA9D30` at `0x00BA7070`. That path obtains the
+  matrix pointer inside `0x00BA9D30`.
 
-The method addresses match the module rows in
+The method and slot addresses match the module rows in
 [vfx_effect_runtime.json](../../config/vfx_effect_runtime.json).
 
 `0x00BA9D30` stores the pointer returned by `0x00E3ACF0` in dword 1. That is
@@ -140,6 +148,11 @@ ghidra disasm 0x00BA8400 -n 140
 ghidra disasm 0x00BA85EA -n 115
 ghidra disasm 0x00BA7C10 -n 175
 ghidra disasm 0x00BA9D30 -n 400
+ghidra disasm 0x00BAA950 -n 100
+ghidra disasm 0x00BA69C0 -n 70
+ghidra disasm 0x00BA6B60 -n 36
+ghidra disasm 0x00BA7780 -n 45
+ghidra x-ref to 0x00E39FA0
 ghidra decompile 0x00A53B00
 ghidra decompile 0x0042F7A0
 ghidra decompile 0x0042FFA0
