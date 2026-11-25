@@ -1067,12 +1067,22 @@ The integer arguments 3 to 5 of `0x007B9030` pack into an 8-bit field at bits
 20 to 27 and two 10-bit fields at bits 10 to 19 and 0 to 9 of that word
 (`0x007B92BB..0x007B92FD`). The fields at bits 10 to 19 and 0 to 9 are the
 blend count and the phase, see
-[Blend count and phase fields](#blend-count-and-phase-fields). The role of the
-8-bit field was not traced. Three byte arguments set bits 28, 29 and 31. The callers pass bit 28 set when the new state is 1, 12 or 21 (INFERRED
+[Blend count and phase fields](#blend-count-and-phase-fields). The 8-bit field
+is the blend curve, see [Blend state and weight](#blend-state-and-weight).
+Three byte arguments set bits 28, 29 and 31, and `0x007B9030` clears bit 30
+(`0x007B9340`). The callers pass bit 28 set when the new state is 1, 12 or 21 (INFERRED
 loop states) and bit 29 set when both the previous and new states are 12 or 21
 (INFERRED shared loop phase). With bit 28 set the function takes the other
 branch (`param_1[0x1C] = 0` instead of `0x007C2DF0`). The blend unit is read
 in the next section.
+
+STATIC. The function compares the accepted name with the name at owner
+`+0x40`. When they are equal and the first dword of the metadata argument is
+zero, it submits no request and still returns 1
+(`0x007B9166..0x007B919F`). Otherwise it looks up the CIBT resource of the
+accepted name, after the `cbnm` to `cbbm` retry, through `0x00662720` with
+type `0x63696274` and stores the result at request `+0x28`
+(`0x007B91A5..0x007B91C2`). The packed word is at request `+0x48`.
 
 ## Blend count and phase fields
 
@@ -1082,11 +1092,14 @@ The consumer `0x007B7700` reads the packed word back. STATIC.
   layer record it queues. Bits 20 to 27 are read into a second local and
   stored as the low byte of the record's flag word. Both locals are also
   passed to `0x00851E00` when the request names a resource at argument
-  offset `+0x28`.
-- When the owner already has a playing scheduler (`[this+0x14]` nonzero and
-  the float at `+0x70` of the object `0x007C5600` returns above zero) and the
-  count is below 1, the function replaces the count with 10 and zeroes the
-  8-bit field.
+  offset `+0x28`. The call can replace both, see
+  [CIBT override](#cibt-override).
+- The running blend test passes when the motion stack is not empty
+  (`[this+0x14]` nonzero) and the float at `+0x70` of its back item, which
+  `0x007C5600` returns, is above zero. The function then sets a local flag to 1
+  (`0x007B79B2`). It replaces the count with 10 only when the count is below 1:
+  `JG 0x007B79C1` at `0x007B79B7` skips only the count store at `0x007B79B9`.
+  The write at `0x007B79C1` zeroes the 8-bit curve field on both paths.
 - Bits 0 to 9 are multiplied by 300000 and divided by 30 (`0x1E`) before they
   are passed to the clip object's virtual at `+0x0C`, with a nonzero flag when
   the field is nonzero. This is the carried phase argument of the transition
@@ -1110,9 +1123,84 @@ and 1 for the byte that sets bit 28, so a death pose is requested with no
 blend and no phase. The local actor 5 and other actor 15 split in the stop
 rows is the one in the Stop paragraph above.
 
-Not traced: the blend weight curve, whether the outgoing clip keeps advancing
-during the blend, and the blend carried by hit-reaction and stance schedulers,
-which keep it in their own scheduler data.
+These literals are the packed defaults. A matching CIBT record replaces them.
+
+### CIBT override
+
+STATIC. When request `+0x28` is nonzero, the call at `0x007B7978` passes the
+previous motion name to `0x00851E00` with pointers to the curve, the count and
+the flag. The previous name is the owner's own current name at `+0x40`, which
+`0x007B7784` copies to `+0x50` before the new name is stored. A matching CIBT
+record replaces the curve, the count and the flag. With no match the packed
+curve and count remain and the flag stays 0. The
+[CIBT blend records](../resource/motion-resource-request.md#cibt-blend-records)
+own the record layout, the name match and the installed values. The running
+blend test above follows the override.
+
+### Blend state and weight
+
+STATIC. The motion stack starts at owner `+0x04` and holds its item count at
+`+0x14`. While request bit 30 is clear, a count of 0, or a previous name equal
+to the new name, takes the clear path (`0x007B79E5..0x007B7BA2`). It copies
+each item to the container at owner `+0x1C`, stores the float at `0x00FB7DEC`
+(0.01) at `+0x40` of the copy and empties the stack through `0x007C5AB0`.
+Otherwise the stack is kept.
+
+On an empty stack the new motion objects get weight 1 (`0x007B81CE`) and the
+item is pushed. On a stack that still holds an item, the new item stores 0 at
+`+0x6C` (elapsed), the count as a float at `+0x70` and the curve in the low
+byte of `+0x74`. Its motion objects get virtual `+0x30` with 1 and then
+virtual `+0x88` with the weight 0.0 at `0x00FA4460`
+(`0x007B7D08..0x007B7D53`).
+
+- With request bit 29 clear and the flag 0, each nonnull one of the five motion
+  objects of the old back item gets virtual `+0x30` with 2
+  (`0x007B7F89..0x007B7FAD`).
+- With request bit 29 clear and the flag set, there is no such call. A count
+  below 5.0 (`0x00FA7B20`) becomes 5.0 and the curve becomes 0
+  (`0x007B7F5A..0x007B7F7E`).
+- With request bit 29 set, neither the call nor the floor applies. The branch
+  at `0x007B7D76..0x007B7F53` derives the start time of the new objects from
+  the old back item. It also seeds a second ramp in the old item at `+0x58` to
+  `+0x68` and `+0x75`, with length 5.0. Reading the branch as a matched loop
+  phase with ramped playback rates is INFERRED.
+
+STATIC. The update at `0x007B34B0` visits each item whose `+0x70` is above 0.
+While `+0x6C` is below `+0x70`, the weight is the entry of the
+[curve table](../resource/motion-resource-request.md#blend-curve-table) that
+byte `+0x74` selects, called with `+0x6C` and `+0x70`. Each nonnull motion
+object receives it through virtual `+0x88`. Then `+0x6C` advances by the float
+at owner `+0x34` times the call argument (`0x007B37C9..0x007B37F5`). Once
+`+0x6C` reaches `+0x70`, both are zeroed and the weight is 1. The same pass
+steps the second ramp through the same table. With two or more items and a
+finished blend on the back item, `0x007B3AF9` onward retires older items to the
+container at owner `+0x1C`.
+
+### Motion object state
+
+STATIC. The slot at `+0x30` of the vftable `0x0109D4BC`, RTTI
+`SQEX::CDev::Engine::Fw::SceneObject::Controllers::MccObject`, holds
+`0x00A70CA0` (cell `0x0109D4EC`). It stores the argument at object `+0x10` and
+does nothing when the value is unchanged. An argument of 1 sends scheduler
+command 2, after a registration call when the stored value is 0. An argument of
+2 sends command 3 only. An argument of 3 unregisters and sends command 4. The
+command setter `0x00A1B7D0` writes the scheduler dword at `+0x88`.
+`0x00A1D1F0` dispatches it through the table at `0x00A1D308`: command 2 leaves
+state 2 at `+0x8C` and command 3 moves state 2 to state 3. The step
+`0x00A1F3C0` advances a scheduler in state 2. It also advances one in state 3
+when bit `0x80` of byte `+0x90` is set and its virtual `+0x38` returns 1,
+subject to the further test through `0x00A03510` at `0x00A1F43A`.
+
+INFERRED. The five motion objects of a layer item are of this class. Their
+slot `+0x30` arguments match it, but the
+[object conversion](../resource/motion-resource-request.md#immediate-submission-and-motion-object-boundary)
+that creates them is not bound to the vftable. On that reading a flag of 0
+stops the outgoing motion where it is, and a nonzero flag leaves it advancing
+through the blend. Holding the reached pose is also INFERRED. The setting of
+the bit `0x80` case was not traced.
+
+The [named motion path](../resource/motion-resource-request.md#named-motion-blend-path)
+owns the blends of scheduler motion clips and hit reactions.
 
 ## Selection summary
 
@@ -1137,12 +1225,13 @@ which keep it in their own scheduler data.
 - Full posture-phase admission, actual machine activation and selection for
   other states, and the separate 03f weapon-stance producer for a PC.
 - The `H+0x100` rule that repeats the last reported moveState.
-- The role of the 100-scaled float argument of `0x007B9030`, and of the 8-bit
-  field packed beside the blend count and phase.
+- The role of the 100-scaled float argument of `0x007B9030`.
+- The class binding of the five layer motion objects, and what sets bit `0x80`
+  of scheduler byte `+0x90`.
 - The clip a start or stop state resolves to when its `cbnm` name has no entry
   in the bank (states 7 and 16, `cbnm_01f_f_rs` and `cbnm_02f_f_rs`). The retry
   `0x007B9030` makes with a `cbbm` name and the fallback of `0x007B1AA0` are the
   candidates and neither was traced against the census.
-- The blend weight curve, the meaning of the metadata record fields, and the
-  foot parity object at `C+0x2130`.
+- The meaning of the metadata record fields beyond the dword that forces a
+  repeated name, and the foot parity object at `C+0x2130`.
 - No live retail session was observed.
