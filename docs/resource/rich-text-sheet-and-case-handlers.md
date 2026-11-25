@@ -124,7 +124,15 @@ dword at `0x00CB3071`.
 | `0xE5` | `0x00CB322C` | `0x00CB304B` | `SETNZ` at `0x00CB3053` | first != second |
 
 The comparisons are signed. Operand kinds that differ are converted before the
-compare (`0x00CB2F3B..0x00CB2F6D`). String operands call other comparison
+compare (`0x00CB2F3B..0x00CB2F6D`). When the first operand has kind value 1,
+`0x00CB2F42..0x00CB2F56` passes its string and a second argument of 0 to
+`0x004555A0`, stores the result in the first integer slot and sets the kind to
+0. Otherwise `0x00CB2F5A..0x00CB2F6D` passes the second operand's string with
+the same 0 and stores the result in the second integer slot. Either way the
+integer table above then runs, so the string operand is compared as an integer.
+Reading kind value 1 as the string kind is INFERRED from that use. The radix
+that `0x004555A0` derives from the argument 0 was not traced. UNKNOWN. String
+operands of matching kind call other comparison
 helpers (`0x00446EC0`, `0x00446F20`, `0x00446E90`, `0x00446EF0`, `0x00445D20`,
 `0x00445DB0`). Those paths are not traced here. UNKNOWN.
 

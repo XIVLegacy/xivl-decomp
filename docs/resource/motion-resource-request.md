@@ -130,6 +130,140 @@ interval `[0x007B8ACE,0x007B8BA8)` covers the conditional five-entry loop.
 The concrete returned objects, their effects and successful playback remain
 unproved.
 
+## CIBT blend records
+
+The static readings of this section and the next two came from `ghidra` CLI
+disassembly of the executable above and raw reads of its PE image.
+
+STATIC. `0x00851D00`, called by the constructor `0x00852420`, reads a CIBT
+resource. When the resource size minus 4 is a multiple of 20, the quotient is
+the record count and the records start at offset 4. It rewrites every space in
+each 16 byte name field to NUL. Bit 7 of header byte 3 marks that rewrite as
+done.
+
+| Record offset | Width | Read as |
+| --- | ---: | --- |
+| `+0x00` | 16 | Previous motion name |
+| `+0x10` | 1 | Blend count |
+| `+0x11` | 1 | Curve index |
+| `+0x12` | 1 | Flag, used as nonzero |
+| `+0x13` | 1 | Not read by the two lookups below |
+
+`0x00851E00` takes the previous motion name and returns count, curve and flag.
+It tries the records for a case-insensitive match of that name (`0x009D244E`),
+then for the name `all` (`0x0104024C`). A match also copies the record name to
+the last output. With no match it returns zero and leaves the outputs.
+`0x00851D80` looks up the record named `out` (`0x01040248`) and returns its
+count and curve. The direct callers of `0x00851E00` are `0x007B7978` in the
+[locomotion consumer](../actor/locomotion-selection.md#cibt-override) and
+`0x007B88B4` in `0x007B8720`. The direct caller of `0x00851D80` is
+`0x007B88C7` in `0x007B8720`.
+
+## Named motion blend path
+
+STATIC. `0x007B8720` copies the name at M+`0x68` to M+`0x78` before M+`0x68`
+takes the new name (`0x007B87CE..0x007B87FA`), so M+`0x78` is the previous
+name of its lookup. The default blend-in count is the dword at actor
+`+0x134C`, read through `0x0065D250`, or 0 when the fourth byte of the new name
+is `a`. The default blend-out count is that value clamped at 0. Both default
+curves are 0. The two CIBT lookups run only when `0x0065A580` returns zero,
+request byte `+0x0F` is nonzero and request `+0x40` is nonzero
+(`0x007B886A..0x007B887D`). The default request constructor `0x006690D0` writes
+1 at `+0x0F`. The role of the `0x0065A580` test was not traced.
+
+The layer item keeps its blend-in count at byte `+0x5E` and its blend-out count
+at `+0x5F`, with their curves at `+0x61` and `+0x62`. Its state byte is
+`+0x60` and its blend elapsed float is `+0x50`. `0x007AE350` dispatches on the
+state: 1 calls `0x007A0D80`, 2 calls `0x007A9520` and 3 calls `0x007A0E40`.
+
+- `0x007A0D80` evaluates the curve at `+0x61` with the elapsed value and the
+  count `+0x5E`, sets that weight on the item's motion objects through virtual
+  `+0x88` and then adds the time step. When the elapsed value reaches the count
+  it zeroes the elapsed value and the state and sets weight 1.
+- `0x007A9520` sets 1.0 minus the curve at `+0x62` over the count `+0x5F`.
+  When the elapsed value reaches the count it calls `0x007A9470` with 1.
+- `0x007B9CA0` starts the blend out by writing state 2. It requires a positive
+  count `+0x5F`, state 0, the loop tests on bytes `+0x5C` and `+0x5D`, where a
+  negative `+0x5D` refuses, and clear item flag bits. With an end frame above 0
+  at `+0x5A` and time at or past that frame minus the count, the elapsed value
+  starts at count minus (end frame minus time). Otherwise, once time reaches
+  the motion length minus the count, it starts at count minus (length minus
+  time). The item flag tests at `0x007B9F5C..0x007BA06B` were not named.
+
+STATIC. The reaction helper `0x007BA0E0` receives each of the
+[damage motion names](../actor/effect-caster-and-damage-side.md#damage-motion-names-0x007bbdd0).
+It builds a default request with `0x006690D0` at `0x007BA155` and calls
+`0x007B9920` at `0x007BA162`. An accepted hit reaction therefore passes the
+request byte `+0x0F` test. It reaches these CIBT lookups only when
+`0x0065A580` returns zero and the CIBT query stored a nonzero pointer at
+`+0x40`.
+
+## Blend curve table
+
+STATIC. The table at `0x012C4CF4` holds ten function pointers. Each takes an
+elapsed value t and a length d. Let u be t divided by d.
+
+| Index | Function | Value |
+| ---: | --- | --- |
+| 0 | `0x007A55C0` | u |
+| 1, 2, 3 | `0x007A55E0`, `0x007A5610`, `0x007A5640` | Ease in and out through `0x007A5510` with K 2, 3, 5 |
+| 4, 5, 6 | `0x007A5670`, `0x007A56B0`, `0x007A56F0` | 1 - (1 - u)^K with K 2, 3, 6 |
+| 7, 8, 9 | `0x007A5730`, `0x007A5760`, `0x007A5790` | u^K with K 2, 3, 5 |
+
+With h equal to half of d, `0x007A5510` returns 0.5 * (t / h)^K while t is
+below h, and 0.5 + 0.5 * (1 - ((d - t) / h)^K) otherwise. Reading the call to
+`0x009DB280` as the power function is INFERRED from its two operands.
+
+## Installed CIBT records
+
+MEASURED. The install is build `2012.09.19.0001`. These are RES entries under a
+`cibt` name directory, read with the layout above. Each value is count, curve
+and flag for the named record. Paths are under `client/chara`.
+
+| Bank | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `pc/c001/act/emp_emp/bid/base/0000` | 702992 | `2ce7ec3844054c2ec89a21079c2820bdab588398128400c8aebab63456b3495c` |
+| `pc/c001/act/clw_clw/bid/base/0000` | 608448 | `709661da022b8e1c83dab427196ce8ef12a516a3fd5018fb0ecc0cca0d8c02bf` |
+| `pc/c001/act/emp_emp/bid/base/0001` | 250640 | `75ba240d4c5be143f615dbefd9efcc53c2478cb29c46b38f4b48c8b5e9636154` |
+| `pc/c001/act/clw_clw/bid/base/0001` | 287184 | `2d947f2c4e5361e2d0febc6f8b297d9c4b1eef76e3b8f5b32ed67e54beca3182` |
+| `pc/c001/act/clw_clw/atk/base/0001` | 101568 | `e099530528fae1b02a8775f9e569c2844c0c630e554f779849d92c79a4890580` |
+| `pc/c001/act/cmn/sid/base/0001` | 288944 | `f15879086f2e41447d3bcb0f64db366be977028c0671c6ee0a874a94c3752924` |
+| `pc/c001/act/cmn/gid/base/0001` | 94928 | `8bdf447de708b115e35d6baa10701672d27e9e3b38890cd07869de1f1932be65` |
+| `mon/m045/act/emp_emp/bid/base/0000` | 745552 | `f795c5f1b96a966d7db9436e963a244de9b1e8eecfc1753d9b9b342140dee513` |
+| `mon/m011/act/emp_emp/bid/base/0000` | 106288 | `480cdf5197e8f8be89d3ad3625c964b5d87761b625a439dc275efd4c9ca42a9c` |
+
+The two c001 `bid/base/0000` banks give the same records for each entry below
+that both hold. `clw_clw` has no `cbbm_03f_stp_rs` entry.
+
+| c001 `bid/base/0000` entry | Records |
+| --- | --- |
+| `cbnm_01f_f_ls`, `cbnm_02f_f_ls` | `all` 10,2,0. `cbnm_id0` 8,2,0 |
+| `cbbm_03f_f_ls` | `all` 10,2,0. `cbbm_id0` 8,2,0 |
+| `cbnm_01f_lp0`, `cbnm_02f_lp0`, `cbbm_03f_lp0` | `all` 10,2,0. Each start name of its speed 0,0,0 |
+| `cbnm_01f_stp_ls`, `cbnm_01f_stp_rs` | `all` 8,5,1. `out` 15,2,1 |
+| `cbnm_02f_stp_ls`, `cbnm_02f_stp_rs`, `cbbm_03f_stp_ls`, `cbbm_03f_stp_rs` | `all` 5,5,1. `out` 15,2,1 |
+| `cbnm_id0` | `all` 10,2,1. Stop names, turn names and `cbbm_deact` 3,2,0. Each `cbnm_0Nf_lp0` 10,2,1 |
+| `cbbm_id0` | `all` 10,2,1. Stop names, turn names and `cbbm_activ` 3,2,0. Each `cbbm_0Nf_lp0` 10,2,1 |
+| `cbbm_activ` | `all` 10,2,0. `cbnm_id0` 3,2,0. `out` 15,2,1 |
+| `cbbm_deact` | `all` 10,2,0. `cbbm_id0` 3,2,0. `out` 15,2,1 |
+| `cbbp_u_activ`, `cbbp_u_deact` | `all` 3,2,0. `out` 10,2,1 |
+
+| Entry and banks | Records |
+| --- | --- |
+| `cbbm_dmgm_f`, `_b`, `_l`, `_r` in both c001 `bid/base/0001` banks and m011 | `all` 0,2,0. `out` 15,2,1 |
+| `cbbm_dmg_brace`, `cbbm_ded` in those banks | `all` 10,2,0. `cbbm_id0` 3,2,0 |
+| `cbbm_dodge_f` in both c001 `bid/base/0001` banks | `all` 3,2,0. `out` 15,2,1 |
+| `cbbm_atk1_r`, `cbbm_atk2_r` in `clw_clw/atk/base/0001` | `all` 5,2,0. `cbbm_atk2_r` also has `out` 10,2,1 |
+| `cbem_sit_ed` and `cbem_jmn_ed` | `all` 10,2,0. `out` 25,2,1 |
+| `cbem_sit_st_b`, `_l`, `_r` and `cbem_jmn_st` | `all` 10,2,0 |
+| m045 `cbbm_01f_lp0`, `cbbm_02f_lp0` | `all` 15,2,0 |
+| m045 `cbnm_id0`, `cbbm_id0` | `all` 15,2,1 |
+| m045 `cbbm_activ`, `cbbm_deact` | `all` 15,2,0. The idle record, `cbnm_id0` or `cbbm_id0`, 8,2,0. `out` 25,2,1 |
+| m045 `cbbm_dmgm_f`, `_b`, `_l`, `_r` | `all` 0,2,0. `out` 25,2,1 |
+
+These records are installed inputs. They do not show which bank a live request
+resolves.
+
 ## Reproduction and claim boundary
 
 Authenticate the PE above, map VAs through its section table and independently

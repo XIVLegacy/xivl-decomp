@@ -122,6 +122,130 @@ holds RaptureCancelChantSyncClip entries for `cast_mon_` names, a
 RaptureActionSelectClip and a RaptureActionSubStatusSchKickClip, all at
 frame 0, and no caster clip.
 
+### Chant wait clips and the branch
+
+MEASURED. The clip indices below are zero based in record order. In
+`cast_gen_1` the ActionClip is clip 5 and the RaptureChantSyncClip is clip 6.
+The RaptureEffectEndClip at frame 14 holds a count of 1 at `D+0x10` and the
+`s16` index 5. In `cast_hou_1` it holds index 4, which is that scheduler's
+ActionClip.
+
+MEASURED. The [IfClip record](../event/grand-company-mission-bytecode.md#ifclip-record)
+of `cast_gen_1` names track 5 and has three branches. Each has combine mode 0
+and one condition: operator 1, type 0, the index of the ChantSync clip and a
+value. Value 1 targets track 6, value 2 track 8 and value 3 track 9. The frame
+37 and frame 58 clips store 7 in the `s16` at `D+0x08`. INFERRED. Reading
+that field as the clip track, and the `@CTRK` rows as parent indices that put
+track 7 under track 6, value 1 alone enables the `shoot_` clips. The `@CTRK`
+row layout was not established from a consumer.
+
+MEASURED. The sound clips of the cast schedulers each store 1 at `D+0x14`,
+volume 1.0 at `D+0x1C`, 0 at `D+0x20` and one resource ID at `D+0x28`. The slot
+is `D+0x18`. The
+[RaptureSoundClip consumer](../resource/cut-scheduler-clip-payloads-ranks-14-22.md#rapturesoundclip)
+owns those fields. Each scheduler below starts one clip at frame 10 and one at
+frame 14 in the same slot. The frame 14 resource is `0x07FE0007` in every row.
+
+| Schedulers | Slot in `_1`, `_2` | Frame 10 resource |
+| --- | --- | --- |
+| `cast_abi_1`, `cast_abi_2` | 1, 2 | `0x615E0000` |
+| `cast_gen_1`, `cast_gen_2` | 1, 2 | `0x615E0001` |
+| `cast_jyu_1`, `cast_jyu_2` | 1, 2 | `0x615E0002` |
+| `cast_ws_1`, `cast_ws_2` | 1, 2 | `0x615E0003` |
+| `cast_son_1` | 1 | `0x615E0009` |
+
+`cast_hou_1`, `cast_hou_2`, `cast_sou_1` and `cast_sou_2` hold a
+RaptureChantSyncClip and no RaptureSoundClip. `shoot_gen_1`, `shoot_jyu_1`,
+`shoot_ws`, `shoot_abi` and `shoot_song` each hold one sound clip at frame 0 in
+slot 0 with resources `0x615E0005`, `0x615E0007`, `0x615E0008`, `0x615E0004`
+and `0x615E000A`.
+
+## Chant wait and release
+
+STATIC. RaptureChantSyncClip has vtable `0x01017554`. Slot 1 `0x008227A0` sets
+the clip phase to 1 through `0x00A210F0`, which
+[holds the scheduler clock](../resource/cut-scheduler-clip-timing.md#phase-word).
+Slot 2 `0x008228A0` takes the dword at `+0x0C` of its argument (`0x00A20070`)
+and forms the member address `+0xF0` in it. A null address stores the clip
+value 1 and sets phase 0. Otherwise it calls virtual `+0x6C` of that member and
+reads the pointer the result holds. The clip stays when that pointer is null or
+its dword at `+0x04` is not `0x00766678`. It also stays while the object's
+dword at `+0x48`, read by `0x0080A800`, is 0. A nonzero dword becomes the clip
+value through virtual `+0x38` (`0x00A21110`, `s16` at clip `+0x30`), which the
+IfClip conditions read, and the phase returns to 0. The slot then resets the
+chant dword to 0 at `0x00822941` when byte `+0x04` of the clip virtual `+0xA0`
+result is 1 and record byte `D+0x10` is nonzero.
+
+STATIC. The direct callers of the setter `0x0080BCD0` are `0x0081DC47` in
+`0x0081DBD0`, `0x00820307` in `0x00820290`, `0x00634AA6` in the thunk
+`0x00634A80`, the reset above, the queue join at `0x00845C3C` below and the
+[bucket 12 control request](../resource/cut-status-and-parameter-clips.md#character-bucket-12-control-request)
+at `0x00844FC2`, which writes 1. `0x0081DBD0` and `0x00820290` read a parent
+chant value and write it to each listed child. Their addresses occupy the
+listener cells `0x010117D0` and `0x0101240C`.
+
+STATIC. RaptureCancelChantSyncClip slot 1 `0x00822BF0` requires byte `D+0x10`
+to be 1. It takes the 16 byte name at `D+0x11` and calls virtual `+0x0C` of
+the object at RaptureActor `+0x9C` with the actor and that name. In the
+`Application::Scene::RaptureActorClipListener` table `0x00FB7AF4` that cell is
+`0x007CE870`. It looks the named scheduler up and, when the returned holder is
+nonnull, calls `0x00634A80` with 1. On this path a cancel therefore releases
+the named chant with value 1. Which object a live actor holds at `+0x9C`, and
+what keeps the `shoot_` track from showing after an interrupt, were not
+traced.
+
+### Queue join
+
+STATIC. Within each of its 26 buckets,
+[`0x00845430`](action-queue.md#controller-consumption) remembers an entry in
+state 1 at entry `+0x04` that passes virtual `+0x2C` with 1. A later pending
+entry in state 0 of the same pass that also passes it supplies its virtual
+`+0x30` value to the remembered entry. Through the remembered entry's `+0x10`
+object, virtual `+0xC8` and then virtual `+0x6C`, the routine reaches the
+chant object and calls `0x0080BCD0` with that value (`0x00845C0A..0x00845C3C`).
+Only one such write happens per bucket pass, and the pending entry that
+supplied it is not activated by that arm. The `CharaActionQue` method behind
+`+0x30` is `0x00843E20`. It returns the dword at `+0x08` of the object that
+visual virtual `+0x4C` returns. Which wire routes store 1 in that dword was
+not traced.
+
+INFERRED. The join is per bucket, and a `0x6F` cast selector classifies as
+[staged type 8](action-queue.md#staged-type-and-packed-selector-domains). The
+combat result builders `0x0058C7D0` and `0x0058C880` pass fallback type 6 to
+`0x00585800`. A spell result that keeps that fallback would not reach a held
+cast begin through this arm. The writer that releases the chant when a cast
+completes was not traced.
+
+### Installed cancel entries
+
+MEASURED. In the resident bank, `cast_stop_1`, `cast_stop_2` and `stop_mcast`
+are the only schedulers that hold a RaptureCancelChantSyncClip. The four banks
+of the next section hold none.
+
+## Selected magic completion schedulers
+
+MEASURED. These install reads cover the `mgc/base/0001` banks of
+`client/chara/pc/c001/act` and `client/vfx/mgc/0101`.
+
+| Bank | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `cmn/mgc/base/0001` | 20960 | `4652451eab7c562659cb8ef46d7b6261ddcc45e3bba5e7d5d24bc4fb32afd558` |
+| `emp_emp/mgc/base/0001` | 20512 | `403f445432662240d08fbe928cd93d2df8b31b20d925f43aede1a25edae33fbc` |
+| `clw_clw/mgc/base/0001` | 27200 | `070f69f4cba4ad9af961448e68089a967741dec69d25a238b9cdefc36359ca85` |
+| `client/vfx/mgc/0101` | 179344 | `4e4de9c6b9a98732e1726b2f686b3438b54f27db7d373d6057513783bdd3e57f` |
+
+In each of the three actor banks, `main` holds BindActorClip,
+RaptureCasterManagedSchClip `sht00` and RaptureActionSelectClip `mag_r1` at
+frame 0, RaptureCasterManagedSchClip `mag_main` and
+RaptureActionSubStatusSchKickClip at frame 30 and ClipSyncClip at frame 38.
+`sht00` holds BindActorClip, RaptureClientMoveStopClip,
+RaptureServerMoveStopClip and MotionClip at frame 0. In `mgc/0101`,
+`mag_main` holds BindActorClip and RaptureCasterSchClip `care1_tar` at frame 0
+and ClipSyncClip at frame 59. `care1_tar` holds BindActorClip,
+RaptureSoundClip and ActionClip at frame 0 and
+RaptureActionSelectDamageMccClip at frame 30. That bank holds no `main`.
+These records do not show which action selects these banks.
+
 ## c001 reaction bank schedulers
 
 MEASURED. These are entries of `client/chara/pc/c001/act/<set>/bid/base/0001`.
@@ -166,7 +290,8 @@ RaptureServerMoveStopClip with no MotionClip. The bank holds an MTB entry
 
 - The body of queue virtual `+0x1C`, and which bank answers a cast scheduler
   name at run time.
-- What requests the `2lp` loop motions and what ends a cast pose.
+- What requests the `2lp` loop motions, what releases the chant on a
+  completed cast and what ends a cast pose.
 - The routines `0x00798720` and `0x00798780`.
 
 ## Reproduction
@@ -177,6 +302,11 @@ ghidra disasm 0x00798A40 -n 30
 ghidra disasm 0x00798660 -n 30
 ghidra disasm 0x007986C0 -n 30
 ghidra disasm 0x007987F0 -n 50
+ghidra disasm 0x008228A0 -n 55
+ghidra disasm 0x00822BF0 -n 40
+ghidra disasm 0x007CE870 -n 55
+ghidra disasm 0x00845430 -n 700
+ghidra x-ref to 0x0080BCD0
 ```
 
 Read the three dwords at `0x012C44D4` and `0x012C4530`, the 20 string
