@@ -414,6 +414,66 @@ Slot 12 of `LookAtIKObject` is `0x00AEAB00`, a routine of 8,364 bytes that
 draws the object for debugging. The goal angles, the step and the weights are
 in [LookAtIKObject record, goal and step](look-at-ik-record-and-solver.md).
 
+### ConstraintDirectionIKObject loading
+
+These rows were read with `ghidra` CLI disassembly and PE section reads of the
+pinned image. The consumer manifest and its verifier do not check them. Let L
+be the receiver of `0x00ACC240`.
+
+STATIC. `0x00ACC240` switches on the record type byte `+0x08` minus 1 through
+byte table `0x00ACC5B0` and jump table `0x00ACC598` (`0x00ACC3A6..0x00ACC3BD`).
+Type 4 reaches `0x00ACC429`, which takes the next element of a `0x100`-byte
+stride from the pointer at L `+0x5C` and calls the loader `0x00AE33B0` on it.
+The element class follows from the sizing path. `0x00ACC160`, called on
+L `+0x5C` at `0x00ACC357`, counts the records by type through table
+`0x00ACC21C`. Type 4 raises count index 3 (`0x00ACC1C9`). `0x00ACC050` sends
+index 3 through table `0x00ACC13C` to `0x00ACC067`, which calls `0x00AD1910`.
+That routine and its element fill `0x00ACC810`, with a `0x100` stride,
+construct through `0x00AE3810`. The constructor stores table `0x010A91F4`,
+the `ConstraintDirectionIKObject` table below. Record type 4 therefore loads
+the class whose slot 5 answers type code 3.
+
+STATIC. The loader copies these record fields. Record `+0x0C` and `+0x10` are
+the chain table and its count.
+
+| Record | Object | Note |
+| --- | --- | --- |
+| `+0x14` name | `+0x34` | resolved through the loader's node lookup |
+| `+0x18` name | `+0x3C` | the same lookup |
+| `+0x1C`, `+0x20`, `+0x24` | `+0xA0` | each times a float of the loader input, fourth lane 1.0 |
+| `+0x28` to `+0x34` | `+0x60` to `+0x6C` | four floats |
+| `+0x3C`, `+0x40`, `+0x44`, `+0x48` | `+0x58`, `+0x50`, `+0x48`, `+0x40` | |
+| `+0x4C`, `+0x50` | `+0x7C`, `+0x78` | |
+
+STATIC. Slot 6, `0x00AE38C0`, installs the setup `0x00AE3740`. The setup
+multiplies object `+0x50`, `+0x58` and `+0x60` to `+0x6C` by the float
+0.017453292 at `0x010A90FC`. It installs the step `0x00AE2900` when `+0x34`
+is not -1, and `0x00AE32F0` otherwise.
+
+STATIC, structure only. The step calls `0x00AE2190`, which calls
+`0x00AF24E0` and writes goal fields from `+0xB4`. That call is unconditional
+while the weight `+0x5C` is at most the float at `0x00FEE2B4`, about 0.00001,
+and otherwise waits until counter `+0x44` is not below `+0x40`. With a weight
+at most the float at `0x00FEE2B0`, about 0.000001, the step copies the goals
+`+0xB4` and `+0xB8` into the angles `+0x70` and `+0x74` and clears the speed
+`+0x54`. Otherwise `0x00AE2430` eases them. For a positive frame time it
+divides the length of the angle difference by that time and caps the result
+at `+0x58`. The speed grows by `+0x50` times `+0x5C` times `+0x1C` times the
+frame time and is held between 0 and the capped value. Each angle moves along
+the difference by an amount that includes the speed, `+0x5C`, `+0x1C` and the
+frame time, and does not pass its goal. Both arms apply through `0x00AE2890`,
+which calls `0x00AE25E0` and then `0x00AF2070` for each pointer in the vector
+at `+0xE8`. The bodies of `0x00AF24E0`, `0x00AE25E0` and `0x00AF2070` were not
+read.
+
+INFERRED. The groups named `s0` in the installed face models hold type 4
+members, recorded in
+`xivl-client-data:docs/skeleton-cib-and-ik-members.md`, "Constraint direction
+groups named s0". The binder slot for `s0`, which pass 1 of the look-at clip
+writes, therefore drives an eye constraint of this class on a character with
+such a face. How a face model's groups enter the constraint set at controller
+`+0x00` was not traced.
+
 ### LookAtIKObject storage
 
 STATIC. The `LookAtIKObject` vtable `0x010A92E4` holds 14 slots:

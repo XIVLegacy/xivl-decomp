@@ -99,7 +99,35 @@ records hold:
 | 4 | 1 | 0 |
 
 The same records carry a byte at `+4 + p` and an f32 at `+8 + 4p`, read after
-the builder returns (`0x007B261C..0x007B262B`). Their use was not traced.
+the name builder returns (`0x007B261C..0x007B262B`, with the f32 saved at
+`0x007B2638`). The `0x14`-byte records of j 0 to 4 hold:
+
+| j | Byte `+4`, `+5`, `+6` | f32 `+8`, `+12`, `+16` |
+| ---: | --- | --- |
+| 0 | 3, 0, 0 | 1.5, 1.0, 0.0 |
+| 1 | 0, 0, 4 | 1.5, 1.0, 1.0 |
+| 2 | 0, 0, 4 | 1.5, 1.0, 1.0 |
+| 3 | 0, 0, 5 | 1.5, 1.0, 1.0 |
+| 4 | 0, 0, 0 | 1.0, 0.0, 0.0 |
+
+For a nonzero scheduler, `0x007B23B0` takes an object from `0x007B22D0` at
+`0x007B2697`. That routine requests `0x218` bytes for it (`0x007B232B`). The
+stores are:
+
+| Object field | Value | Locator |
+| --- | --- | --- |
+| `+0x208` | the scheduler | `0x007B26A9` |
+| `+0x09` bits 3 to 6 | the byte at record `+4 + p` | `0x007B26E7..0x007B2705`, mask `0x78` |
+| `+0x10` | the f32 at record `+8 + 4p` | `0x007B26FD` |
+| `+0x08` bit 0 | 1 when p is the pass count minus 1 (`0x007B241D..0x007B2422`) | `0x007B26DA..0x007B26FA` |
+| `+0x08` bits 4 and 5 | bit 4 set and bit 5 cleared | `0x007B26DA..0x007B26FA` |
+
+An entry with bit 0 of dword 0 set first takes a path that uses the string
+`atk_cover` (`0x00FE61FC`). When that path yields a scheduler it joins the
+same stores at `0x007B2682`. It has cleared the byte (`0x007B2476`) and saved
+1.0 from `0x00F54F70` as the f32 (`0x007B246E..0x007B247B`). No reader of
+object `+0x09` or `+0x10` was traced, and neither was the order of the passes
+in time.
 
 The call at `0x007B2606` passes, nearest first:
 
@@ -218,7 +246,7 @@ walk start or stop entry.
 ```text
 ghidra disasm 0x007B6400 -n 420
 ghidra decompile 0x007B6400
-ghidra disasm 0x007B23B0 -n 160
+ghidra disasm 0x007B23B0 -n 320
 ghidra disasm 0x007A95D0 -n 200
 ghidra disasm 0x007A5800 -n 80
 ghidra disasm 0x007A9800 -n 80
@@ -229,7 +257,8 @@ ghidra x-ref to 0x00FE6248
 
 Read the strings at `0x00FE6238`, `0x00FE622C`, `0x00FE6230`, `0x00FE6234`
 and the range `0x00FE6248..0x00FE67C8`, the bytes at `0x00FE7FD0` in steps
-of `0x14`, and the dispatch bytes at `0x007B69B8` and cells at `0x007B69A4`.
+of `0x14` for j 0 to 4, and the dispatch bytes at `0x007B69B8` and cells at
+`0x007B69A4`.
 For the install rows, read each RES directory of the named file, follow
 nested RES entries, and parse each `SEDBSCB` entry with
 `tools/scb_clip_scheduler.py`.

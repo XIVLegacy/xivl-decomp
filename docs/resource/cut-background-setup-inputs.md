@@ -227,14 +227,32 @@ both getters (`0x0082A1F6`, `0x0082A249`) and passes the two addresses,
 with its own clip vectors, to the target's virtual `+0x48` at
 `0x0082A289`.
 
+STATIC. The constructor `0x00A1EBE0` stores table `0x01097A54`, which the
+vtable catalog names `SQEX::CDev::Engine::Cut::Scheduler::Scheduler`. It
+builds the vector (0, 0, 0, 1.0), with 1.0 the float at `0x00FBF76C`, and
+writes it to both `+0x10` (`0x00A1EC55`) and `+0x20` (`0x00A1EC59`). Among
+the direct callers of the `+0x10` store, `0x00A03DD0` is slot 64 of
+`SQEX::CDev::Engine::Cut::CutScenePlayer::CutSceneObject` (table
+`0x010942E4`, cell `0x010943E4`) and `0x00DE9A80` is slot 1 of
+`SQEX::CDev::Engine::Cut::Plugins::ScheduleClip`. The one direct caller of
+`0x00DE7630` is `0x00DED870`. The background setup `0x00815F00` calls the
+`+0x20` store and does not call the `+0x10` store directly.
+
 INFERRED. The stage layout named by the record supplies an origin that
 the scheduler keeps at `+0x20` and that position clips hand to their
-targets. Not traced: the body of the layout virtual `+0x16C`, how the
-target virtual `+0x48` composes `+0x10` and `+0x20` with the clip vectors,
-and the initial value of scheduler `+0x10`.
+targets. If the object that `0x00A20070` returns was built by this
+constructor and no other path has written `+0x10`, a stage placed by this
+setup keeps the initial vector there. Indirect callers of the CutSceneObject
+slot were not searched. Not traced: the body of the layout virtual `+0x16C`
+and how the target virtual `+0x48` composes `+0x10` and `+0x20` with the clip
+vectors. The
+[look-at clip](cut-scheduler-clip-payloads.md#rapturephysicslookatclip) hands
+the same two vectors to that virtual in mode 2.
 
 Reproduce with `ghidra disasm 0x00816130 -n 130`, `ghidra disasm
 0x00816382 -n 200`, `ghidra disasm 0x00623E70 -n 75`, `ghidra disasm
 0x00A1CE70 -n 14`, `ghidra x-ref to 0x00A1CE70` and `ghidra x-ref to
-0x00A1C030`. The switch arm of `0x0082A080` near `0x0082A1C9` is read with
+0x00A1C030`. The initial value reads with
+`ghidra disasm 0x00A1EBE0 -n 30` and `ghidra x-ref to 0x00A1CE20`.
+The switch arm of `0x0082A080` near `0x0082A1C9` is read with
 Capstone from the file offset of that VA.
