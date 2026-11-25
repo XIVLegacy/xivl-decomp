@@ -273,6 +273,38 @@ These observations require the named texture lookup, admitted row
 binding, reader state and parent composition. Live row delivery,
 file-to-cache identity, placement, clipping and pixels remain unknown.
 
+## Level-up package
+
+MEASURED. `client/sqwt/system/ingame/levelup.le.spk` is 3512 bytes, SHA-256
+`23536f8bcaae99d00cac4b0649868a9e380f3252416903173f91d6c284bf13cf`. The reads
+use the section, record and leaf layouts of
+[Clock and selected records](#clock-and-selected-records) and
+[Selected command and leaf fields](#selected-command-and-leaf-fields). The
+little-endian u16 words at `+4`, `+6`, `+8`, `+0xA`, `+0xC` and `+0xE` are
+256, 101, 280, 200, 60 and 51. The 101 section cells start at `0x14`. By the
+[clock rule](#clock-and-selected-records), a rate of 60 gives a 16 ms
+interval.
+
+Section 0 starts at `0x1A8` and has type 2, one track and 51 records. Its name
+table at root `+0xD8` maps `stop` to index 0 and `start` to index 1. Record 0
+holds a 12-byte mask `0x80` command with selector 1, then an 8-byte mask
+`0x00` sample of track 0, section 2. Records 1 to 49 each hold one such sample.
+Record `k` selects section `2k` for `k` from 1 to 50. Record 50 holds the same
+stop command before its sample of section 100.
+
+Sections 1 to 100 alternate a type 0 rectangle and a type 1 leaf section. Each
+leaf section has one leaf that refers to the section before it, with
+`sx, sy` of 1 and zero cross terms and translation. Rectangle number `n`,
+counting from 0 in section order, is 280 by 200 at
+`x = 280 * (n mod 7)`, `y = 200 * floor(n / 7)`.
+
+The same-stem `levelup.win32.gtex` is 4194336 bytes, SHA-256
+`9b1f1a552eb95273e181ffbbcf53f7e6fad2532f25e38728fe96e9cc10de1748`. Its header
+declares format index 26
+([DXT5](gtex-pwib-loader.md)), one mip and a 2048 by 2048 extent. The
+[LevelUp popup](sound-effect-triggers.md) page owns the form that plays this
+package. Rendered output was not observed.
+
 ## ActionMenu completion package
 
 The [ActionMenu TimerIcon style](action-menu-timer-icon-style.md#observed-form-and-style-declarations)

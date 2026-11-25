@@ -37,6 +37,18 @@ expression object (`this` is actor `+0x1BC`, `[this]` is the actor). Its
 callers by cross reference are `0x00663109`, `0x0065E900` in `0x0065E8D0`,
 `0x0065E943` in `0x0065E910` and `0x007A9D59` in `0x007A9CE0`.
 
+STATIC. The caller at `0x00663109` is the record `0x2C` case of CharaActor
+slot 157 (`0x00662D30`, see the
+[record path](chara-look-at-consumers.md#record-path)). Byte `0x00663C08+0x2C`
+is 40, the only byte of the table with that value below `0x64`, and entry 40
+of the jump table `0x00663AE8` is `0x006630FC`. The case passes the payload
+pointer as the name with flags 0, fade 10 and hold -1
+(`0x006630FC..0x00663109`). It reads no length. The one-byte posts under
+local selector `0x2C` on the
+[airship scene page](../event/airship-scene-sequence.md) address a
+MapLayoutElement there. Whether any sender delivers an expression name through
+record `0x2C` was not established.
+
 - The name `off` (a 4 byte compare against `0x00FE711C` at `0x007A6228`)
   copies `cfxf_default` (0x10 bytes) to `+0x190`, stores the flags in the
   word at `+0x17C` with bit 16 set, stores `(float)fade` at `+0x174` and at
