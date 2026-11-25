@@ -196,6 +196,7 @@ shared math bodies and their own reproduction recipes remain on the cited pages.
 Only mode 0 with ordered-zero angles, finite s and the stated finite nonzero p
 branch is qualified. Modes 1 through 10, nonzero-angle preparation, the
 zero-vector fallback and default dispatch remain outside this equation.
+[Modes 1 and 3](vfx-matrix-camera-modes.md) have a separate description.
 Current provider targets/data and G contents, source units, world/local meaning,
 semantic parent linkage and angle units remain unresolved. MXCSR, exceptions,
 exact NaN payloads, nonfinite cases, malformed pointers and destructive aliasing

@@ -160,6 +160,33 @@ RaptureChantSyncClip and no RaptureSoundClip. `shoot_gen_1`, `shoot_jyu_1`,
 slot 0 with resources `0x615E0005`, `0x615E0007`, `0x615E0008`, `0x615E0004`
 and `0x615E000A`.
 
+MEASURED. The headers below follow the
+[SSCF stream header](https://github.com/XIVLegacy/xivl-tools/blob/bb76ad408548a997fec6ac8809970d9ea7d84832/docs/formats/sscf.md).
+Each named `0x615E` resource holds one mono stream with codec ID 12. Its codec
+head has format tag 2, block align 70 and 128 samples per block. The streams of
+the frame 10 resources have rate 44100.
+
+| Frame 10 resource | Loop start | Loop end |
+| --- | ---: | ---: |
+| `0x615E0000` | 123904 | 285696 |
+| `0x615E0001` | 125824 | 408704 |
+| `0x615E0002` | 80640 | 306560 |
+| `0x615E0003` | 106752 | 197120 |
+| `0x615E0009` | 72960 | 360832 |
+
+Each loop end in the table equals the codec data length divided by 70 and
+multiplied by 128. INFERRED. For these five streams the loop fields count sample
+frames. This does not settle the codec 12 unit for other containers. Both loop
+fields are 0 in the five `shoot_` resources above.
+
+The frame 14 resource `0x07FE0007` is 400 bytes, SHA-256
+`b673e724a9bba24588030eb122c06638e7a0bcc4cdfa7ad57a250661559c737d`, with a
+stream count of 0. The
+[music table](../resource/music-song-table.md#stream-less-containers)
+records how the client treats such containers on its song path. INFERRED. The
+frame 10 resource is the chant loop, and the frame 14 clip ends it by taking its
+slot. What a slot play does to a sounding resource was not traced.
+
 ## Chant wait and release
 
 STATIC. RaptureChantSyncClip has vtable `0x01017554`. Slot 1 `0x008227A0` sets

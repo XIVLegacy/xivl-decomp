@@ -190,6 +190,40 @@ state: 1 calls `0x007A0D80`, 2 calls `0x007A9520` and 3 calls `0x007A0E40`.
   the motion length minus the count, it starts at count minus (length minus
   time). The item flag tests at `0x007B9F5C..0x007BA06B` were not named.
 
+STATIC. A direct cross reference query on `0x007B8720` returns one caller,
+`0x007B9830`. On this path the record flag that `0x00851E00` returns does not
+survive. The flag output is a stack byte. `0x007B88FC` stores into that byte
+whether the blend-in count left by the lookups is above 0, from the compare at
+`0x007B88E9`. This store also runs when the lookups are skipped.
+`0x007B89B6` and `0x007B8AFD` read the byte. When it is set, the loop over the
+motion objects passes weight 0 through virtual `+0x88`, and otherwise 1.0.
+
+STATIC. When request byte `+0x12` is nonzero, `0x007B8720` calls virtual
+`+0x14` of the first converted motion object (`0x007B8A5D..0x007B8A89`). It
+multiplies the returned integer by the double 30.0 at `0x00FA7B18`, divides by
+300000.0 at `0x00F67020` and replaces the end word, request `+0x0A`, in its
+local copy of the request. Reading the returned integer as the motion length is
+INFERRED.
+
+STATIC. Each nonnull motion object receives a value through virtual `+0x7C`
+before the other settings (`0x007B8AB1..0x007B8AE6`). The value is `0x50` plus
+three times the dword at M+`0x10`, plus `0x40` when the fourth byte of the new
+name is not `m`. The function then inserts into the list at M+`0x08` through
+`0x007C44B0` and `0x007C6020` (`0x007B8CD1..0x007B8D0A`). Reading M+`0x10` as
+the item count and the value as a layer priority, with a later item above an
+earlier one, is INFERRED.
+
+### MotionClip request
+
+STATIC. RaptureMotionClip slot 1 `0x0082F120` constructs its request with
+`0x006690D0` at `0x0082F412`. Before the call at `0x0082F493` it writes the
+floats at request `+0x00` and `+0x04`, the words at `+0x08` and `+0x0A` and the
+bytes at `+0x0C` to `+0x0E` and `+0x10` to `+0x14`. It does not write
+`+0x0F`, so the constructor value 1 remains. Request `+0x0F` is inside the
+0x18 bytes that `0x007B9920` [copies](#request-assembly). A MotionClip request
+therefore passes that part of the CIBT gate. Byte `+0x12` is 1 when clip byte
+`D+0x26` is nonzero (`0x0082F313`, `0x0082F324`).
+
 STATIC. The reaction helper `0x007BA0E0` receives each of the
 [damage motion names](../actor/effect-caster-and-damage-side.md#damage-motion-names-0x007bbdd0).
 It builds a default request with `0x006690D0` at `0x007BA155` and calls
@@ -228,6 +262,11 @@ and flag for the named record. Paths are under `client/chara`.
 | `pc/c001/act/clw_clw/bid/base/0001` | 287184 | `2d947f2c4e5361e2d0febc6f8b297d9c4b1eef76e3b8f5b32ed67e54beca3182` |
 | `pc/c001/act/clw_clw/atk/base/0001` | 101568 | `e099530528fae1b02a8775f9e569c2844c0c630e554f779849d92c79a4890580` |
 | `pc/c001/act/cmn/sid/base/0001` | 288944 | `f15879086f2e41447d3bcb0f64db366be977028c0671c6ee0a874a94c3752924` |
+| `pc/c001/act/swd_emp/atk/base/0001` | 65008 | `3144442b7d2cadd5ce50c586349f09156faacc3d75ac529c9f8727c484daba60` |
+| `pc/c001/act/cmn/mgc/base/0001` | 20960 | `4652451eab7c562659cb8ef46d7b6261ddcc45e3bba5e7d5d24bc4fb32afd558` |
+| `pc/c001/act/emp_emp/mgc/base/0001` | 20512 | `403f445432662240d08fbe928cd93d2df8b31b20d925f43aede1a25edae33fbc` |
+| `pc/c001/act/clw_clw/mgc/base/0001` | 27200 | `070f69f4cba4ad9af961448e68089a967741dec69d25a238b9cdefc36359ca85` |
+| `mon/m011/act/emp_emp/btl/base/0001` | 34944 | `25d42eab82dacaedd582b4974bd1c2e7cf95ed176e77cf75233890706e2061d0` |
 | `pc/c001/act/cmn/gid/base/0001` | 94928 | `8bdf447de708b115e35d6baa10701672d27e9e3b38890cd07869de1f1932be65` |
 | `mon/m045/act/emp_emp/bid/base/0000` | 745552 | `f795c5f1b96a966d7db9436e963a244de9b1e8eecfc1753d9b9b342140dee513` |
 | `mon/m011/act/emp_emp/bid/base/0000` | 106288 | `480cdf5197e8f8be89d3ad3625c964b5d87761b625a439dc275efd4c9ca42a9c` |
@@ -254,12 +293,37 @@ that both hold. `clw_clw` has no `cbbm_03f_stp_rs` entry.
 | `cbbm_dmg_brace`, `cbbm_ded` in those banks | `all` 10,2,0. `cbbm_id0` 3,2,0 |
 | `cbbm_dodge_f` in both c001 `bid/base/0001` banks | `all` 3,2,0. `out` 15,2,1 |
 | `cbbm_atk1_r`, `cbbm_atk2_r` in `clw_clw/atk/base/0001` | `all` 5,2,0. `cbbm_atk2_r` also has `out` 10,2,1 |
+| `cbbm_atk1_l` in that bank | `all` 5,2,0 |
+| `cbbm_atk2_l`, `cbbm_atk3_r` in that bank, and `cbbm_atk1`, `cbbm_atk2`, `cbbm_atk3` in `swd_emp/atk/base/0001` | `all` 5,2,0. `out` 10,2,1 |
+| m011 `cbbm_atk_a_1` | `all` 10,2,0. `cbbm_id0` 3,2,0 |
+| m011 `cbbm_atk_a_2` | `out` 15,2,1 only |
+| `cbbm_abl_1` in `emp_emp/bid/base/0001` and `clw_clw/bid/base/0001` | `all` 10,2,0. `cbbm_id0` 3,2,0 |
+| `cbbm_abl_3_can` in `emp_emp/bid/base/0001` | `all` 10,2,0. `cbbm_abl_2lp` 3,2,0. `out` 15,2,1 |
+| `cbbm_abl_3` in the `emp_emp` and `clw_clw` `mgc/base/0001` banks, `cbnm_abl_3` in the `cmn` one | `all` 10,2,0. The `abl_2lp` record of the same `cbbm` or `cbnm` prefix 3,2,0. `out` 15,2,1 |
+| `cbnm_revive` in `emp_emp/bid/base/0000` | `out` 15,2,1 only |
 | `cbem_sit_ed` and `cbem_jmn_ed` | `all` 10,2,0. `out` 25,2,1 |
 | `cbem_sit_st_b`, `_l`, `_r` and `cbem_jmn_st` | `all` 10,2,0 |
 | m045 `cbbm_01f_lp0`, `cbbm_02f_lp0` | `all` 15,2,0 |
 | m045 `cbnm_id0`, `cbbm_id0` | `all` 15,2,1 |
 | m045 `cbbm_activ`, `cbbm_deact` | `all` 15,2,0. The idle record, `cbnm_id0` or `cbbm_id0`, 8,2,0. `out` 25,2,1 |
 | m045 `cbbm_dmgm_f`, `_b`, `_l`, `_r` | `all` 0,2,0. `out` 25,2,1 |
+
+The two `bid/base/0001` banks above hold no `cibt` entry named
+`cbbm_abl_2lp`, and `cmn/sid/base/0001` holds none named `cbem_sit`.
+
+MEASURED. Each MotionClip of the following schedulers stores `0x20` at clip byte
+`D+0x14`, 1 at `D+0x15` and 0 in the s32 at `D+0x1C`. Byte `D+0x26` differs.
+
+| Schedulers | `D+0x26` |
+| --- | ---: |
+| `atk10_1_1` to `atk12_1_1` in `clw_clw/atk/base/0001`, all five | 1 |
+| `atk10_1_1`, `atk11_1_1`, `atk12_1_1` in `swd_emp/atk/base/0001` | 1 |
+| Both MotionClips of m011 `atk10_1_1` | 0 |
+| `dead`, `cas00`, `sht_can0` in `emp_emp` and `clw_clw` `bid/base/0001` | 0 |
+| `sht00` in the `cmn` and `emp_emp` `mgc/base/0001` banks | 0 |
+
+The m011 `atk10_1_1` scheduler names `cbbm_atk_a_1` and `cbbm_atk_a_2`. Its
+MotionClips start at ticks 0 and 200000.
 
 These records are installed inputs. They do not show which bank a live request
 resolves.
