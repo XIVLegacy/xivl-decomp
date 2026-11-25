@@ -127,7 +127,15 @@ frame 0, and no caster clip.
 MEASURED. These are entries of `client/chara/pc/c001/act/<set>/bid/base/0001`.
 Each `cas` scheduler holds BindActorClip, RaptureClientMoveStopClip,
 RaptureServerMoveStopClip and one MotionClip. Each `sht_can` scheduler holds
-BindActorClip and one MotionClip. The end is the MotionClip end frame.
+BindActorClip and one MotionClip. The end is the MotionClip end frame. The
+inputs for this section are:
+
+| Set | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `emp_emp` | 250640 | `75ba240d4c5be143f615dbefd9efcc53c2478cb29c46b38f4b48c8b5e9636154` |
+| `clw_clw` | 287184 | `2d947f2c4e5361e2d0febc6f8b297d9c4b1eef76e3b8f5b32ed67e54beca3182` |
+| `stf_emp` | 304336 | `7d40543495e47e74b1dbab4ab2b873bf77bebd1d8598630012b066f0cf14f4f3` |
+| `swd_emp` | 366288 | `0a5b2b26fcb5fe3f20262d2cd33411fd2cfb73e9135c15a023e61adba3e4f90a` |
 
 | Scheduler | Motion | `emp_emp` end | `clw_clw` end | `stf_emp` end |
 | --- | --- | ---: | ---: | ---: |
