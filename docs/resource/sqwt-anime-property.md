@@ -283,7 +283,54 @@ pointer is set, and sets Visibility to 1 (Hidden). `DestroyWindow` and
 `InvisibleWindow` clear the same byte through the same pointer, read as `[esi + 0x37C]`
 on the `+0xB4` subobject. The `Hide` branch calls `0x0092ABC0` after
 either path. STATIC.
-The way a handler sets the cancel byte is UNKNOWN.
+A handler sets that byte indirectly, as [Cancel byte](#cancel-byte) records.
+
+## Cancel byte
+
+These rows were read with `ghidra` CLI disassembly and PE section reads of the
+pinned image. The Anime manifest and its verifier do not check them.
+
+STATIC. The primary table of `Sqwt::Window` is `0x0106A0BC`, with complete
+object offset 0 in its locator. Cell `0x0106A1E8`, slot `+0x12C`, selects
+`0x00921DA0`. Cell `0x0106A1F0`, slot `+0x134`, selects `0x00921DD0`. The
+hide routine raises `Hiding` through slot `+0x134`. The routine behind
+`Close`, `0x00921B00`, raises `Closing` through slot `+0x12C` at
+`0x00921B82`. Its event object starts at `ESP+0x10`. It clears event `+0x1C`
+at `0x00921B6B` and tests it at `0x00921B84`. When the byte is 1 it skips the
+byte behind window `+0x430`, the call to `0x0093CC70` and the `Closed`
+submission through slot `+0x128`.
+
+STATIC. Both wrappers raise the routed event through `0x0091F1E0` and then
+store 1 at event `+0x1C` when event `+0x14` equals 1
+(`0x00921DBF..0x00921DC4` and `0x00921DEF..0x00921DF4`). The trigger action
+walk writes event `+0x14`. The
+[keyframe target binding](sqwt-keyframe-target-binding.md) page records that
+latch for a Stop action whose byte `+0x3C` is 1.
+
+STATIC. The action base constructor `0x009ADCA0` stores its two byte
+arguments at `+0x3C` and `+0x3D` (`0x009ADD15`, `0x009ADD18`). The
+`BeginStoryboard` constructor `0x0094D740` passes 1 and 0
+(`0x0094D76A..0x0094D76E`), so a `BeginStoryboard` action sets the latch too.
+The constructor `0x009B25E0`, which installs the `Sqwt::Setter` table
+`0x0107D5F0`, passes 0 and 0 (`0x009B260B..0x009B260F`). The other direct
+callers of the base constructor were not read here.
+
+STATIC. The walker `0x009B1820` clears a local byte at `0x009B191D`, sets it
+at `0x009B1965` only while event `+0x14` is 0, and stores it to event `+0x14`
+after its action loop (`0x009B19CA`). A completed walk therefore replaces the
+earlier value of the byte. Whether a second completed walk follows a latching
+walk on the same `Closing` or `Hiding` event was not traced.
+
+INFERRED. A `Window` whose admitted `Closing` or `Hiding` trigger runs a
+`BeginStoryboard` action cancels the immediate `Closed` submission or Hidden
+write, when no later walk clears the latch. The window then stays while the
+storyboard runs, and the storyboard's completion command acts afterward. The
+selected template declarations, with `ApplicationCommands.DestroyWindow` and
+`ApplicationCommands.InvisibleWindow` as completion commands, are in
+`xivl-client-data:docs/sqwt-player-parameter-structure.md`, "Selected Window
+template declarations". Delivery of either event through the Style and
+ControlTemplate passes in a running client and the effects of the completion
+commands were not observed.
 
 ## Visibility and Anime
 
@@ -367,7 +414,7 @@ marks `PreviewExecuted` handled suppresses the Window effect.
 | INFERRED | The owner-qualified name resolution inside 0x00912850 and the property lookup 0x00910F60 are not traced. The join from the engine call to the info setter 0x0095F6B0 rests on the registration at 0x00991FDB and on the descriptor test in the change handler. |
 | INFERRED | The chain from the Window element's slot 13, 0x00922030, to the generic dispatcher follows direct call edges through 0x00935380, 0x00938BA0, 0x0092D060 and 0x00939800. The branches inside those functions that could skip the dispatcher are not decoded. |
 | UNKNOWN | The effects of 0x0091DEC0, 0x0092ABC0, 0x00921B00, 0x00926250 and 0x0093CC70 remain open. |
-| UNKNOWN | How a Hiding handler cancels the hide is not traced. The cancel byte sits in the Hiding event object at +0x1C, set by a handler outside this page. |
+| UNKNOWN | The trigger action walk can set the Hiding cancel byte through event +0x14. Delivery of the trigger in a running client and any other writer of event +0x14 or +0x1C are not traced. |
 | INFERRED | No store to FormElement +0x9C other than the constructor is found by the instruction scan, so the receiver byte is read as constantly 1. An indirect store is not excluded. |
 | UNKNOWN | Window slot +0x34, 0x00922030, forwards each Executed event to the object at window +0x3A8 when it is set. That object is not identified. |
 | UNKNOWN | The cell flags 0x01, 0x02 and 0x40 tested by 0x0095E830 and 0x0095E500 are not named, and the value the engine call 0x00912850 passes as the info setter's third argument is not traced. The store returns without writing when flag 0x02 is set and that argument is 0, or when flag 0x02 is clear, the argument is 1 and flag 0x01 is clear. The reference branch can end the call with flag 0x10 set and no store. Whether an Anime part reaches those states is not known. |
@@ -390,6 +437,7 @@ instruction boundaries. The ranges below are start-inclusive and end-exclusive.
 | Window delivery | `0x00922038..0x00922047`, `0x00935390..0x00935395`, `0x00938BE3..0x00938BEB`, `0x0092D06B..0x0092D075` |
 | Routines | `0x00925AA0..0x00925BA9`, `0x00921F30..0x00921FD9`, `0x00939AA0..0x00939ADB` |
 | Visibility | `0x00F22900..0x00F22924`, `0x0093C2A0..0x0093C2CE`, `0x00914580..0x00914626` |
+| Cancel byte | `0x00921B00..0x00921BCF`, `0x00921DA0..0x00921DFB`, `0x009B1820..0x009B19F2`, `0x009ADCA0..0x009ADD1B`, `0x0094D740..0x0094D773`, `0x009B25E0..0x009B2614`, `0x0106A1E8`, `0x0106A1F0`, `0x0107D5F0` |
 | Global | the file bytes of every section for the little-endian address `0x0135708C` |
 
 Keep executable bytes, decoded instruction listings, decompiled bodies,

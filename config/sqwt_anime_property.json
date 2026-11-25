@@ -743,7 +743,7 @@
     },
     {
       "label": "UNKNOWN",
-      "question": "How a Hiding handler cancels the hide is not traced. The cancel byte sits in the Hiding event object at +0x1C, set by a handler outside this page."
+      "question": "The trigger action walk can set the Hiding cancel byte through event +0x14. Delivery of the trigger in a running client and any other writer of event +0x14 or +0x1C are not traced."
     },
     {
       "label": "INFERRED",

@@ -303,10 +303,30 @@ is nonzero (`0x0065E7C5..0x0065E7D7`), then `0x008548E0` and `0x00853C50`
 (`0x0065E810`, `0x00854919`). When `0x00A1C050` answers true on the
 scheduler object, the clip also calls virtual `+0x48` of the object loaded at
 `0x00821BA3` with the vector before `0x0065E7C0`
-(`0x00821D1B..0x00821E0C`). The arguments of that call were not traced. Mode
+(`0x00821D1B..0x00821E0C`), as its next paragraph records. Mode
 1 calls `0x00662BE0`, which calls `0x006617F0` (`0x00662C24`). That routine
 calls `0x0042FDC0`, `0x00669250`, `0x0042EDB0`, `0x0042F210` and finally the
 `0x100` wrapper `0x00854D20` (`0x0066191F`).
+
+STATIC, mode 2 virtual call. The object is the result of slot 9 of the object
+at clip `+0x24` (`0x00821B9B..0x00821BA3`), the same source that
+[SetPosClip](#setposclip) uses. The call at `0x00821E0C` passes seven stack
+arguments, listed here from the first:
+
+| Argument | Look-at mode 2 value | SetPosClip value at `0x0082A2B3` |
+| ---: | --- | --- |
+| 1 | the clip | the clip |
+| 2 | the actor record | the actor record |
+| 3 | pointer to a copy of scheduler `+0x10` | the same |
+| 4 | pointer to a copy of scheduler `+0x20` | the same |
+| 5 | pointer to (1, 1, 1, 1) | pointer to vector C |
+| 6 | pointer to a zero vector | pointer to vector B |
+| 7 | pointer to (`D+0x20`, `D+0x24`, `D+0x28`, 1.0) | pointer to vector A |
+
+After the call the clip reads the first three floats of the argument 7 buffer
+again and hands them to `0x0065E7C0` (`0x00821E0E..0x00821E46`). A change that
+the callee makes to that buffer therefore reaches the look-at setter. The body
+of virtual `+0x48` was not read.
 
 ### Mode 1 angle vector
 

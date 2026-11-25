@@ -687,6 +687,9 @@ of 1 to cancel byte `+0x1C` at `0x00921DC4` and `0x00921DF4`.
 The producers check that byte at `0x00921B84` and `0x00921FB2`
 before their immediate close or hide paths.
 
+A `BeginStoryboard` action carries the same flag, as the Anime page's
+[Cancel byte](sqwt-anime-property.md#cancel-byte) section records.
+
 The trace applies to the selected template with admitted actions and
 normal returns. Live event delivery, cache validity under collection
 mutation or target renaming, behavior under reentry, and later delivery
