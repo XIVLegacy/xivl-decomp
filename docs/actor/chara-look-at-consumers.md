@@ -441,7 +441,7 @@ definition record that the loader `0x00AED060` reads, described in
 - CALIBRATION: the head and eye rotation limits, rotation order and blend speed of the LookAtIKObject solver
 - UNPROVED: the role of the group 1 slots, which only kind 4 reaches, and of the call 0x0065BB50 for a zero weight
 - UNPROVED: the Lua natives that reach the angle worker through 0x0075C630 and the purpose of the call at 0x00562DEE
-- UNPROVED: the target resolver branches for the setter flags 0x100 and 0x400
+- UNPROVED: the target resolver branch for the setter flag 0x400 and the EID_LOOK_AT1 use that follows 0x0085388D
 
 ## Consumer contract
 
