@@ -126,8 +126,8 @@ V. `0x00C439C0` and `0x00C43FD0` are slots 1 and 2 of the
 tag `+0x04` with the dword at C `+0x1A4` and writes the enable only inside the
 arm taken when they differ. Slot 1 pushes 1 (`0x00C43ADD..0x00C43AE1`). Slot 2
 stores 1 at byte C `+0xB9E` (`0x00C44037`) before that arm and pushes EBX,
-zeroed at `0x00C43FEE` (`0x00C440E8..0x00C440EB`). Its decompiled listing
-stores 0 back to the byte before it returns.
+zeroed at `0x00C43FEE` (`0x00C440E8..0x00C440EB`). It stores 0 back to the byte
+at `0x00C444B5` before it returns.
 
 V. `0x00C3D340` returns early to its tail when the object in ECX equals the
 cached one at `0x01374CA8` (`0x00C3D384..0x00C3D38D`). Otherwise, when byte C

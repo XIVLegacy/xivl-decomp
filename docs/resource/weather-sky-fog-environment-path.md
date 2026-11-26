@@ -239,7 +239,11 @@ name of the node that B's data record references at `+0x30`. In the weather
 layout `0x29D9000F` that reference of lane DrawEnv `dwev_NN` names the
 `ScreenEnvBaseObject` `scev_NN` (V, file). The three DrawEnv nodes of each
 zone layout `0x29D90001` and `0x29D90002` hold a null reference there (V,
-file), so A comes from a swapped object for those layouts. The type id
+file). So on the category `0xB` arm a B from those layouts yields an A only
+when `0x007D3A90` swaps it for an object with a nonzero `+0x30`. Otherwise
+that arm writes no A, and `0x007DCDF0` does not replace holder `+0x1C` from
+that zeroed slot (`0x007DCEB5..0x007DCEBB`). The category `0xD` arm takes A
+from its first hit. The type id
 `0xD` to class mapping is not traced. The holder is
 `RaptureScreenEnvController`, and `0x007DD3F0` passes `+0x18` and `+0x1C` to
 `0x00A73BE0`, which reads them through their virtuals.

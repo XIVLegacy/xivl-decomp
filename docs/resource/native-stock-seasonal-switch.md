@@ -82,13 +82,22 @@ own the file hashes and node locators.
 
 The proposed profile therefore includes one explicit compatibility policy:
 on that Gridania Halloween spatial-weather lookup only, resolve a missing
-`dwev_01` using the chosen weather's `dwev_00`. Native `0x007DCDF0`
-called the exact-name lookup `0x007E4630` at `0x007DCEF5`. The latter
-returned the hit's node+`0x64` value at `0x007E4677`, or zero on an
-ordinary miss. Nonzero replaced the spatial holder's `+0x1C` object at
-`0x007DCF11`; zero retained the zone selection. Thus the policy has a
-specific lookup boundary. It is an added alias policy, not a discovered
-stock fallback or proof of original lane-01 lighting equivalence.
+`dwev_01` using the chosen weather's `dwev_00`. The
+[native DrawEnv name swap](weather-sky-fog-environment-path.md#position-query-0x007db9c0)
+is the candidate boundary. `0x007D3A90` called the lookup `0x007E45B0` at
+`0x007D3B3C`. A nonzero result replaced the selected DrawEnv, and zero
+returned the original argument (`0x007D3B54..0x007D3B5A`). `0x007D3A90`
+had direct callers at `0x007D899C`, `0x007DB973` and `0x007DBC0B`. The
+caller at `0x007D899C` was not checked for this policy. I: an alias would
+also give the selected object the name `dwev_00`, which later name consumers
+would receive. Their behavior under the alias was not checked.
+
+The separate lookup `0x007E4630`, called at `0x007DCEF5`, takes the name of
+the query's other result, A. The
+[lane-selection finding](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name)
+did not trace which object names key that map, so it is not the proposed
+boundary. The alias is an added policy, not a discovered stock fallback or
+proof of original lane-01 lighting equivalence.
 
 Other names retain their original exact-name behavior. Actual cross-city
 environment, sky, sound, camera and render admission still require a
