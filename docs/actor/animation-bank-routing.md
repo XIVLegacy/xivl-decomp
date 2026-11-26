@@ -336,8 +336,8 @@ table at `0x0058a7a8` maps state 12 to `0x0058a5cd`.
 In that state-12 path, comparisons at `0x0058a5f2` and `0x0058a5f8` route
 types 16 and 21 past the conditional calls at `0x0058a60e` and `0x0058a631`.
 The later comparisons at `0x0058a645` and `0x0058a64b` also route types 16
-and 21 past the call at `0x0058a667`, as does the compare with 1 at
-`0x0058a63f`. [Arrival fade in](#arrival-fade-in) owns that call.
+and 21 past the call at `0x0058a667`. The compare with 1 at `0x0058a63f` does
+the same for type 1. [Arrival fade in](#arrival-fade-in) owns that call.
 The shared tail writes `0x14` to actor byte `+0xea` at `0x0058a684` and
 updates the state word. The instruction paths were checked in the Ghidra 12.1
 disassembly; the switch-table entries were read from the raw pinned PE.
