@@ -73,7 +73,11 @@ argument, `s` is the camera float `+0x1D8` that `0x0060E960` returns, and
    (`0x00F55AD0`), negated first when bit `0x08` of camera byte `+0x1C6` is
    set. `y` is the word `+0x1BE` divided the same way, negated by bit `0x04`
    (`0x007F3D8D..0x007F3DE0`).
-2. The method rebuilds the level eye direction on each update
+2. Before this step, when the new focus differs from `ctx +0x60` by more than
+   10.0 (`0x00FA95A0`), the method calls context vtable slot `+0x08`, which is
+   `0x007F46A0` in the key 0 vtable (`0x007F3D3F..0x007F3D49`). The effect of
+   that call on these steps was not traced. The method then rebuilds the level
+   eye direction on each update
    (`0x007F3F3C..0x007F3FB3`). It subtracts the new focus from the vector at
    `ctx +0x30`, clears the y lane, stores the length at `ctx +0x84` and
    normalizes the vector. `ctx +0x30` is the candidate eye that the previous
@@ -97,9 +101,15 @@ argument, `s` is the camera float `+0x1D8` that `0x0060E960` returns, and
    its y set to the focus y plus `ctx +0x78`
    (`0x007F426B..0x007F42AE`).
 
+STATIC. After step 7, the
+[key 0 queries](camera-transform-inputs.md#key-0-endpoint-queries-and-smoothing)
+can replace the candidate eye and `ctx +0x78` (`0x007F4343`) before the store
+at `0x007F44BC`.
+
 STATIC. Because step 2 starts from the previous candidate eye, a focus that
-moves while no camera word is set drags the level direction behind it. This
-is the arithmetic of key 0 alone. It is not a statement about the Wow keys.
+moves while no camera word is set drags the level direction behind it on
+updates that do not take the focus-jump call. This is the arithmetic of key 0
+alone. It is not a statement about the Wow keys.
 
 STATIC. The rotation builder `0x0060D290` writes the rows `(cos, 0, -sin)`,
 `(0, 1, 0)` and `(sin, 0, cos)`, with the cosine routine `0x009D6280` and the

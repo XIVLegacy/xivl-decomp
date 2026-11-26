@@ -77,8 +77,9 @@ its computed initial selection at `0x0061BD3F`. Its tail starts with candidate
 `0`, changes it to `4` when `0x00616F90` returns zero, and has a further
 conditional `0x007A3A60` path that maps candidate groups to `0` or `2`.
 The [boolean predicate observation](indexed-float-clamp.md#separate-boolean-predicate)
-records the numeric branches of `0x00616F90`; their user-facing meaning is
-unresolved.
+records the numeric branches of `0x00616F90`. The objects it reads and its
+results are on
+[lock record and TargetActor](camera-held-keys-and-lock-aim.md#lock-record-and-targetactor).
 
 The late selection block in `0x006195D0` reads the current key at
 `0x00619B9B` and dispatches through `0x00619E88`. Current keys `1`, `3`,

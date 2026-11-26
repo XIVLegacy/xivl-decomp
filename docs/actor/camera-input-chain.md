@@ -62,12 +62,15 @@ When `0x007A3A60` holds for the object at `+0x590` of the pointer that `+0x440`
 or `[[+0x118]+0xD0]` resolves to, a second table
 (`0x006187E4`, arms at `0x006187DC`) maps 0, 1, 4, 5 to 0 and 2, 3, 6, 7 to 2,
 so that predicate removes the first-person keys. With `+0x448` bit `0x10` set,
-requests for keys 1, 3, 5 and 7 return before any change. The user-facing
-meaning of both predicates is unresolved.
+requests for keys 1, 3, 5 and 7 return before any change. The results of
+`0x00616F90` and the lock record it reads are on
+[lock record and TargetActor](camera-held-keys-and-lock-aim.md#lock-record-and-targetactor).
+The user-level meaning of `0x007A3A60` is unresolved.
 
 Client consequence. A client that models only key 0 can name the
-other keys from this table. It needs no behavior for keys 4 to 7 until the
-predicate in `0x00616F90` is resolved.
+other keys from this table. A client that applies the lock record also needs
+keys 4 and 6, and their lock-key behavior is only partly traced, see Open
+questions.
 
 ## Initial state
 

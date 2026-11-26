@@ -49,7 +49,8 @@ routine stores the four floats at filter `+0x08`, the converted duration at
 `+0x18`, and sets the filter flag dword at `+0x04` to
 `(flags & ~1) | 2`.
 
-So the record that the fade natives post drives this filter.
+INFERRED, from the receiver identity above. The record that the fade natives
+post therefore drives this filter.
 
 ## Controller update
 
