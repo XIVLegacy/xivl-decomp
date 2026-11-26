@@ -122,7 +122,8 @@ The vtable cells are at `0x0110C014` plus the thunk offset. For `0x13` the thunk
 `FUN_00CC1970`. For `0x14` the thunk `0x00B24210` jumps through `+0x24`, the cell
 `0x0110C038`, which holds `FUN_00CC1A80`. For `0x16` the thunk `0x00570840`
 jumps through `+0x2C`, the cell `0x0110C040`, which holds `FUN_00CC0DF0`.
-STATIC. The `0x16` handler body is not traced. The codes `0x18` to `0x1B`
+STATIC. The `0x16` handler body is in
+[Rich-text soft hyphen](rich-text-soft-hyphen.md). The codes `0x18` to `0x1B`
 that the base constructor registers are in
 [LogControl line format](logcontrol-line-format.md#code-0x19-and-the-neighbouring-state-codes).
 

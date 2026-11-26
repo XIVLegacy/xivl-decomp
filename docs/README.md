@@ -275,6 +275,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Rich-text sheet and case handlers](resource/rich-text-sheet-and-case-handlers.md)
 - [Rich-text colour tokens](resource/rich-text-colour-tokens.md)
 - [Rich-text global parameter vector](resource/rich-text-global-parameters.md)
+- [Rich-text soft hyphen](resource/rich-text-soft-hyphen.md)
 - [Battle log line path](resource/battle-log-line-path.md)
 - [LogWidget window placement](resource/log-widget-window-placement.md) -
   Native numbering and stacking of the second log window.
