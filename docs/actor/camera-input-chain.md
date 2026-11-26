@@ -62,12 +62,15 @@ When `0x007A3A60` holds for the object at `+0x590` of the pointer that `+0x440`
 or `[[+0x118]+0xD0]` resolves to, a second table
 (`0x006187E4`, arms at `0x006187DC`) maps 0, 1, 4, 5 to 0 and 2, 3, 6, 7 to 2,
 so that predicate removes the first-person keys. With `+0x448` bit `0x10` set,
-requests for keys 1, 3, 5 and 7 return before any change. The user-facing
-meaning of both predicates is unresolved.
+requests for keys 1, 3, 5 and 7 return before any change. The results of
+`0x00616F90` and the lock record it reads are on
+[lock record and TargetActor](camera-held-keys-and-lock-aim.md#lock-record-and-targetactor).
+The user-level meaning of `0x007A3A60` is unresolved.
 
 Client consequence. A client that models only key 0 can name the
-other keys from this table. It needs no behavior for keys 4 to 7 until the
-predicate in `0x00616F90` is resolved.
+other keys from this table. A client that applies the lock record also needs
+keys 4 and 6, and their lock-key behavior is only partly traced, see Open
+questions.
 
 ## Initial state
 
@@ -165,8 +168,9 @@ and the mouse-move handler (two sites, `0x0055CA61` and `0x0055CB1A`) first
 call `0x004D7580` on `[esi+0x7C]`, then a vtable method of the returned object
 (slot `+0x30`, and `+0x0C` at `0x0055CA6A`), and return without sending a
 command when the result is nonzero. The mouse-up handler has no such call.
-The meaning of the predicate (UI capture or input blocking) is unresolved, so
-the chain below is not unconditional.
+The methods read the player and camera control counts, see
+[control count readers](camera-held-keys-and-lock-aim.md#control-count-readers),
+so the chain below is not unconditional.
 
 STATIC. The handlers raise events through `0x004D7980` whose ids equal the
 camera command ids of the previous section, with matching payload sizes (10
@@ -303,8 +307,9 @@ first-person rates 0.0015.
 
 Key 0 consumes the camera-move payload instead. Its yaw step is
 `dx / 100.0 * 0.0625 * dt * s` applied through `0x0060D290`
-(`0x007F3FC5..0x007F4000`). The values `MoveCamera` carries for a held key are
-unresolved.
+(`0x007F3FC5..0x007F4000`). The values `MoveCamera` carries for a held key,
+the height step and the lock record are on
+[held keys and the lock record](camera-held-keys-and-lock-aim.md).
 
 Client consequence. Right drag rates and limits can use these
 constants: pitch +-45 degrees and 0.002 radians per cursor unit in third person.
@@ -500,12 +505,14 @@ and `_forceCameraTPSMode` (`PlayerBaseClass`) and `_aimCameraTutorial`,
 `_cancelAimCameraChocobo` are listed in
 `xivl-client-scripts:lua/napi_index.json`. Their C++ stubs start at
 `0x00732E20`, `0x00732F70`, `0x007330C0`, `0x00735970`, `0x0073B7F0`,
-`0x0073B940`, `0x0073A830`, `0x0073BD30` and `0x0073BE80`. Their effect on the
-camera flags is unresolved. The server can already gate the camera commands
+`0x0073B940`, `0x0073A830`, `0x0073BD30` and `0x0073BE80`. The
+[aim and cancel pair](camera-held-keys-and-lock-aim.md#_aimcameratutorial)
+reaches the camera through the lock record. The effect of the other natives on
+the camera flags is unresolved. The server can already gate the camera commands
 through the user-control groups of the s2c 0x0193 page cited above.
 
-Client consequence. The natives' effect is unresolved, so this section gives
-nothing to implement.
+Client consequence. Apart from the aim and cancel pair, the natives' effect is
+unresolved, so this section gives nothing more to implement.
 
 ## Open questions
 
@@ -513,14 +520,15 @@ The manifest lists these as `unresolved`.
 
 - The unit of the update's elapsed integer.
 - The look-at object vector and the collision margin.
-- The follow logic of keys 0 and 4 beyond the radius and rotation reads above.
+- The follow logic of keys 0 and 4 beyond the radius, rotation and height
+  reads above and on the linked pages.
 - The payload and effect of command 0x29 and the lock-key drag methods.
 - The producers of the focal, offset and invert bytes.
-- The user-level meaning of `0x00616F90`, `0x007A3A60` and the pointer-handler
-  predicate `0x004D7580`.
-- The camera effect of the script natives above.
-- The argument values of `MoveCamera` for held keys or a pad, and the key 0
-  rates.
+- The user-level meaning of `0x007A3A60`.
+- The camera effect of the script natives above other than the aim and cancel
+  pair.
+- The argument values of `MoveCamera` for a pad axis, and the unit behind the
+  key 0 rates.
 - Whether any writer other than the [auto-run](auto-run-latch.md) command
   arm makes the predicate `0x007A4610` hold during ordinary walking.
 - The consumers of commands 0x2E, 0x2F and 0x30. The lens arm sends command
