@@ -86,7 +86,7 @@ M+0x24. The fields below are read from P.
 | `+0x04` | f32 | `FLD` at `0x00a30bc0` and `0x00a30f4b` | stored by constructor `0x00a31a90` at container `+0x38`; [conditional endpoint/difference consumer](mtb-header-scalar-consumer.md) |
 | `+0x08` | u16 | `0x00a30bf4`, `0x00a302af` | Curve section count when `+0x0a` is zero, copied to object `+0x5c` |
 | `+0x0a` | u16 | `0x00a30b93` | group count. Zero selects the single-clip route, nonzero selects the group route |
-| `+0x0c` | u8 | `0x00a30bbc`, `0x00a2d840` | bit 0 is forwarded to the container constructor as a flag byte at container `+0x3d`. Bit 3 selects the wide Curve header below |
+| `+0x0c` | u8 | `0x00a30bbc`, `0x00a2d840` | bit 0 is forwarded to the container constructor as a flag byte at container `+0x3d`, which selects the [layer blend mode](mtb-fixed-motion-calculator.md#layer-blend-mode). Bit 3 selects the wide Curve header below |
 | `+0x10` | u32[`+0x0a`] | `0x00a2d4b0` | group index array, low 31 bits index table 3 |
 
 Accessors `0x00a30020` and `0x00a30040` return the version dword and the
