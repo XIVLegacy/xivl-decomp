@@ -280,9 +280,10 @@ UNKNOWN or open:
 
 ## Projection inputs
 
-STATIC. Four CameraObject getters supply the values below. `+0x24` and
-`+0x28` are the film width and height of the
-[camera record](#container-layout), under that table's INFERRED names.
+STATIC. Four CameraObject getters supply the values below. Offsets in this
+section are CameraObject offsets. The [camera record](#container-layout)
+copies place the film width at `+0x24`, the film height at `+0x28`, near at
+`+0x2c` and far at `+0x30`, under that table's INFERRED role names.
 
 | Getter | Result |
 |---|---|
@@ -291,7 +292,8 @@ STATIC. Four CameraObject getters supply the values below. `+0x24` and
 | `0x00a10840` | f32 at `+0x24` divided by f32 at `+0x28` |
 | `0x00a10940` | `2 * atan(f32(+0x28) * 0.5 / f32(+0x34))` times the double at `0x00feeff8`, which is single precision 180/pi widened |
 
-The 0.5 is the double at `0x00f59898` and `+0x34` is the focal length. The
+The 0.5 is the double at `0x00f59898`, and `+0x34` is the focal length stored
+by [Evaluation at a frame](#evaluation-at-a-frame). The
 [lens section](../actor/camera-input-chain.md#lens) identifies `atan` at
 `0x009dac80`.
 

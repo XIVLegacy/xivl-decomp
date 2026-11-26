@@ -213,8 +213,8 @@ INFERRED. `u32(D+0x30)` is the scene setup's weather ID request. It uses the
 same pending field and setter as other region-change weather IDs. A zero on a
 pending-region arm still reaches the setter, where the
 [type-zero child normalization](../net/weather-transition-runtime.md#region-lookup-and-resource-key)
-can select the region's first such child. A zero without a pending region
-requests no weather. The
+can select the region's first nonzero type-zero child key. A zero without a
+pending region requests no weather. The
 [install census](cut-clip-clock-writes.md#rapturebgsetupclip) records the
 authored values.
 
