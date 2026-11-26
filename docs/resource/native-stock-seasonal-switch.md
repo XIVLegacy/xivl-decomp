@@ -85,7 +85,7 @@ on that Gridania Halloween spatial-weather lookup only, resolve a missing
 `dwev_01` using the chosen weather's `dwev_00`. Native `0x007DCDF0`
 called the exact-name lookup `0x007E4630` at `0x007DCEF5`. The latter
 returned the hit's node+`0x64` value at `0x007E4677`, or zero on an
-ordinary miss. Nonzero replaced the spatial holder's current DrawEnv at
+ordinary miss. Nonzero replaced the spatial holder's `+0x1C` object at
 `0x007DCF11`; zero retained the zone selection. Thus the policy has a
 specific lookup boundary. It is an added alias policy, not a discovered
 stock fallback or proof of original lane-01 lighting equivalence.

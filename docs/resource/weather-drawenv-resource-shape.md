@@ -54,7 +54,9 @@ inventory for every weather layout:
 A DrawEnvObject binds its FogObject, LightSetObject, EnvMap list and ScreenEnv
 by node references (fields at `+0x18/+0x20`, `+0x24`, `+0x28`, `+0x30`, one
 float at `+0x34`). The sky and cloud DrawEnvs bind a LightSet only. The
-LaySettings draw-env count is 3 in each weather layout. A FogObject holds a
+LaySettings draw-env count is 3 in each weather layout. The
+[DrawEnv index lookup](weather-sky-fog-environment-path.md#drawenv-index-lookup)
+owns that table's entry shape and keys. A FogObject holds a
 record reference at `+0x10`, and the 12-dword record is the same default
 template on the three nodes read. A LightBaseObject holds no colour or
 intensity reference, only a fixed per-object template, so the time-varying

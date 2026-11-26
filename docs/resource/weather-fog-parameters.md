@@ -113,10 +113,47 @@ or C byte `+0x4E5` is nonzero (getters `0x00C483D0` and `0x00C483F0`).
 - `+0x4E4` is set to 1 by the context reset at `0x00C48E91`. Its setter
   `0x00C483C0` is called from `0x00C3D5D0` (pushes a register zeroed at
   `0x00C3D60C`), `0x00C3D340` (pushes a value derived from a flag bit),
-  `0x00C439C0` (pushes 1) and `0x00C43FD0` (pushes a register). Which pass kinds
-  end with 0 or 1 is U.
+  `0x00C439C0` (pushes 1) and `0x00C43FD0` (pushes a register). The
+  [per pass writes](#per-pass-fog-enable-writes) section owns their
+  conditions.
 - `+0x4E5` is cleared by the same reset. Its setter `0x00C483E0` has one caller,
   `0x00A098F0`, which forwards its own argument. Its role is U.
+
+### Per pass fog enable writes
+
+V. `0x00C439C0` and `0x00C43FD0` are slots 1 and 2 of the
+`Renderer::MeshDrawTag` vftable `0x010D7A04`. Each compares the signed word at
+tag `+0x04` with the dword at C `+0x1A4` and writes the enable only inside the
+arm taken when they differ. Slot 1 pushes 1 (`0x00C43ADD..0x00C43AE1`). Slot 2
+stores 1 at byte C `+0xB9E` (`0x00C44037`) before that arm and pushes EBX,
+zeroed at `0x00C43FEE` (`0x00C440E8..0x00C440EB`). Its decompiled listing
+stores 0 back to the byte before it returns.
+
+V. `0x00C3D340` returns early to its tail when the object in ECX equals the
+cached one at `0x01374CA8` (`0x00C3D384..0x00C3D38D`). Otherwise, when byte C
+`+0xB9E` is zero, it sets C `+0x4E4` to the complement of bit `0x40` of the
+first byte of the record at ECX `+0x30` (`0x00C3D3AA..0x00C3D3C8`). When the
+byte is nonzero it leaves the enable alone. `0x00C3D5D0` sets it to 0
+(`0x00C3D60C..0x00C3D611`). The one direct caller of `0x00C3D340` is in
+`0x00C3ECA0` and that of `0x00C3D5D0` is in `0x00C3EFD0`.
+
+I. A tag group drawn through `MeshDrawTag` slot 1 starts with fog on, and a
+newly bound material record with bit `0x40` set turns it off. Under slot 2 the
+fog stays off and the material write is blocked. Which render passes call each
+slot, which programs reach `0x00C3D5D0`, and the bit's value in zone
+materials are U.
+
+### Fog block source byte
+
+V. The byte at `0x01308D28` that [Layer blend](#layer-blend-v) tests selects
+between the DrawEnv block and the context block at C `+0x34C`. Among its
+writes, `0x007DD0F7` in `0x007DCF50` stores 0 when bit `0x200` of that
+routine's mask argument is set. Slot 25 of `CutPostEffectListener`
+(`0x0063E970`) stores a register, and slot 25 of
+`RaptureCutPostEffectListener` (`0x0063EF70`) stores 0 at `0x0063EF9F` and 1
+at `0x0063EFD7`. `0x00610979` and `0x00612BE9` also store 0, and `0x0060E407`
+and `0x0060E766` store 1. The image value is 1. I: the stores of 0 start
+override states. Which state holds during ordinary play is U.
 
 ### Wobble terms (V instructions, I meaning)
 
@@ -314,8 +351,9 @@ weather layouts to the clear colour was found. The clear colour source is U.
 
 ## Unknowns
 
-- Which pass kinds end with `+0x4E4` or `+0x4E5` set, so which draws mix fog at
-  all. Zone, sky and effect programs are outside the c001 shader walk.
+- Which render passes end with `+0x4E4` or `+0x4E5` set, so which draws mix
+  fog at all, beyond the [per pass writes](#per-pass-fog-enable-writes). Zone,
+  sky and effect programs are outside the c001 shader walk.
 - How many entries a zone layout DrawEnv carries, so whether the multi-entry
   layer blend is reached outside the weather clip, which writes one.
 - The fog expression of zone and non-character programs.

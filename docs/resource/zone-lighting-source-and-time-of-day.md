@@ -53,10 +53,11 @@ layouts also carry their own lights, see
 - Lane naming (I): first digit 0 outdoor, 1 dungeon, 2 indoor, matching the
   dependency textures `f0f_*` (5), `f0d_11/12` (2), `f0i_21/22` (2). The client
   classifies names by the `dwev_0`, `dwev_1`, `dwev_2` substrings (`0x007E7480`,
-  literals `0x00FEF4C0..`). The SPATIAL DrawEnv object the camera is in (zone
-  layout object, name via vtable `+0xA4`, caller `0x007DCE65`) picks which lane
-  of the weather layout is shown, see
-  [lane selection](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name).
+  literals `0x00FEF4C0..`). The DrawEnv object selected at the followed
+  position (name via vtable `+0xA4`, caller `0x007DCE65`) names the lane, see
+  [lane selection](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name)
+  and the
+  [followed position](weather-sky-fog-environment-path.md#followed-position-and-direction).
 - Zone layouts (fld, twn, dun, ind, air, low) also register DrawEnv, Fog,
   Light, LightSet and ScreenEnv types. `ind01` and the weather layouts also
   register `CubeMapBaseObject` and `EnvironmentMapDrawEnvObject`. Instance
