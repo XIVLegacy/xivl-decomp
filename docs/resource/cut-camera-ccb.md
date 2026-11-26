@@ -152,9 +152,9 @@ and the lists are runs of u16 group indices. The code that stores +0x14 was not 
 OBSERVED: measured from the `@FCPA` chunk start, every list of every record
 lies inside the `@FCIL` chunk. The names of the film, near and far roles
 are INFERRED from the values (the pair is a 16 to 9 gate in millimetres, the
-near values are 0.1 or smaller). The evaluator copies the four floats and the
-rest of the pipeline was not traced, so how a consumer builds a projection from
-them is UNKNOWN.
+near values are 0.1 or smaller). The evaluator copies the four floats. The
+static clip path to a projection builder is on
+[Projection inputs](#projection-inputs).
 
 ## Evaluation at a frame
 
@@ -273,10 +273,70 @@ UNKNOWN or open:
   and +0x18c to +0x194 to 0.0 and +0x188 and +0x198 to the float 1.0 at
   `0x00f54f70` (`0x00a1264c` to `0x00a12684`). Whether any other code writes
   them was not searched.
-- How a consumer maps the focal length and the film gate to a field of view,
-  and how it applies the roll and the up point.
+- How a consumer applies the roll and the up point. The focal length and film
+  gate mapping on one clip path is on [Projection inputs](#projection-inputs).
 - Whether chain C is parented to the chain A result alone (taken here) or to
   the result of chain B.
+
+## Projection inputs
+
+STATIC. Four CameraObject getters supply the values below. Offsets in this
+section are CameraObject offsets. The [camera record](#container-layout)
+copies place the film width at `+0x24`, the film height at `+0x28`, near at
+`+0x2c` and far at `+0x30`, under that table's INFERRED role names.
+
+| Getter | Result |
+|---|---|
+| `0x00a103c0` | f32 at `+0x2c`, near |
+| `0x00a103d0` | f32 at `+0x30`, far |
+| `0x00a10840` | f32 at `+0x24` divided by f32 at `+0x28` |
+| `0x00a10940` | `2 * atan(f32(+0x28) * 0.5 / f32(+0x34))` times the double at `0x00feeff8`, which is single precision 180/pi widened |
+
+The 0.5 is the double at `0x00f59898`, and `+0x34` is the focal length stored
+by [Evaluation at a frame](#evaluation-at-a-frame). The
+[lens section](../actor/camera-input-chain.md#lens) identifies `atan` at
+`0x009dac80`.
+
+The LocalCameraClip update `0x00a0bfd0` has two arms that pass these four
+values as the last four stack words of interface slot `+0x20`, in the order
+near, far, aspect and degrees.
+
+- The arm at `0x00a0c3d2` is taken when the key type byte is below 4, bit 0
+  of the byte at `+0x1a` of the object at stack local `[ESP+0x10]` is clear,
+  or clip `+0x80` is zero. It calls the getters and slot `+0x20` at
+  `0x00a0c53c..0x00a0c57f`.
+- The other arm stores the getter values at record `+0xd4..+0xe0`
+  (`0x00a0c30c..0x00a0c33e`) and calls slot `+0x3c`. When that returns zero it
+  calls `0x00a0bbd0`, which under its own guards passes those four record
+  words to slot `+0x20`.
+
+Slot `+0x20` of nominal table `0x01037a2c`, which the vtable catalog names
+`Application::Scene::Cut::Listeners::RaptureCutCameraListener`, is
+`0x00833070` (cell `0x01037a4c`). That method takes the four values as its
+last four stack words. It keeps the incoming near and far at `+0xa0/+0xa4`.
+It uses the float at `+0xa8` in place of near, and the float at `+0xac` in
+place of far, when that float compares as zero or above. It forms radians as
+degrees times the double at `0x00f62f48`, single precision pi widened,
+divided by the double 180.0 at `0x00f62f40`. It calls `0x007df8c0` with an
+output pointer, then radians, aspect, near and far
+(`0x00833070..0x00833103`). The aspect passes through unchanged. The
+[lens section](../actor/camera-input-chain.md#lens) owns that builder.
+
+INFERRED. The runtime interface of the clip is this listener class. A cut
+camera then projects with film width over film height, 24.892 / 14.003 or
+about 1.7776 for the [census](#census) gate, without reading the back buffer
+shape on this path. Together with the
+[cinema rectangle](cut-begin-viewport-and-clock.md#cinema-rectangle), shapes
+keep their proportions inside the 16:9 rectangle. The gameplay camera instead
+uses the viewport width over height, see the
+[lens section](../actor/camera-input-chain.md#lens).
+
+UNKNOWN. The runtime interface object was not traced, and neither were later
+changes to the projection or the writers of listener `+0xa8/+0xac`.
+
+Reproduce with `ghidra disasm` on `0x00a103c0`, `0x00a103d0`, `0x00a10840`,
+`0x00a10940`, `0x00a0c165`, `0x00a0c4ea`, `0x00a0bbd0` and `0x00833070`,
+`ghidra memory read` on the four doubles, and `ghidra x-ref to 0x00833070`.
 
 ## LocalCameraClip selection
 

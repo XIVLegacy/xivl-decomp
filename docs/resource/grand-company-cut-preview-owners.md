@@ -89,7 +89,9 @@ All addresses in this table are absolute file offsets.
 
 All 13 selected records have `u8(D+0x20)=1` and
 `u16(D+0x22)=0xFFFF`. The table's +`0x30` values are separate from
-both leading words. Their domain is not established here.
+both leading words. The
+[second argument consumer](cut-background-setup-inputs.md#second-request-argument-consumer)
+traces that word to a weather ID request on the conditional native path.
 
 The [class-key producer](scb-clip-factory-composition.md#parsed-clip-key-table)
 stores serialized entry byte +2 at runtime key-entry +4 and resolves its
@@ -105,8 +107,8 @@ input position, the table's +`0x30` value supplies its second argument,
 the low flag byte is 1, and the native state-1 name lookup uses the indexed
 stage string above. The native mode argument is 3 under that contract.
 This does not prove the actual factory selection, constructed clip/context/
-receiver, invocation, accepted region, meaning of the second argument,
-historical playback or server quest outcome.
+receiver, invocation, accepted region, an applied weather, historical
+playback or server quest outcome.
 
 The [background registration and construction path](cut-background-setup-construction.md)
 gives the selected factory and D/key field forwarding. It retains actual
