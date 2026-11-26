@@ -41,6 +41,46 @@ INFERRED. The word at `+0x38` is a cinema 16:9 viewport flag that the cut
 begin sets and the cut end clears. A back buffer whose 16:9 height equals its
 own height draws full size with the flag set.
 
+## Cinema rectangle
+
+STATIC. Let W and H be the back buffer words `+0x14/+0x18` and
+E=`(9 * W) / 16` as above. Every halving and division here truncates toward
+zero. The rectangle starts as x 0, y 0, width W and height H.
+
+| Case | Change | Locator |
+| --- | --- | --- |
+| Getter nonzero and E less than H | y = `H / 2 - E / 2`, with each half taken before the subtraction. Height = E. | `0x00A52EE9..0x00A52F05` |
+| Getter nonzero and E greater than H | F = `(16 * H) / 9`, x = `W / 2 - F / 2`, width = F. | `0x00A52F67..0x00A52F8E` |
+
+The routine stores left x, top y, right `x + width` and bottom `y + height`
+(`0x00A52F90..0x00A52FAC`). A local byte, set at `0x00A52EE2` for the two
+cases above and cleared at `0x00A52F15` on the full-size branch, selects the
+rectangle path at `0x00A52F9C`. The full-size branch skips that path.
+
+Before the rectangle blit, the path builds the vector (0, 0, 0, 1.0), with
+1.0 the float at `0x00F54F70`, and passes it to `0x0042D000`
+(`0x00A53091..0x00A530BC`).
+
+The call at `0x00A53136` passes mode 3 to the blit `0x0041F020`. Its source
+is the same surface object that the full-size branch selects through
+`0x00A55C60`. The source rectangle is (0, 0, source `+0x14`, source
+`+0x18`). The destination is the back buffer with the stored rectangle
+(`0x00A530C7..0x00A53136`). In mode 3 the blit derives quad positions from
+the destination rectangle edges divided by the destination dimensions, with a
+source-size offset. It derives texture coordinates from the source rectangle
+edges divided by the source dimensions. When the two rectangles differ, the
+coordinates move inward by 0.5, the double at `0x00F59898`, divided by the
+source dimension (`0x0041F1AF..0x0041F379`).
+
+INFERRED. The whole scene target is scaled into the rectangle rather than
+cropped. `0x0042D000` is a fill with that vector, which makes the bars black.
+The [present blit](present-gamma-blit.md#the-program-v) owns the programs
+that the quad uses.
+
+UNKNOWN. Whether the UI draws over the bars. The path later calls
+`0x00A5A460` with the rectangle values at `0x00A5317A`. What that routine
+draws was not traced.
+
 ## Time-of-day switch
 
 STATIC. After the flag store the cut begin calls `0x0060B360` on the object
@@ -63,6 +103,9 @@ The callers of `0x007E0430` are `0x007FCBF0`, `0x00809D50`, `0x0080AF10`,
 `0x00824270`, `0x008D1D60` (two callsites) and `0x008D3400`. `0x00824270`
 divides the selected 64-bit value by 60, 60 and 24 through `0x009D5880` and
 returns one of four fields by its selector argument (`0x00824280..0x00824300`).
+
+The [cut clip clock writes](cut-clip-clock-writes.md) cover the times that
+the background clips place on the alternate clock and the per-frame step.
 
 INFERRED. W is the weather and clock owner of
 [Zone lighting source and time of day](zone-lighting-source-and-time-of-day.md#time-of-day),
@@ -90,7 +133,7 @@ fields listed here.
 ## Reproduction
 
 Run `ghidra disasm` on `0x00A47130`, `0x00A47140`, `0x00611C30`,
-`0x00611D60`, `0x00A52E9A`, `0x0060FFC0`, `0x00610040`, `0x007E0410`,
-`0x007E0430`, `0x00824270`, `0x0061C4D0` and `0x0061BE00`. Run
+`0x00611D60`, `0x00A52E9A`, `0x0041F020`, `0x0060FFC0`, `0x00610040`,
+`0x007E0410`, `0x007E0430`, `0x00824270`, `0x0061C4D0` and `0x0061BE00`. Run
 `ghidra x-ref to` on `0x00A47130`, `0x00A47140`, `0x007E0410` and
 `0x007E0430` for the caller sets above.

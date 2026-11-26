@@ -87,7 +87,7 @@ generic phase word C+`0x20`. Its selected normal paths are:
 | ---: | --- |
 | 0 | If B+`0x190` is nonzero, require nonzero AL from `0x00623E20(B)`; then require zero AL from `0x00626A80(B)`. Consume the leading input as described below, call the request delegate, and write 1 through the saved clip pointer. |
 | 1 | Require nonzero AL from `0x00623E20(B)`, then select the record/name branch by key type. After the selected common path, write 2 through the saved clip pointer at `0x00816376`. |
-| 2 | Require zero AL from `0x00626A80(B)`, then run the later clock-related path. After its calls, request current slot 12 with 0 and write 3 at `0x00816115`. |
+| 2 | Require zero AL from `0x00626A80(B)`, then run the [clock write](cut-clip-clock-writes.md#background-setup). After its calls, request current slot 12 with 0 and write 3 at `0x00816115`. |
 | Other | Exit through the common epilogue. |
 
 The predicates' actual results and normal returns are inputs. These local
@@ -156,8 +156,76 @@ identifies that helper's region input and RegionInfo lookup. The
 identifies its third argument as mode. With preserved argument/local values
 and the expected actual MapLayoutActor receiver, the selected leading word
 therefore supplies the region-input position, N supplies the second argument,
-and the explicit mode is 3. This does not identify N's domain, prove that the
-region is accepted, or bind any runtime scene to an authored record.
+and the explicit mode is 3. The
+[consumer of that argument](#second-request-argument-consumer) is traced
+below. This does not prove that the region is accepted or bind any runtime
+scene to an authored record.
+
+## Second request argument consumer
+
+For T 3 to 7, N is `u32(D+0x30)`. For T 1 and 2 it is 0. The observations
+here are ghidra-cli disassembly and table reads on the pinned image, with no
+target execution. `0x0062D1C0` reads region, N and mode at entry-relative
+positions that appear as ESP+`0x2C`, `+0x30` and `+0x34` after its prologue.
+Let A be its MapLayoutActor receiver.
+
+### Queued form
+
+STATIC. After the region lookup succeeds, a zero byte at A+`0x1FD` makes the
+helper queue operation `mode + 5` through `0x0062C4D0`. The queued dword is
+`(N << 16) | (region & 0xFFFF)` (`0x0062D266..0x0062D281`), so only the low
+16 bits of N survive. Mode 3 gives operation 8. Dispatcher `0x0062DBE0`
+indexes table `0x0062DCB8` by operation minus 4. Its arms pass the low half
+as the region and the high half as the second argument:
+
+| Operation | Arm | Mode passed |
+| --- | --- | --- |
+| 5, 6, 7 | `0x0062DC27` | operation minus 5 |
+| 8 | `0x0062DC44` | literal 3 |
+| 9 | `0x0062DC05` | literal 2, after a call to `0x0062D160` |
+
+### Direct form
+
+STATIC. `0x006274A0` receives mode, region and an output flag pointer. For
+requested mode 3 it writes flag 0, because the flag requires a new mode other
+than 3. It stores mode at A+`0x1F0`. It returns 1 when the previous mode was
+0 and 7 when the region differs from A+`0x190`. For the same region it returns
+2, 4, 5 or 6 (`0x006274A0..0x006275D8`). It has no zero return for mode 3.
+
+With flag 0 the helper reaches `0x0062D32E` and loads EDI with N at
+`0x0062D348`. The
+[retained ID replacement](../net/weather-transition-runtime.md#pending-weather-id-through-a-region-change)
+from A+`0x1A0` lies on the nonzero-flag arm, which mode 3 does not take.
+Table `0x0062D44C`, indexed by the result minus 1, then selects:
+
+| Result | Arm | Pending fields stored |
+| --- | --- | --- |
+| 1, 6, 7 | `0x0062D363`, `0x0062D3AB`, `0x0062D3C3` | region at A+`0x188` and N at A+`0x18C` |
+| 2 to 5 | `0x0062D387`, `0x0062D394`, `0x0062D3A1` for both 4 and 5 | N at A+`0x18C` |
+
+The stores are at `0x0062D3DE` and `0x0062D3E4`. The
+[pending branches](../net/weather-transition-runtime.md#pending-weather-id-through-a-region-change)
+in `0x0062AA70` then pass A+`0x18C` to weather ID setter `0x00624180`. With a
+pending region, `0x00626DF0` calls it with that ID and region. Without one, a
+nonzero ID goes to `0x00624180(ID, 0)` and a zero ID makes no call.
+
+INFERRED. `u32(D+0x30)` is the scene setup's weather ID request. It uses the
+same pending field and setter as other region-change weather IDs. A zero on a
+pending-region arm still reaches the setter, where the
+[type-zero child normalization](../net/weather-transition-runtime.md#region-lookup-and-resource-key)
+can select the region's first such child. A zero without a pending region
+requests no weather. The
+[install census](cut-clip-clock-writes.md#rapturebgsetupclip) records the
+authored values.
+
+The setter keeps its own guards and early exits. This trace assumes the
+composition conditions above and does not show that a weather resource loaded
+or became visible. UNKNOWN. Other writes to A+`0x18C` between the store and
+the pending branch were not searched.
+
+Reproduce with `ghidra disasm` on `0x0062D1C0`, `0x006274A0`,
+`0x0062DBE0` and `0x0062AA70`, and `ghidra memory read` on tables
+`0x0062D44C` and `0x0062DCB8`.
 
 ## Second word and remaining meaning
 

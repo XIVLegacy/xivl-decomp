@@ -423,6 +423,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Cut scheduler clip payloads, ranks 14 to 22](resource/cut-scheduler-clip-payloads-ranks-14-22.md)
 - [Cut scheduler clip timing](resource/cut-scheduler-clip-timing.md)
 - [Cut begin viewport flag and time-of-day switch](resource/cut-begin-viewport-and-clock.md)
+- [Cut clip alternate clock writes](resource/cut-clip-clock-writes.md)
 - [Cut camera CCB container and rig evaluation](resource/cut-camera-ccb.md)
 - [DrawEnv texture-binding boundary](resource/draw-env-texture-binding-boundary.md)
 - [Limsa rain DrawEnv and VFX inputs](resource/limsa-rain-presentation.md)

@@ -76,9 +76,12 @@ Its arguments are the RegionInfo root in ECX, output-vector pointer at entry
 `[ESP+0x04]`, and filter at `[ESP+0x08]`, with `RET 8`.
 
 The full-dword lookup width is not the SetMap allocation width. Scene
-dispatcher `0x0062DBE0` separates the packed argument into low-16-bit
-region and high-16-bit mode before `0x0062D1C0`. The latter validates the
-region through `0x0079B310` and packs it again. A root intended for this
+dispatcher `0x0062DBE0` separates the packed argument into a low-16-bit
+region and a high-16-bit second argument before `0x0062D1C0`. The mode comes
+from the operation, see the
+[queued form](cut-background-setup-inputs.md#queued-form). `0x0062D1C0`
+validates the region through `0x0079B310` and its queued form packs it again.
+A root intended for this
 normal path needs a nonzero region key representable in 16 bits.
 
 The explicit incoming positions of `0x0062D1C0` are independently visible
