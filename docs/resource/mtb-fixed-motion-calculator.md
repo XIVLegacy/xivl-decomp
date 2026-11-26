@@ -33,7 +33,7 @@ census section.
 
 | Step | Address | Observation |
 |---|---|---|
-| Layer sample | `0x00e0b720` | When byte U+0x39 is nonzero it calls `0x00e0a000` (`0x00e0b731`), `0x00e09720` (`0x00e0b74f`) and `0x00e0a260` (`0x00e0b75e`). The middle call passes the frame float, weight 1.0, mode byte 0 and the row list. Two sibling callers at `0x00e0b7ab` and `0x00e0b7f2` pass other weights and modes, which were not read |
+| Layer sample | `0x00e0b720` | When byte U+0x39 is nonzero it calls `0x00e0a000` (`0x00e0b731`), `0x00e09720` (`0x00e0b74f`) and `0x00e0a260` (`0x00e0b75e`). The middle call passes the frame float, weight 1.0, mode byte 0 and the row list. The two other callers at `0x00e0b7ab` and `0x00e0b7f2` are covered under [Layer blend mode](#layer-blend-mode) |
 | Component walk | `0x00e09720` | Blob b is `ptr32(ptr32(U+0x34))`. G is the byte at U+0x38. It sums the row-list sizes of pairs 0 through G-1, then calls Calculate (`0x00e097c2`) once for each descriptor of pair G only, with rows `ptr32(U+0x30)` |
 | Calculate | `0x00a39250` | Arguments are blob, descriptor, row table, frame float, weight float, mode byte and row list |
 
@@ -261,6 +261,105 @@ The write is selected by the mode byte (`0x00a394db`). Mode 0 stores
 Any other mode builds `delta = 0x00a35180(identity, q, w)` and stores the
 Hamilton product `row quaternion * delta` from `0x00a39c00`
 (`0x00a39556..0x00a3956f`).
+
+## Layer blend mode
+
+For a `MotionControlLayer` filled by `0x00dfca80`, bit 0 of the container
+[Header payload](mtb-container-framing.md#header-payload) byte `+0x0c` selects
+the Calculate mode byte. A set bit samples the layer's units with mode 1. A
+clear bit samples them with mode 0. This is a static path through the same
+executable, read from `ghidra` CLI disassembly, memory reads, RTTI data and
+direct cross-references.
+
+### Header byte to container
+
+`ParseMTB_` constructs a curve container at `0x00a30bd8` (single clip) and
+`0x00a30f66` (group route). Each site loads the byte at P+0x0c, masks it with
+`0xffffff01` and pushes it as the fifth stack argument
+(`0x00a30bbc..0x00a30bcf`, `0x00a30f47..0x00a30f57`). Constructor
+`0x00a31a90` tests that argument against zero (`0x00a31ac1`, `SETNZ` at
+`0x00a31ae9`) and stores the result at container `+0x3d` (`0x00a31afa`). It
+installs vtable `0x01098b7c`, whose RTTI names `MotionCurveContainer`
+(complete object locator `0x01186b04`). The rejected-version route of
+`ParseMTB_` builds a container in place and writes zero to `+0x3d`
+(`0x00a30a49`).
+
+Vtable slot `+0x2c` is `0x00a2c5a0`. It returns nonzero when container byte
+`+0x3d` is nonzero.
+
+### Container to layer
+
+`0x00a31920` writes the container pointer to its second argument
+(`0x00a3194b..0x00a3194f`). Its only direct caller is `0x00dfca80` at
+`0x00dfcb51`.
+
+`0x00dfca80` looks in the pointer list at its receiver `+0x1c` for an entry
+whose first dword equals the first argument. It returns when that layer's
+`+0x78` is already nonzero (`0x00dfcaea..0x00dfcaee`). Otherwise it stores its
+second argument there. The same container supplies the blob through slot
+`+0x30` for the row-list builder (`0x00dfcb8d..0x00dfcbb9`). A unit below is
+the object U of the call chain table. For each unit the function then calls
+slot `+0x2c` (`0x00dfcc62..0x00dfcc6b`), pushes the result as the second stack
+argument of `0x00e017c0` (`0x00dfcc6d`, call `0x00dfcc81`) and passes the layer
+in ECX. The unit is the first stack argument. All units added by one call
+therefore get the same flag.
+
+`0x00e017c0` appends the unit to the layer vector at `+0x20`. It tests the low
+byte of the second argument (`0x00e01834`) and ORs 1 into layer `+0x90` when it
+is nonzero (`0x00e0183b`). Its other direct caller, `0x00dfce6f` in
+`0x00dfcd10`, pushes constant zero for that argument (`0x00dfce5a`).
+
+The layer vtable is `0x0113b2b4`, whose RTTI names `MotionControlLayer`
+(complete object locator `0x011a7400`). Constructor `0x00dfd360` zeroes
+`+0x90` (`0x00dfd412`). Its only direct caller, `0x00dfc9f0`, allocates `0x9c`
+bytes. A linear disassembly of `0x00dfb000..0x00e02d1b` shows setters that
+change bits 1, 2 and 3 of the layer dword (`0x00dfd477..0x00dfd4e1`) and no
+layer write that clears bit 0. Code outside that range was not searched. Slot
+`+0x48` (`0x00dfd460`) returns bit 0, and its callers were not read.
+
+### Layer walks to Calculate
+
+`0x00dfc4a0` runs one of two walks over its layers. When its receiver byte
+`+0x30` is nonzero it calls `0x00e00ed0` (`0x00dfc5a3`), otherwise `0x00e01530`
+(`0x00dfc5de`). These are the only direct callers of the walks. Both test layer
+`+0x90` bit 0 (`0x00e00ef2`, `0x00e01535`).
+
+With the bit set, each walk visits the units at `+0x24..+0x28`. For a unit
+with byte `+0x39` nonzero and a weight above 0.0 (float at `0x01086650`) it
+calls `0x00e0b7d0` (`0x00e00f73`, `0x00e015b4`), the only direct callers of
+that entry. The frame is the layer float at `+0x14` and the row list is layer
+`+0x98`. The weight is the result of a layer virtual slot for the unit index:
+`+0x6c` in `0x00e00ed0` (`0x00e00f38`) and `+0x28` in `0x00e01530`
+(`0x00e01579`). With the bit clear, `0x00e00ed0` calls `0x00e0b770` and
+`0x00e01530` calls `0x00e0b720`.
+
+| Entry | Call to `0x00e09720` | Weight | Mode byte |
+|---|---|---|---:|
+| `0x00e0b720` | `0x00e0b74f` | 1.0 | 0 (`0x00e0b73d`) |
+| `0x00e0b770` | `0x00e0b7ab` | its weight argument | 0 (`0x00e0b799`) |
+| `0x00e0b7d0` | `0x00e0b7f2` | its weight argument | 1 (`0x00e0b7e2`) |
+
+These are the three direct callers of `0x00e09720`. It forwards the mode and
+weight to Calculate (`0x00e097a4..0x00e097c2`), and that call is the only
+direct call of `0x00a39250`. The two write forms are under
+[Scalar path](#scalar-path) and [Quaternion path](#quaternion-path). Mode 1
+starts scalar lanes from zero, so translation becomes `cur + T*w` and scale
+`cur*(C*w + 1)`. Rotation becomes the row quaternion times the delta from
+identity.
+
+The [install census of this bit](https://github.com/XIVLegacy/xivl-client-data/blob/main/docs/mtb-header-flag-census.md)
+is in `xivl-client-data`.
+
+### Limits
+
+- Direct cross-references do not exclude indirect calls. No client execution
+  was observed, including which motions reach `0x00dfca80`.
+- What the rows hold when a mode 1 layer samples them, including the order of
+  layers over one row table, was not read.
+- `0x00e0b7d0` also calls `0x00e0b0e0` (`0x00e0b822`) when the weight is below
+  the double at `0x00fc1048` (0.9900000095367432). The mode 0 entries call
+  other helpers around the sample. None of these helpers was read.
+- The operand convention of the Hamilton product remains open.
 
 ## Root section role
 
@@ -510,8 +609,8 @@ descriptors:
 - Bytes `+0x01` and `+0x03..+0x0f` of the blob, channel bytes `+2` and `+6..+7`
   and the 160-byte tail in containers with a `root` section have no audited
   reader.
-- The sibling callers of `0x00e09720` and the values they pass as weight and
-  mode, and the source and units of the frame argument, are not read.
+- The producers of the layer weight and frame floats, and the units of the
+  frame argument, are not read.
 - The meaning of an output of Calculate in clock time, and whether retail
   playback uses the scalar and the quaternion paths at the same frame, are not
   established.
