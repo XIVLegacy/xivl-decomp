@@ -138,8 +138,15 @@ data at `0x00CB24B4` and `0x00CB24C4`.
 | `0x02` then `0x1D` | 0 | 4 | `0x1D` |
 | `0x02` then `0x1F` | 0 | 4 | `0x1E` |
 | `0x02` then any other byte | 4 | 1 | none |
-| Another byte that is in the delimiter string | 1 | 1 | the source byte, taken by the caller |
+| Another byte below `0x80` that is in the delimiter string | 1 | 1 | the source byte, taken by the caller |
 | Any other byte | 0 | 1 | the source byte, taken by the caller |
+
+The delimiter comparison zero-extends the source byte and sign-extends each
+delimiter byte (`0x00CB2480..0x00CB2485`). A source byte from `0x80` through
+`0xFF` therefore never matches and gives result 0, even when the delimiter
+string holds that byte
+([byte copying and callback arguments](bitmap-font-text-key-consumers.md#byte-copying-and-callback-arguments)).
+STATIC.
 
 `FUN_00CB24E0` appends units while the result is zero. It also appends on
 result 1 when its fifth argument is nonzero. Any other result ends the scan,
