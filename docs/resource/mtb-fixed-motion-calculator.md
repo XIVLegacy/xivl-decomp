@@ -293,8 +293,8 @@ Vtable slot `+0x2c` is `0x00a2c5a0`. It returns nonzero when container byte
 (`0x00a3194b..0x00a3194f`). Its only direct caller is `0x00dfca80` at
 `0x00dfcb51`.
 
-`0x00dfca80` looks in the pointer list at its receiver `+0x1c` for an entry
-whose first dword equals the first argument. It returns when that layer's
+`0x00dfca80` looks for its first argument, a layer pointer, among the entries
+of the pointer list at its receiver `+0x1c`. It returns when that layer's
 `+0x78` is already nonzero (`0x00dfcaea..0x00dfcaee`). Otherwise it stores its
 second argument there. The same container supplies the blob through slot
 `+0x30` for the row-list builder (`0x00dfcb8d..0x00dfcbb9`). A unit below is
@@ -356,9 +356,10 @@ is in `xivl-client-data`.
   was observed, including which motions reach `0x00dfca80`.
 - What the rows hold when a mode 1 layer samples them, including the order of
   layers over one row table, was not read.
-- `0x00e0b7d0` also calls `0x00e0b0e0` (`0x00e0b822`) when the weight is below
-  the double at `0x00fc1048` (0.9900000095367432). The mode 0 entries call
-  other helpers around the sample. None of these helpers was read.
+- `0x00e0b7d0` calls `0x00e0b0e0` (`0x00e0b822`) when the weight is below the
+  double at `0x00fc1048` (0.9900000095367432) and `0x00e0abd0` (`0x00e0b835`)
+  otherwise. The mode 0 entries call other helpers around the sample. None of
+  these helpers was read.
 - The operand convention of the Hamilton product remains open.
 
 ## Root section role
