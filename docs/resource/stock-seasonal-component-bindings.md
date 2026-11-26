@@ -190,10 +190,12 @@ Reusing either layout in Gridania is a stock-file candidate. Their local
 DrawEnv, instance, sound and texture bindings differed. Native key selection
 is established below; a correctly resolved/rendered result remains unproven.
 
-The [exact-name DrawEnv consumer](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name)
-replaced a selected zone DrawEnv only when its name existed in the weather
-work set. Otherwise the selected zone object remained. Both cross-city
-8027 wrappers contained the common named weather lanes but no `dwev_01`.
+The [DrawEnv name swap](weather-sky-fog-environment-path.md#position-query-0x007db9c0),
+`0x007D3A90` through `0x007E45B0`, replaced a selected zone DrawEnv only
+when that lookup found its name. Otherwise the selected zone object
+remained. I: the lookup searched the weather layout's objects. Both
+cross-city 8027 wrappers contained the common named weather lanes but no
+`dwev_01`.
 The Gridania public town and field layouts did contain that lane:
 
 | Original Gridania DAT | Bytes / SHA-256 | Typed `dwev_01` file locator |

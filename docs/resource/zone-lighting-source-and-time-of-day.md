@@ -53,10 +53,11 @@ layouts also carry their own lights, see
 - Lane naming (I): first digit 0 outdoor, 1 dungeon, 2 indoor, matching the
   dependency textures `f0f_*` (5), `f0d_11/12` (2), `f0i_21/22` (2). The client
   classifies names by the `dwev_0`, `dwev_1`, `dwev_2` substrings (`0x007E7480`,
-  literals `0x00FEF4C0..`). The SPATIAL DrawEnv object the camera is in (zone
-  layout object, name via vtable `+0xA4`, caller `0x007DCE65`) picks which lane
-  of the weather layout is shown, see
-  [lane selection](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name).
+  literals `0x00FEF4C0..`). The DrawEnv object selected at the followed
+  position (name via vtable `+0xA4`, caller `0x007DCE65`) names the lane, see
+  [lane selection](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name)
+  and the
+  [followed position](weather-sky-fog-environment-path.md#followed-position-and-direction).
 - Zone layouts (fld, twn, dun, ind, air, low) also register DrawEnv, Fog,
   Light, LightSet and ScreenEnv types. `ind01` and the weather layouts also
   register `CubeMapBaseObject` and `EnvironmentMapDrawEnvObject`. Instance
@@ -203,13 +204,15 @@ colour is the amb light. The `ltst_NN` members are slot records of
   [Zone point light route](#zone-point-light-route).
 
 The zone directional and ambient lights are the LightSet content of the zone
-DrawEnv objects. A weather DrawEnv of the same name replaces the holder's
-current DrawEnv through the lane-selection path. This object replacement
-alone does not identify the LightSet list read by a selected draw.
+DrawEnv objects. I: `0x007D3A90` swaps the selected zone DrawEnv B for the
+weather object of the same name, see
+[Position query](weather-sky-fog-environment-path.md#position-query-0x007db9c0).
+How this relates to the holder's `+0x1C` object is a separate matter. The
+swap alone does not identify the LightSet list read by a selected draw.
 
 The [ordinary MeshDrawTag source](model-lightset-source.md#component-list-and-conditional-pixellight-read)
 stores the tag at render context+0x1A0; its getters expose the MINS-selected
-component list. Equality between that list's entries and the current DrawEnv's
+component list. Equality between that list's entries and the selected DrawEnv's
 LightSets needs a separate source/selection join. The
 [per-node context+0x308 block](chara-engine-samplers-and-light-inputs.md#per-node-light-list-and-ambient-seed-v)
 has its own DrawEnv/LightEnv sources. The selected VertexLight branch reads

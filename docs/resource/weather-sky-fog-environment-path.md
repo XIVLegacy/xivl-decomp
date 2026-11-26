@@ -137,9 +137,9 @@ for the play view is U.
 
 ## Lane selection by spatial DrawEnv name
 
-Each frame `0x007DCDF0` runs a position query (`0x007DB9C0`, a short segment
-test at the camera or player position) that returns two zone layout objects,
-A in output slot 0 and B in slot 1. The two class ids tested at the end of the
+`0x007DCDF0` runs a position query (`0x007DB9C0`, a short segment test at the
+[followed position](#followed-position-and-direction)) that returns two
+objects, A in output slot 0 and B in slot 1. The two class ids tested at the end of the
 query are `0xD` and `0xB` (I for what they mean).
 
 - B: its name (object vtable `+0xA4`) is passed with the previous name to
@@ -151,18 +151,23 @@ query are `0xD` and `0xB` (I for what they mean).
   60 frame spatial fade at `+0x8C` is the separate counter in the
   [runtime page](../net/weather-transition-runtime.md#independent-spatial-fade).
   What `+0xE4` drives next is I.
-- A becomes the holder's current DrawEnv (`+0x1C`, previous in `+0x18`). Its
-  name (vtable `+0x08`) is then looked up with `0x007E4630`, an exact name
-  `std::map` find on the manager at `+0x38`. Node `+0x64` of the hit holds the
-  blended work-set Weather::DrawEnv that `0x007E7C50` and `0x008CB370` build
-  per weather DrawEnv name. When the key exists the holder's `+0x1C` is
-  replaced by that work-set DrawEnv, otherwise A stays.
+- A becomes the holder's current object at `+0x1C` (previous in `+0x18`).
+  I: it is a ScreenEnv, see
+  [Position query](#position-query-0x007db9c0). Its name (vtable `+0x08`) is
+  then looked up with `0x007E4630`, an exact name `std::map` find on the
+  manager at `+0x38`, which returns node `+0x64` of the hit. When the key
+  exists the holder's `+0x1C` is replaced by that value, otherwise A stays.
+  I: `0x007E7C50` and `0x008CB370` build the map's blend work set per weather
+  object name. Which object names key this map was not traced.
 - The two layouts being blended (`0x007E4CA0`, `0x007E4690`) are matched by the
   same exact names, so a lane is a DrawEnv name (`dwev_00 01 10 11 12 20 21 22`
   in the weather layouts).
 
-So the lane is chosen by exact name equality between the zone layout object
-that contains the position and a DrawEnv of the weather layout. The prefixes
+So the lane name is the name of B, the layout object selected at the queried
+position, and it is matched by exact name equality against the weather
+layout. A collision triangle does not spell that name. It carries an index
+that the owning layout maps to one of its DrawEnv objects, see
+[DrawEnv index lookup](#drawenv-index-lookup). The prefixes
 `dwev_0`, `dwev_1`, `dwev_2` only classify transitions (`0x007E7480`), the
 outdoor flag of `0x007E6460` and a fog parameter pass over the `dwev_1` and
 `dwev_2` entries in `0x007E49E0` (I for its purpose, call structure in
@@ -226,21 +231,133 @@ returns an entry (`0x007E759A..0x007E75E8`).
 
 I. The `0xB` hit is an Attribute hull of the zone collision
 ([selected instance admission](attribute-resource-and-scene-binding.md#selected-instance-admission)),
-B is the zone DrawEnv the triangle names, and `0x007D3A90` swaps it for the
-weather work-set DrawEnv of the same name. Bits 7 to 11 take 0, 1, 10, 11,
-13, 14, 20, 21 and 22 in the ground material census, and the weather
-layouts name lanes `dwev_00` to `dwev_22`, which fits index N naming
-`dwev_NN`. The O `+4` virtual `+0x198`, `+0x1A0` and `+0x10` targets were
-not traced, so that mapping is I. Holder `+0x50` reads as the down
-direction and `+0x40` as the followed position (camera or actor U). The
-writers of holder `+0x40`, `+0x50`, `+0x70` and byte `+0x86` are U, and
-category `0xD` is U.
+B is the DrawEnv object the triangle's index selects, and `0x007D3A90` swaps
+it for the weather layout's object of the same name. Category `0xD` is U.
+
+I. A is a ScreenEnv. `0x007DB9C0` and `0x007DB940` pass type `0xD` and the
+name of the node that B's data record references at `+0x30`. In the weather
+layout `0x29D9000F` that reference of lane DrawEnv `dwev_NN` names the
+`ScreenEnvBaseObject` `scev_NN` (V, file). The three DrawEnv nodes of each
+zone layout `0x29D90001` and `0x29D90002` hold a null reference there (V,
+file). So on the category `0xB` arm a B from those layouts yields an A only
+when `0x007D3A90` swaps it for an object with a nonzero `+0x30`. Otherwise
+that arm writes no A, and `0x007DCDF0` does not replace holder `+0x1C` from
+that zeroed slot (`0x007DCEB5..0x007DCEBB`). The category `0xD` arm takes A
+from its first hit. The type id
+`0xD` to class mapping is not traced. The holder is
+`RaptureScreenEnvController`, and `0x007DD3F0` passes `+0x18` and `+0x1C` to
+`0x00A73BE0`, which reads them through their virtuals.
+
+V. `0x007DCDF0` falls back to `0x007DB940` (`0x007DCE53`) when the first
+query leaves B null, `0x00623C60` returns nonzero and
+`0x00624D10(0xB, 0)` returns zero. That routine queries by position through
+`0x00629D80`, which calls `0x00624AC0` with kind 2 and returns the first
+nonzero `0x00627610` result. What those volumes are is U. When B is still
+null the name and the indoor flag keep their values. When bit 0 of byte
+`+0x86` is set, slot 7 runs `0x007DCDF0` if byte `+0x81` is zero and then reloads that byte from
+`+0x80`, else it decrements it (`0x007DD4D0..0x007DD4ED`).
+
+### Followed position and direction
+
+V. The constructor `0x007DA6D0` stores (0, 0, 0, 1) at holder `+0x40` and
+`+0x70`, stores (0, -1, 0, 0) at `+0x50` with the float -1.0 at
+`0x00F62F80`, and clears bit `0x10` of byte `+0x86`. `0x0061B5A0` creates the
+controller and keeps it at `+0x470` of its object S (`0x0061B91E`).
+
+V. `0x007D9D70` copies its argument to holder `+0x40`. Its one direct caller
+is `0x006168F0` (`0x0061695B`), which then calls the holder's virtual `+0x1C`,
+slot 7. `0x006195D0` calls `0x006168F0` at `0x00619B42`. `0x006168F0` picks
+the position:
+
+1. It takes the object that `0x00616310` finds for the dword at S `+0x440`
+   when that dword is not `0xC0000000`. Otherwise, or when the find returns
+   null, it takes the pointer at `[S+0x118]+0xD0`.
+2. When that object exists and bit 0 of byte S `+0x448` is clear, the
+   position is the result of the object's virtual `+0x88`.
+3. Otherwise it is the 16 bytes at S `+0x3A0`.
+
+The 16 bytes at S `+0x3A0` are the last row of the 64 byte matrix that
+`0x006195D0` stores at S `+0x370..+0x3AF` earlier in the same call, built from
+the object that `[S+0x114]` virtual `+0x0C` returns
+(`0x00619AA4..0x00619B0D`). I: the dword at `+0x440` is an actor id, the two
+objects are actors, and S `+0x3A0` is the camera position. Which actor
+`[S+0x118]+0xD0` names and who sets bit 0 of S `+0x448` are U. The setter
+`0x007D9DA0` writes holder `+0x50` and clears its w lane, and no direct
+cross-reference to it was found. I: the query direction therefore stays
+straight down. Writers of `+0x70` after construction and a setter of bit
+`0x10` of `+0x86` are U.
+
+### DrawEnv index lookup
+
+`0x007D4130` takes the owner O of the hit shape and calls three virtuals on
+`O+4`. The slot `+0x198` target `0x00A8AFF0` appears at that slot of the
+`LayoutManager`, `RaptureLayoutManager`, `MapLayoutWeather`,
+`MapLayoutWeatherBase` and `MapLayoutWeatherSky` vftables (`0x010A22A4`,
+`0x00FBFCEC`, `0x0103CEC4`, `0x0103C9B4`, `0x0103CC3C`). The first, second and
+third have complete-object offset 4 in their RTTI locators. I: O is the layout
+manager of the layout that owns the hull.
+
+V for that vftable family:
+
+| Slot | Target | Result |
+| --- | --- | --- |
+| `+0x18C` | `0x00A8AFB0` | Dword at `[M+0x7C]+0x58`, the entry count |
+| `+0x190` | `0x00A8AFC0` | First dword of 8 byte entry i of the array at `[M+0x7C]+0x54` |
+| `+0x194` | `0x00A8AFD0` | Second dword of entry i |
+| `+0x198` | `0x00A8AFF0` | The second dword of the first entry whose first dword equals the argument, or zero |
+| `+0x1A0` | `0x00657680` | Dword at `M+0xCC` |
+
+M is the interface pointer in ECX. `0x00A8E303..0x00A8E326` stores a node at
+`+0x7C` of its receiver after a class test against the path at pointer
+`0x012F594C` (`MiscObjects/LaySettings/LaySettingsObject`, `0x010A2714`). I:
+that receiver is M, so `[M+0x7C]` is the layout's `LaySettingsObject` node.
+The file shape of `+0x54` and `+0x58` below agrees. I: `M+0xCC` is the
+layout's DrawEnv container. Slot `+0x10` of the
+`LayoutDrawEnvContainer` vftable `0x0109EC50` (`0x00A75390`) is a map find
+that returns zero on a miss.
+
+So the triangle index is a search key in the owning layout's own table. The
+value is a reference to a DrawEnv node, and the name of B is that node's
+name. An index with no entry gives no B.
+
+V (file, structure-only read of the 287 installed `MapLayoutResourceData`
+files). `LaySettingsObject` `+0x54` is a reference to a run of 8 byte entries
+and `+0x58` is the count. The run's node type declares one reference
+descriptor, at `+4`. 258 layouts hold a nonempty table and 29 hold none.
+All 649 entries reference a `DrawEnvObjects/DrawEnv/DrawEnvObject` node.
+The keys are 0, 1, 10, 11, 13, 14, 20, 21 and 22. In 78 entries of 61
+layouts the referenced name is not `dwev_` followed by the two digit key. 14
+layouts repeat a key, where the lookup returns the first entry.
+
+Region 101 (`sea_s0`), non-weather children with a key 20 entry:
+
+| Layout | Name | Table, key to DrawEnv |
+| --- | --- | --- |
+| `0x29D90001` | `sea_s0_twn01` | 0 `dwev_00`, 1 `dwev_21`, 20 `dwev_21`, 10 `dwev_10` |
+| `0x29D90002` | `sea_s0_ind01` | 0 `dwev_00`, 1 `dwev_21`, 20 `dwev_21`, 22 `dwev_22` |
+| `0x29D90017` | `sea_s0_lin01` | 0 `dwev_00`, 20 `dwev_22`, 1 `dwev_01` |
+
+The region's other non-weather children have no key 20 entry. Its weather
+children map keys 0, 10 and 20 to `dwev_00`, `dwev_10` and `dwev_20`.
+So an index 20 triangle owned by one of the three layouts above names lane
+`21` or `22`, never lane `20` (I, with the owner reading above). Their
+SHA-256 values are `bc40d7ff57ab8998978532cce4564e2488ed81d6d10b8f7ede3e1586b0b26523`
+for `0x29D90001` (1197104 bytes) and
+`c6d86bfea2692e612464e7e08f6604df4f26fc1ea99da16727e824c920a693d8`
+for `0x29D90002` (728976 bytes). In `0x29D90001` the table starts at file
+offset `0x42C5C`, and in `0x29D90002` at `0x2E61C`.
 
 Reproduce with `ghidra x-ref to 0x007db9c0`, `ghidra x-ref to 0x007dcdf0`,
 `ghidra x-ref to 0x007e7480`, `ghidra disasm 0x007db9c0 -n 200`,
-`ghidra disasm 0x007d4130 -n 100`, `ghidra disasm 0x007d3a90 -n 60` and
-`ghidra disasm 0x007e7480 -n 110`, and read the cell `0x00FEEDA0` and the
-floats `0x00F54F70` and `0x00FA95A0`.
+`ghidra disasm 0x007d4130 -n 100`, `ghidra disasm 0x007d3a90 -n 60`,
+`ghidra disasm 0x007e7480 -n 110`, `ghidra disasm 0x00a8af90 -n 40`,
+`ghidra disasm 0x00a8e2e0 -n 40`, `ghidra decompile 0x007da6d0`,
+`ghidra disasm 0x006168f0 -n 40` and `ghidra disasm 0x00619ac0 -n 40`, and
+read the cell `0x00FEEDA0` and the floats `0x00F54F70`, `0x00F62F80` and
+`0x00FA95A0`. For the file census, follow the object list of each `lyb`
+payload to its LaySettings node
+(`xivl-tools:docs/formats/world-layout.md`) and read the two dwords at
+`+0x54` and `+0x58`.
 
 ## Unknowns
 
@@ -248,7 +365,12 @@ floats `0x00F54F70` and `0x00FA95A0`.
   page, and which values the time clips override. The fog entry fields are in
   [Weather fog parameters and fog mix](weather-fog-parameters.md).
 - The clear colour producer and default.
-- The default state of the holder's current DrawEnv before the first query hit.
+- The default state of the holder's `+0x1C` object before the first query hit.
+- Which DrawEnv a zone BG draw node holds at node `+0xF4`, or takes from the
+  scheduler default at `+0x10`
+  ([node selection](chara-engine-samplers-and-light-inputs.md#same-machinery-for-actors-and-terrain-v-unless-marked)).
+  The followed position selects the controller's environment and the indoor
+  flag. This page does not show that it selects the fog of every zone draw.
 - The sky gradient producer (FCurve payload) and how SunMoon clips place the
   sun and moon from seconds-of-day.
 - Whether the three-entry LaySettings draw-env list in weather layouts is the
