@@ -143,6 +143,40 @@ each child starting on its parent clip's frame, the damage select of banks
 `0004` and `0005` falls 37 frames after `main` starts. The run-time start of
 each child and the bank that answers `main` were not observed.
 
+## Installed effect sound clips
+
+MEASURED. These are the RaptureSoundClip records of the effect banks below,
+read with `tools/scb_clip_scheduler.py`. The
+[RaptureSoundClip consumer](../resource/cut-scheduler-clip-payloads-ranks-14-22.md#rapturesoundclip)
+owns the fields. Every record is 44 bytes with flag word 1 at `D+0x14`, slot
+0 at `D+0x18`, volume 1.0 at `D+0x1C`, 0 at `D+0x20` and one resource ID at
+`D+0x28`. The key entry byte is 3 in the `vfx` banks and 2 in the `m023`
+banks. Frames are on the clock of the named scheduler.
+
+| Bank | Scheduler | Start frame | Resource ID |
+| --- | --- | ---: | --- |
+| `client/vfx/mgc/0101` | `care1_tar` | 0 | `0x286D0068` |
+| `client/vfx/mgc/0102` | `abi2reis1tar` | 18 | `0x286D00C0` |
+| `client/vfx/wsc/1027` | `ws_main` | 26 | `0x33FE0010` |
+| `client/vfx/wsc/1027` | `wsw_csla1tar` | 0 | `0x33FE0011` |
+| `m023` `0001` | `m023_0001` | 10 | `0x33FD00F4` |
+| `m023` `0001` | `mon_main` | 30 | `0x33FD00F3` |
+| `m023` `0002` | `mon_main` | 25 | `0x33FD00ED` |
+| `m023` `0003` | `mon_main` | 34 | `0x33FD00EE` |
+| `m023` `0004` | `m023_0004` | 10 | `0x33FD00F2` |
+| `m023` `0004` | `mon_main` | 30 | `0x33FD00F1` |
+| `m023` `0005` | `m023_0005` | 10 | `0x33FD00F0` |
+| `m023` `0005` | `mon_main` | 30 | `0x33FD00EF` |
+
+`client/vfx/wsc/1027` has SHA-256
+`50d9e0c4f5ff5d4b109917dd11658d120ca7b08e24aa1d99cd6ae42d87b20443`. The
+`m023` banks are those of the section above. The
+[cast selector page](cast-selector-schedulers.md#selected-magic-completion-schedulers)
+identifies `mgc/0101` and its other clips, and the
+[revival scheduler records](animation-bank-routing.md#revival-scheduler-records)
+do the same for `mgc/0102`. These records do not show that a client session
+played a sound.
+
 ## Damage side `0x007BF8C0`
 
 STATIC. `0x007BF8C0(record, flag, mode)` has one caller, `0x0065E50E` in

@@ -160,6 +160,11 @@ RaptureChantSyncClip and no RaptureSoundClip. `shoot_gen_1`, `shoot_jyu_1`,
 slot 0 with resources `0x615E0005`, `0x615E0007`, `0x615E0008`, `0x615E0004`
 and `0x615E000A`.
 
+MEASURED. No other resident scheduler whose name starts with `cast` or `stop`
+holds a RaptureSoundClip. These include `cast_tele1`, `cast_stop_1`,
+`cast_stop_2` and `stop_mcast`. So none of the `cast` or `stop` schedulers of
+the bank holds a slot 0 sound clip.
+
 MEASURED. The headers below follow the
 [SSCF stream header](https://github.com/XIVLegacy/xivl-tools/blob/bb76ad408548a997fec6ac8809970d9ea7d84832/docs/formats/sscf.md).
 Each named `0x615E` resource holds one mono stream with codec ID 12. Its codec
@@ -312,6 +317,14 @@ scheduler `casb0` and the other three start `casa0`. Both are entries of the
 same bank and hold BindActorClip, RaptureClientMoveStopClip and
 RaptureServerMoveStopClip with no MotionClip. The bank holds an MTB entry
 `cbbm_abl_2lp`.
+
+## Monster cast scheduler sound clips
+
+MEASURED. The pattern `client/chara/mon/*/act/emp_emp/bid/base/*` matches 77
+installed files. Nested RES entries included, 58 of them hold 188 schedulers
+whose names start with `cast_mon_`. None of the 188 holds a RaptureSoundClip.
+The read covers this directory pattern only, and does not follow the child
+schedulers that these schedulers start.
 
 ## Open
 

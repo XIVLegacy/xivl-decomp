@@ -336,7 +336,8 @@ table at `0x0058a7a8` maps state 12 to `0x0058a5cd`.
 In that state-12 path, comparisons at `0x0058a5f2` and `0x0058a5f8` route
 types 16 and 21 past the conditional calls at `0x0058a60e` and `0x0058a631`.
 The later comparisons at `0x0058a645` and `0x0058a64b` also route types 16
-and 21 past the call at `0x0058a667` (which otherwise receives constant 30).
+and 21 past the call at `0x0058a667`. The compare with 1 at `0x0058a63f` does
+the same for type 1. [Arrival fade in](#arrival-fade-in) owns that call.
 The shared tail writes `0x14` to actor byte `+0xea` at `0x0058a684` and
 updates the state word. The instruction paths were checked in the Ghidra 12.1
 disassembly; the switch-table entries were read from the raw pinned PE.
@@ -457,7 +458,7 @@ that does not return early advances the stage bits.
 | 2 | `0x0058a238` | local: waits while `0x004D70F0` returns true under bit `0x80`, else while `0x0055DB00` returns true |
 | 3 | `0x0058a274` | local with stored flag other than 1: clears bit 0 of `+0xe8`, posts `0x27 {1,type}` and calls `0x005878a0` (`0x0058a2b6`). Not local: calls `0x005878a0` (`0x0058a2c2`) |
 | 7 | `0x0058a3ad` | local with stored flag 1: posts `0x27 {1,type}` and calls `0x005878a0` (`0x0058a3ef`) |
-| 12 | `0x0058a5cd` | local: the type-gated calls `0x004D70B0(1)` at `0x0058a60e` under bit `0x80`, else the fade with zeros (`0x0058a631`), then writes `0x14` to `+0xea` |
+| 12 | `0x0058a5cd` | local: the type-gated calls `0x004D70B0(1)` at `0x0058a60e` under bit `0x80`, else the fade with zeros (`0x0058a631`). Then the [30 frame fade in](#arrival-fade-in) (`0x0058a667`), and writes `0x14` to `+0xea` |
 | 13 | `0x0058a69c` | local: counts `+0xea` down to 0, then calls `0x00589030` |
 | 14 | `0x0058a6e6` | posts `0x27 {2,type}` |
 | 15 | `0x0058a72e` | writes `0xffff` to `+0xe4` and 0 to `+0xe6`. Local: calls `0x00586fb0` with element `+0x7c` (`0x0058a778`) |
@@ -518,6 +519,48 @@ and 12 and `0x0058a7f0` were not traced.
 INFERRED. For a local arrival with bit `0x80` the client shows Now Loading
 and drops the temporary gain to 0.0 in stage 1, and restores it with the
 screen in stage 12 or when `0x0058a7f0` ends the arrival early.
+
+### Arrival fade in
+
+STATIC. `ghidra` CLI disassembly of the same executable. The prefix
+`0x0058a110..0x0058a19c`, which Ghidra does not list as instructions, was
+decoded with Capstone 5.0.7 from the file-backed bytes. Both routines below
+call `0x005606B0` a second time, with four floats of 0.0 and the constant 30
+as the frame count. That routine is the fade setter of
+`xivl-client-structs:docs/fade-actor-group-native-contract.md`. The same page
+records four zeros as the floats of `_fadeIn`.
+
+| Routine | Call block | Receiver | Skipped when the s16 at `+0xe4` is |
+| --- | --- | --- | --- |
+| Stage 12 of `0x0058a090` | `0x0058a636..0x0058a667` | EDI, which `0x0058a0ba` loads from the `0x004D7340` result for element `+0x7c` | 1 (`0x0058a63f`), `0x10` (`0x0058a645`) or `0x15` (`0x0058a64b`) |
+| `0x0058a7f0` | `0x0058a89f..0x0058a8bf` | the `0x004D7340` result (`0x0058a8a2`) | 1 (`0x0058a895`) |
+
+The other fade of each routine, at `0x0058a631` and `0x0058a890`, has the
+same receiver. No instruction on the dispatch path from `0x0058a0ba` to
+stage 12 writes EDI.
+
+Both calls need the local element. In stage 12 the `0x004D7110` test
+(`0x0058a5e7`), the type compares at `0x0058a5f2` and `0x0058a5f8` and the
+bit `0x80` test (`0x0058a5fe`) guard only the earlier block. Its false arms
+reach `0x0058a638`, ahead of the three compares above, directly or after the
+fade at `0x0058a631`. In `0x0058a7f0` the `0x004D7110` test does not guard
+the call either. The compare at `0x0058a895` reads the -1 stored earlier, so
+it passes and the call runs for every early end of a local arrival. The call
+of `0x00589030` follows at `0x0058a8c6`
+([warp end release](../net/s2c-0193-native-state.md#warp-end-release)).
+
+INFERRED. A local arrival that completes stage 12 with a type other than 1,
+`0x10` or `0x15` requests a 30 frame fade in, with or without the loading
+bit. The `_fadeInAfterWarp` routine `0x006E3260` calls `0x0075B500` and
+`0x0075B300`, and none of the three calls `0x005606B0` directly. The arrival
+call is therefore a static route that can clear an earlier script fade out.
+Whether a script relies on it is not established. The consumer of
+the fade packet is not traced, so the result of two calls in one pass, with
+byte `+0xeb` and then 30 frames, is not established either.
+
+Reproduce with `ghidra disasm 0x0058a090 -n 100`,
+`ghidra disasm 0x0058a5cd -n 60`, `ghidra disasm 0x0058a7f0 -n 75` and
+`ghidra x-ref to 0x005606b0`.
 
 ## Ferry steersman motion assets
 
