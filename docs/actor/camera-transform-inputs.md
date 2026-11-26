@@ -209,7 +209,9 @@ candidate. It forwards these vectors to CameraActor `+0x330`
 and `+0x340`. The caller subsequently performs the separate
 working-endpoint interpolation described above (STATIC).
 
-The [camera update](camera-input-chain.md#update-pipeline-and-command-receiver)
+The [held key page](camera-held-keys-and-lock-aim.md#key-0-update) owns the
+direction rebuild, the yaw turn and the height arithmetic. The
+[camera update](camera-input-chain.md#update-pipeline-and-command-receiver)
 owns the input and `dt` producer. The live target vector, selected
 world query shape, elapsed unit and character visibility remain UNKNOWN.
 

@@ -517,9 +517,9 @@
     "payload and effect of command 0x29, the middle-button drag",
     "collision margin: the query helpers 0x00613880 and 0x006141E0 depend on runtime geometry through 0x00AF94D0",
     "producers of the focal byte +0x1C4, the offset byte +0x1C5 and the invert byte +0x1C6",
-    "meaning of the predicates 0x00616F90 and 0x007A3A60 in user terms, and of the pointer-handler gate 0x004D7580 with its vtable +0x0C and +0x30 methods",
-    "camera effect of the script natives _lockCameraControl, _unlockCameraControl, _isCameraControlEnabled and _forceCameraTPSMode, resolved only to registration stubs",
-    "keyboard and pad rotation: argument values of RaptureCommands.MoveCamera and the key 0 rates",
+    "meaning of the predicate 0x007A3A60 in user terms",
+    "camera effect of the script natives _lockCameraControl, _unlockCameraControl, _isCameraControlEnabled and _forceCameraTPSMode beyond their control count and record sends",
+    "pad rotation: argument values of RaptureCommands.MoveCamera for a pad axis, and the unit behind the key 0 rates",
     "whether the 0x007A4610 predicate holds during ordinary walking",
     "consumers of command 0x2E, 0x30 and 0x2F payload floats beyond the stores listed"
   ],
