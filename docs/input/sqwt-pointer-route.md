@@ -343,8 +343,9 @@ that Button.
 ### Focus on press
 
 STATIC. The left press focus arm runs `0x0092EA10` only when the event is
-unhandled and the element is the original source. On the ordinary non desktop
-arm (`0x0092EA90..0x0092EB82`; a type tested arm at `0x0092EA4A` is separate):
+unhandled and the element is the original source. A type tested arm at
+`0x0092EA4A` is separate. On the ordinary non desktop arm
+(`0x0092EA90..0x0092EB82`):
 
 - A leaf that is enabled, Focusable and passes primary `+0xE4` (IsTabStop)
   takes focus.

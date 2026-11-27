@@ -119,8 +119,8 @@ STATIC unless marked.
    wrapper. Otherwise, when flag bit 0 is set, it writes state 2.
 8. Effect controller update `0x0080CA30` drops a record whose wrapper virtual
    `+0x44`, the current scheduler state at S+`0x8C`, is 4
-   (`0x0080CADD..0x0080CAE8`; a requested state compare at
-   `0x0080CAFF..0x0080CB07` applies only on a filter mismatch). The per frame
+   (`0x0080CADD..0x0080CAE8`). A requested state compare at
+   `0x0080CAFF..0x0080CB07` applies only on a filter mismatch. The per frame
    caller of this update was not traced.
 9. State 2 stops the entry (slot 4) and writes 3. Slot 5 (`0x00844200`) allows
    delete once the wrapper is gone and a two bit countdown in flag bits 3 and 4
@@ -150,8 +150,8 @@ that `0x00445210` returns for visual `+0x224`. The queue constructor fills
 that string through setter `0x00843790` from the insert bundle string at
 `H+0x1D0` (`0x00843C1C..0x00843C3A`), the `bid` directory string of
 [idle bank selection](idle-bank-selection.md). These instructions do not show an
-empty name. This conflicts with a reading of the fallback as an empty name. Its
-runtime value and effect are UNKNOWN. `main` is established.
+empty name. Its runtime
+value and effect are UNKNOWN. `main` is established.
 
 ### Deferred start
 
@@ -300,8 +300,8 @@ UNKNOWN.
 Slot 8 switches on the selector category byte (`record+0x13`, `0x007A0FC0`).
 For categories `0x10` and `0x14`, and for category 4 with character bank 4000
 to 4002, it passes the float 1.35 (`0x0103E460`) to the wrapper (byte table
-`0x0084464C`; category 4 through `0x00843FF0`). That this is a clock rate is
-INFERRED. Categories 1 and `0x12` take `0x0060B5D0`, which was not read.
+`0x0084464C`, and category 4 goes through `0x00843FF0`). That this is a clock
+rate is INFERRED. Categories 1 and `0x12` take `0x0060B5D0`, which was not read.
 
 A looping MotionClip (`u8(D+0x14)` bit 6) does not hold scheduler time. Its
 slot 3 `0x0082F580` calls `0x007B0FF0` on the actor object at `+0x4C0` with the
@@ -381,7 +381,7 @@ OBSERVED: no `lin` or `lif` directory exists under `client/chara`. `liu` exists
 for c001 to c010, c021 to c025, m910 and m911. c001 has `liu`, `lil`, `lib`,
 `em2` and `em3` only under `act/cmn`. Of the 228 script sourced selectors of
 `config/emote_animation_catalog.json`, 139 have a `main` in c001 `cmn` banks, 29
-have character bank 0 and 60 have no c001 file (44 lib and 16 liu); other models
+have character bank 0 and 60 have no c001 file (44 lib and 16 liu). Other models
 were not checked.
 
 UNKNOWN: whether the resolver under `0x00D39290` (`0x00D38E50`) substitutes
@@ -403,7 +403,7 @@ were not traced, so whether an older item is retired at insert is UNKNOWN.
 For layers filled by `0x00DFCA80`, the
 [fixed motion calculator](../resource/mtb-fixed-motion-calculator.md) writes only
 the joint rows that the MTB has channels for. MTB header bit 0 selects mode 1,
-a delta from identity with additive translation and scale; clear selects mode 0
+a delta from identity with additive translation and scale. Clear selects mode 0
 over the saved pose defaults. The write mask is per row and path. A quaternion
 channel writes the row rotation. Any scalar channel rewrites the row's whole
 translation and scale, and lanes without a channel take the saved pose default
@@ -415,7 +415,7 @@ a quaternion channel:
 
 | Motion name prefix | Banks | Joints (per pair) | Header bit 0 |
 | --- | --- | --- | --- |
-| `cbem_`, `cbnm_`, `cbfm_`, `cbmm_`, `cblm_` | em1, em2, em3, lib | 93 (1:1, 2:3, 3:1, 4:24, 5:24, 6:6, 7:33, 9:1; one `cber_` em1 entry has no channels) | clear |
+| `cbem_`, `cbnm_`, `cbfm_`, `cbmm_`, `cblm_` | em1, em2, em3, lib | 93 (1:1, 2:3, 3:1, 4:24, 5:24, 6:6, 7:33, 9:1, and one `cber_` em1 entry has no channels) | clear |
 | `cbfp_` | liu 52, lib 8 | 58 (2:3, 3:1, 4:24, 5:24, 6:6) | clear |
 | `cbfa_` | lib 15 | 5 to 14 among pairs 2 to 7 | set |
 

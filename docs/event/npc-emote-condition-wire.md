@@ -284,7 +284,10 @@ copies 32 raw bytes from the condition string buffer, so that copy does not
 clear bytes after the NUL. A name longer than 31 bytes would arrive without a
 NUL in this field. That a reader must stop at the first NUL is INFERRED. The
 record carries no emote id, so a wildcard match does not report the performed
-emote. No tracked capture has a type 3 or 53 EventStart.
+emote. No tracked capture has a type 3 or 53 EventStart. The selector tables of
+`xivl-captures:studies/c2s-012d-event-start/derived/verdicts.md` account for all
+126 client `0x012D` messages in the 54 captures with selectors 0, 1, 2, 5 and
+101.
 
 ## Replies
 
