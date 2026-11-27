@@ -351,15 +351,21 @@ unhandled and the element is the original source. A type tested arm at
   takes focus.
 - A leaf that is enabled and Focusable but not a tab stop tries its first
   focusable descendant (mode 9, `0x0092E020`), then the ancestor search
-  `0x0092B150`.
-- A leaf that is not enabled or not Focusable runs only the ancestor search.
-- The ancestor search needs enabled, Focusable, visible and tab stop. With no
+  `0x0092B150`. With neither, it returns with no owner fallback
+  (`0x0092EAF8`).
+- A leaf that is not enabled or not Focusable runs the ancestor search. With no
   ancestor, an owner fallback (primary `+0xB0`, mode `0x0F`) is tried.
+- The ancestor search needs enabled, Focusable, visible and tab stop.
+
+[Button focus and untargeted Command start](sqwt-button-focus-recipient.md)
+owns the fallback conditions, the focus request gates and the Button case.
 
 MEASURED: the main menu form declares IsTabStop False on both lists and the row
 DataTemplates carry an IsTabStop False Setter. That the row focus target is
-`Button_Command` is INFERRED. Default Focusable and IsTabStop values of the row
-parts and the actual recipient of a press are UNKNOWN. Selector
+`Button_Command` is INFERRED. A Button is
+[constructed Focusable and a tab stop](sqwt-button-focus-recipient.md#plain-button-gates).
+The effect of the row Setter, the values of the other row parts and the actual
+recipient of a press are UNKNOWN. Selector
 GotKeyboardFocus `0x009640B0` writes SqwtFocusedIndex (descriptor
 `0x0135AB38`) with the row of the focused source
 (`0x009640D6..0x00964149`), and LostKeyboardFocus `0x00964160` writes -1 once
@@ -502,7 +508,8 @@ classes receive Click and Command results is UNKNOWN.
 - Popup hit layering, including whether popups escape a modal block.
 - Hit shaping by HitMargin and the untraced hit test helpers.
 - Mouse driven anchor behaviour, and whether `Skin="NULL"` sets skin bit 3.
-- Default Focusable, IsTabStop and DragDrop values per class.
+- DragDrop defaults per class, and Focusable and IsTabStop values not covered by
+  [Button focus](sqwt-button-focus-recipient.md#plain-button-gates).
 - What the desktop or world does with a point that no Window takes.
 - Raise paths beyond those listed, the `0x00964940` skin bit caller and
   MoveFocus codes 7, 8 and 12.

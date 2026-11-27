@@ -47,7 +47,7 @@
       "0x005362cc: call 0x0091a1b0 then 0x00919d30, return when the boolean is 1",
       "0x005362de, 0x005362e9: return when args+4 or args+8 is null",
       "0x00536535: return when form element +0x100 is zero",
-      "0x00536601..0x00536659: the six generic UILuaCommands share one per-frame flag at +0x1ec"
+      "0x00536601..0x00536659: the six generic UILuaCommands share one flag at +0x1ec, cleared lazily when the desktop stamp at +0x46c changes"
     ],
     "frameDebounce": {
       "frameCounterReadVa": "0x00536601",

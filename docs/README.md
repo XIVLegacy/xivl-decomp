@@ -525,6 +525,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt delivered mouse preview producer](input/sqwt-mouse-preview-producer.md)
 - [Sqwt pointer route to a widget](input/sqwt-pointer-route.md) -
   Hit order, modal and disabled gates, enter and leave, Button and ListBox release.
+- [Sqwt Button focus and untargeted Command start](input/sqwt-button-focus-recipient.md) -
+  Route start selection, Button focus gates, template setters and markup counts.
 - [Escape routing and key sheet selection](input/escape-key-routing.md)
 - [Sqwt scroll and drag events](input/sqwt-scroll-and-drag-events.md)
 - [Sqwt drag and drop pipeline](input/sqwt-drag-drop-pipeline.md)
