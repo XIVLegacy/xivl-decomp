@@ -138,6 +138,12 @@ The cited instructions, vtable cells and route tables were checked in
 Ghidra CLI 0.2.2 and independently decoded with LLVM 21.0.0 against
 section-backed bytes of the pinned PE. This is static evidence.
 
+## Route kinds 2 to 5
+
+[Chara scheduler release](chara-scheduler-release.md#route-kinds-2-to-5) owns
+the character bank directory, candidate loop and path parts for the `liu`,
+`lin`, `lif` and `lil` categories.
+
 ## Attack category and command identity
 
 The `CharaActionVisual` vtable at `0x00FE4544`, slot `+0x5C`, contains
@@ -233,8 +239,11 @@ client/vfx/itm/0101 or 0102: main
 The latter preserves the authored drink prop path
 `item/mesi/drink1/veff/bottle0.veff`.
 
-`0x00844330` searches the loaded resources for `main` and then an empty-name
-fallback. A packed selector with low field zero can load an eat or drink
+`0x00844330` searches the loaded resources for `main` and then a second name
+that comes from visual `+0x224`. Its runtime value is unknown, and the
+instructions do not show an empty name. See
+[second scheduler name](chara-scheduler-release.md#second-scheduler-name).
+A packed selector with low field zero can load an eat or drink
 character motion bank while omitting the authored parent and its item VFX.
 The complete selectors backed by these two recovered parents are therefore:
 

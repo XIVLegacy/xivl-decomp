@@ -282,7 +282,9 @@ under the phase-store contract above.
 ## Open items
 
 - The block that a selected scheduler plays, the block header fields and the
-  scheduler length are UNKNOWN. The
+  scheduler length are UNKNOWN on this page. The start instance, block end test
+  and next block rule are in
+  [when a scheduler ends](../actor/chara-scheduler-release.md#when-a-scheduler-ends). The
   [secondary-collection caller relation](scb-clip-factory-composition.md#secondary-collection-callers-and-callback-context)
   qualifies the `0x00a1cb20` and `0x00a1e710` calls to `0x00a1ba90` and
   their receiver/argument flow. It does not establish delivery of a constructed

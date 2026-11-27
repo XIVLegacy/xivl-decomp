@@ -903,10 +903,14 @@ The order in which the executable reads the skin slots is in
   menu is shown. Both the DesktopWidget and the MainMenuWidget subscribe to
   that command with the value 5
   ([Open](../net/target-command-handler.md#open) holds the same gap).
+  [Escape routing](../input/escape-key-routing.md#null-target-route) traces
+  the null target recipient order that applies to Cancel.
 - NOT TRACED. The native list navigation that moves `SqwtFocusedIndex` for a
   `MoveFocus` command, and whether it skips a row whose `MainEnable` is false.
 - NOT TRACED. Which control raises `SelectionChanged` for the decide key, and
-  the `SelectedIndex` value at that moment.
+  the `SelectedIndex` value at that moment. The conditional join of Operate
+  on a row source to row selection is in
+  [pointer route](../input/sqwt-pointer-route.md#operate-on-a-source-row).
 - NOT TRACED. Whether the shown window receives `UILuaCommands.Activated`, and
   which row holds the focus on the first show.
 - NOT TRACED. Which skin condition the button of the keyboard cursor row
