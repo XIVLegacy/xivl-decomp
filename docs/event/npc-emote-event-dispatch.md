@@ -31,7 +31,8 @@ ECX=N
 
 There are four stack arguments. The two middle operands are byte addresses;
 only `+0x5A` is read as a word. These are receiver-relative positions.
-The condition packet decoder and its wire offsets were not traced here.
+[Emote condition wire, matching and replies](npc-emote-condition-wire.md) owns
+the packet decoder and its wire offsets.
 
 At `0x006F2ABF-0x006F2ACB`, the setter compares byte `R[0x59]` with
 mutable cell `byte[0x0134C3FE]`. Its successful allocation branches are:
@@ -45,7 +46,9 @@ Both constructors forward the supplied u16 through `0x00899230`; its store
 at `0x00899275` writes condition `+0x5C`. The equality constructor also
 copies byte `R[0x58]` to condition `+0x60` at `0x008922FD`. The setter
 passes the constructed object to `0x00725ED0` with ECX=`N+0xF8` at
-`0x006F2B4C`. That helper's container behavior is outside this trace.
+`0x006F2B4C`. The
+[apply section](npc-emote-condition-wire.md#apply-and-arrival-window) records
+that helper's append behavior.
 
 `0x00892320` supplies literal `_onEmoteEvent` from `0x01056B40` at
 `0x0089237B`, then calls `0x00CD0940` at `0x008923A5`.
@@ -62,11 +65,12 @@ An image value does not establish its historical mutable state or the
 separate server-order conversion described for
 [talk admission](server-order-talk-admission.md).
 
-These observations identify constructed virtual targets. The native
-`_executeEmote` implementation, condition matcher, scheduler and caller of
-slot `+0x28` were not traced. They do not establish which condition a
-Snowball execution selected, which numeric ID named Snowball, or which
-object was active for the quest.
+These observations identify constructed virtual targets. The
+[native match](npc-emote-condition-wire.md#native-match) and
+[admission](npc-emote-condition-wire.md#admission) sections cover
+`_executeEmote`. They do not establish which condition a Snowball execution
+selected, which numeric ID named Snowball, or which object was active for the
+quest.
 
 ## Native request entry
 

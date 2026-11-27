@@ -17,7 +17,7 @@ decoded their boundaries. Table cells, COLs and type names came from the PE.
 No target execution supplied these observations.
 
 The [bank-routing finding](../actor/animation-bank-routing.md#food-and-drink-bank-composition)
-owns the `main`/empty-name SCB search. The [queue contract](../actor/action-queue.md)
+owns the `main` SCB search and points to its second name. The [queue contract](../actor/action-queue.md)
 owns staged source/target fields, queue+0x10 dispatch and actor+0x12F0
 lifecycle. The generic [CutSceneObject contract](timeline-weather-record-view.md#synchronous-scheduler-callback)
 owns constructor `0x00A05000`, W+8=S, table/RTTI and slot 61. Its

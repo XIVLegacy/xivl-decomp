@@ -11,6 +11,8 @@ Each finding records its evidence and the limits of what it establishes.
 ## Actors and gameplay presentation
 
 - [Actor action queue](actor/action-queue.md)
+- [Chara scheduler release and wait completion](actor/chara-scheduler-release.md) -
+  Record release, queue limits and tick order, scheduler end and gesture banks.
 - [Cast selectors and cast schedulers](actor/cast-selector-schedulers.md)
 - [Integer-to-float setter candidate](actor/integer-float-setter.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md) -
@@ -118,6 +120,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Company-warp after-warp loading boundary](event/company-warp-loading-boundary.md)
 - [Context-root priming](event/context-root-priming.md)
 - [NPC emote conditions and callback selection](event/npc-emote-event-dispatch.md)
+- [NPC emote condition wire, matching and replies](event/npc-emote-condition-wire.md)
 - [DirectorBase hooks](event/director-base-hooks.md)
 - [Director and quest framework](event/director-quest-framework.md)
 - [Director and quest hierarchy](event/director-quest-hierarchy.md)
@@ -520,6 +523,9 @@ Each finding records its evidence and the limits of what it establishes.
 - [Desktop and CharaElement selection producers](input/chara-selection-producers.md)
 - [Keyboard movement bindings](input/keyboard-movement-bindings.md)
 - [Sqwt delivered mouse preview producer](input/sqwt-mouse-preview-producer.md)
+- [Sqwt pointer route to a widget](input/sqwt-pointer-route.md) -
+  Hit order, modal and disabled gates, enter and leave, Button and ListBox release.
+- [Escape routing and key sheet selection](input/escape-key-routing.md)
 - [Sqwt scroll and drag events](input/sqwt-scroll-and-drag-events.md)
 - [Sqwt drag and drop pipeline](input/sqwt-drag-drop-pipeline.md)
 - [Sqwt RaptureMouseDevice report provider](input/sqwt-rapture-mouse-device.md)

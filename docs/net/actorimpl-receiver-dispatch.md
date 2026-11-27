@@ -286,12 +286,12 @@ Null impl (so the event lifecycle can complete cleanly).
 For Pattern-A 2-slot receivers, NullActorImpl's slot N usually has no
 receiver involvement - it just no-ops the packet.
 
-## Unmapped 7 receivers - `Set*EventCondition` family
+## `Set*EventCondition` receiver family
 
 | Receiver | Pattern |
 |---|---|
 | `SetCommandEventConditionReceiver` | Unknown |
-| `SetEmoteEventConditionReceiver` | Unknown |
+| `SetEmoteEventConditionReceiver` | NullActorImpl slot 52 `0x00761E10` constructs it, see [emote condition wire](../event/npc-emote-condition-wire.md) |
 | `SetNoticeEventConditionReceiver` | Unknown |
 | `SetPushEventConditionWithCircleReceiver` | Unknown |
 | `SetPushEventConditionWithFanReceiver` | Unknown |
@@ -301,9 +301,9 @@ receiver involvement - it just no-ops the packet.
 All 7 are **event-condition configurators** - they set "when this
 condition fires, kick this event". The receiver itself doesn't
 deliver gameplay data; it stores a condition rule into some
-per-event registry. The receiver is likely owned by an event-handler
-instance (one per active event), not by the actor's LuaActorImpl -
-which would explain why they don't appear in either 90-slot vtable.
+per-event registry. For the receivers marked Unknown, the owner is likely
+an event-handler instance (one per active event), not the actor's
+LuaActorImpl.
 
 This is consistent with the finding that
 `SetNoticeEventConditionReceiver` has a fallback that writes into

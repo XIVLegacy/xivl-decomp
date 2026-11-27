@@ -972,8 +972,9 @@ is nonnull, event byte `+0x17` is zero and the store pointer at interface
 the event as argument. It then tests the command through `0x0091D870`, which
 needs interface flag `+0x70` bit 4 and a match of the command in the per element
 list held in the table at `0x01357030`, and sets the handled byte when it finds
-one. That list is INFERRED to be the element's command bindings. The handled
-byte is set after the store dispatch, so it stops later elements of the route
+one. For a Window the list is filled from its `ConsumedCommand` property, as
+[Escape routing](../input/escape-key-routing.md#who-handles-cancel) records. The
+handled byte is set after the store dispatch, so it stops later elements of the route
 from running the form handler and not the current one. The `FrameworkElement`
 override `0x0092D1F0` calls the base first. The store is a `0x24` byte object with
 vtable `0x00FA6788` that `0x0091F620` creates on the first registration, so an

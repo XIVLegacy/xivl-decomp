@@ -4,7 +4,8 @@ Static analysis establishes the CharaAction queues, their storage in
 `CharaActor`, the virtual calls that populate an entry's action object, and
 the shared scheduler and s2c `0x00DA` / `0x00E0` / `0x00E1` path through
 concrete visual dispatch to bank routing. Animation completion remains
-unproven.
+unproven here. [Chara scheduler release](chara-scheduler-release.md) owns
+record release, per bucket limits, tick order and the scheduler end test.
 
 ## Action subsystem classes
 

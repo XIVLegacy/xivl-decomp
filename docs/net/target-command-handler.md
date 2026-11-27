@@ -104,8 +104,9 @@ Loader table `0x00FA19F4` maps index 0 to 4 onto columns 3, 12, 13, 14 and 15,
 as the
 [movement command origin](../input/player-movement-command-origin.md#parsed-targets-and-installed-groups)
 records, so the listed rows bind the same gesture whichever column is chosen.
-Which of `key_config`, `key_config2` and `key_config3` the running client
-selects is `UNKNOWN` here.
+[Escape routing and key sheet selection](../input/escape-key-routing.md#sheet-selector)
+owns which of `key_config`, `key_config2` and `key_config3` the client
+selects.
 
 Reading event `+0x7C` as the row's column 10 value, so that `Enter` decides and
 `Escape` clears, is `INFERRED`. The native copy of a row parameter into the
@@ -321,7 +322,6 @@ same actor
 - The open inputs of the candidate rules and the pick, listed under
   [target cycle and click pick](target-cycle-and-pick.md#open).
 - The sender of `RaptureCommands.ChangeTargetMode`.
-- Which `key_config` profile the running client selects.
 
 ## Reproduction
 
