@@ -1896,8 +1896,8 @@ What a client implementation can build from this page, in order of the path.
    or nothing.
 7. Limit the six generic `UILuaCommands` with one flag and one stored stamp
    per form element, as in
-   [generic command debounce](#generic-command-debounce). Reject an event whose priority is not above a stored one, and a
-   request nested eight deep.
+   [generic command debounce](#generic-command-debounce). Reject an event whose
+   priority is not above a stored one, and a request nested eight deep.
 8. No text identifier is resolved on this path. The integer converter of the
    grammar page skips a leading `@` and the record carries raw integers and
    strings. Any lookup is script work.
@@ -1941,12 +1941,10 @@ Implement as written, all STATIC:
 5. Registration of the form handler on the named control, on the root for
    `_widget`, and on the popup help window, and the form handler body as the
    earlier sections state, including the subscription key, the kind switch, the
-   generic command debounce and the script entry. For the debounce, a client
-   may define the stamp as the sequence number of the service pass of the last
-   delivered mouse, key or pad report, compare and clear lazily when a
-   subscribed event is evaluated, and set the flag for any of the six after the
-   subscription lookup succeeds. It should not clear the flag from its render or
-   update tick.
+   generic command debounce and the script entry. For the debounce, compare
+   the stored stamp and clear lazily when a subscribed event is evaluated, and
+   set the flag for any of the six after the subscription lookup succeeds. No
+   tick clears the flag.
 6. Elements that list the command in their own binding list set the handled
    byte after their store runs, which ends form handler delivery higher up the
    route.
@@ -1959,6 +1957,11 @@ Implement as an approximation and label it:
   those widgets need their own pad UI controller to reach retail behavior.
   Without it the handler skips straight to the lookup.
 - The entry flag as never set.
+- The debounce stamp source. A client may define the stamp as the sequence
+  number of the service pass of the last delivered mouse, key or pad report,
+  and not clear the flag from its render or update tick. That only delivered
+  raw reports advance the stamp is INFERRED, as in
+  [blocking window](#blocking-window).
 
 Do not assume:
 

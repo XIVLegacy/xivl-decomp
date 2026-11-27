@@ -254,11 +254,14 @@ STATIC.
 
 `UILuaCommands.Cancel` is object `0x0133B838` (initializer `0x00F0F2D0`). Its
 cross references are the initializer, the exit destructor and one compare at
-`0x00536629` in the form handler. That compare is a per form, once per frame
-limit shared by Operate, Cancel, WidgetClose, Selection, SelectionChanged and
-SelectionChangedOnce (`0x00536622..0x00536663`, flag form `+0x1EC`). STATIC,
-with computed references not excluded. The only native game effect of Escape
-found is the separate `MoveFocus 10` target clear.
+`0x00536629` in the form handler. That compare belongs to a limit that allows
+one of Operate, Cancel, WidgetClose, Selection, SelectionChanged and
+SelectionChangedOnce per form per desktop stamp
+(`0x00536622..0x00536663`, flag form `+0x1EC`). The
+[generic command debounce](../resource/sqwt-command-parameter-consumer.md#generic-command-debounce)
+records when the flag clears and which part is INFERRED. STATIC for the compare
+and the references, with computed references not excluded. The only native game
+effect of Escape found is the separate `MoveFocus 10` target clear.
 
 ## Escape cases
 

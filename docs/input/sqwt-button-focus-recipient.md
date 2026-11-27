@@ -29,14 +29,16 @@ complete element and I = E+`0xB4` is its input interface.
 
 ## Selection rule
 
-- STATIC. With no resolved CommandTarget, `0x0097ED47..0x0097ED5F` passes the
-  Button interface when the E+`0x15D` mask `0x20` (keyboard focus within) of
-  the containing Window is clear, and null when it is set. A null target routes
-  from the keyboard focus recipient at `0x01357020`, if nonnull
-  (`0x0091F5AD..0x0091F5BC`).
-- The start is therefore the Button when the bit is clear or the recipient is
-  the Button. It differs only when the Window bit is set and the recipient is
-  another element, as when focus is inside the same Window on another element.
+- STATIC. With no resolved CommandTarget, `0x0097ED37..0x0097ED5F` passes the
+  Button interface only when primary `+0xB0` returns a nonzero containing
+  Window whose E+`0x15D` mask `0x20` (keyboard focus within) is clear. It
+  passes null when that bit is set, or when the slot returns null
+  (`0x0097ED43..0x0097ED45`). A null target routes from the keyboard focus
+  recipient at `0x01357020`, if nonnull (`0x0091F5AD..0x0091F5BC`).
+- The start is therefore the Button when the Button interface is passed, or
+  when null is passed and the recipient is the Button. It differs only when
+  null is passed and the recipient is another element, as when focus is inside
+  the same Window on another element.
 - STATIC. The bit is IsKeyboardFocusWithin (descriptor `0x01359378`). The
   GotKeyboardFocus arm `0x0093D370` and the LostKeyboardFocus arm `0x0093D400`
   write it from input slot `+0x14`. The focus commit raises both events inside
