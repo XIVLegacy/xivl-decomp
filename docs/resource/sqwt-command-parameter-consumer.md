@@ -285,9 +285,13 @@ A clear Window bit supplies the Button interface. A set bit supplies
 null, so the command route uses the current keyboard focus through
 `0x0091F590 -> 0x0091EE90`. The kind-1 integer travels with the
 command independently of which named subscription the route visits.
-For a same-Button activation, either branch must reach the subscription
-on the current pressed Button. Callback mutations, delivery and live
-focus retention remain unresolved.
+For a same-Button activation, the target branch starts at the pressed
+Button. The null branch climbs through that Button when the focus
+recipient is the Button or an element inside it, subject to stop and
+handled. A null route whose recipient is outside the Button is not shown
+to reach the subscription on the Button (see
+[the null route](../input/sqwt-button-local-focus-flags.md#null-route-and-the-stores-it-visits)).
+Callback mutations, delivery and live focus retention remain unresolved.
 
 Reproduce with the executable identified above. In addition to the Button
 source recipe, read `0x0099D650`, `0x009C0DA0`, `0x00995650`,

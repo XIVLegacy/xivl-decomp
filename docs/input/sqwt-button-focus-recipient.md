@@ -5,7 +5,8 @@ at the Button. The route starts at the Button or at the keyboard focus
 recipient, and the focus that the left press produces depends on the Button
 template. This page records the selection rule, the focus gates of a plain
 Button, how a Setter replaces the constructed focus values and a count of the
-installed Button markup. It continues the
+installed Button markup. Untargeted Buttons with a local flag are classed in
+[local focus flags](sqwt-button-local-focus-flags.md). It continues the
 [ListBox press focus arm](sqwt-pointer-route.md#focus-on-press) and the
 [Button mouse source](../resource/sqwt-command-parameter-consumer.md#button-mouse-source).
 No client ran.
@@ -43,8 +44,11 @@ complete element and I = E+`0xB4` is its input interface.
   GotKeyboardFocus arm `0x0093D370` and the LostKeyboardFocus arm `0x0093D400`
   write it from input slot `+0x14`. The focus commit raises both events inside
   `0x0091E3E0`.
-- INFERRED (link: the Window arm reaches `0x0093D370` on that bubble): the bit
-  is already set at Click for the window that holds the new focus.
+- STATIC. Every branch of Window input slot 58 `0x00930D20` reaches
+  `0x00930DED`, which calls `0x0093D370`. Given an admitted commit, the bit is
+  [set during the press](sqwt-button-local-focus-flags.md#selection-at-click-and-focus-within).
+  That it is still set at Click is INFERRED. The unproved link is that nothing
+  moves focus out of that Window between press and release.
 - STATIC. The null route is not a plain walk from one element. `0x0091EE90`
   copies the stored (scope, recipient) pairs at `0x01357060`, moves the pair of
   the top level scope of the focus element to the end if needed, and reverses
@@ -52,7 +56,11 @@ complete element and I = E+`0xB4` is its input interface.
   scope it routes nothing. Source and original source are set from the
   recipient of that pair (`0x0091F0F0..0x0091F115`). Other pairs are routed
   afterwards until stop byte `+0x17` is set (`0x0091F198..0x0091F1A5`), with a
-  narrower element filter in `0x0091E1C0`.
+  narrower element filter in `0x0091E1C0`. Those pairs admit only elements with
+  [interface bit 1](escape-key-routing.md#interface-bit-1), so with the
+  constructed values retained an unfocused Window adds nothing, while native
+  pairs and the desktop are still
+  [visited](sqwt-button-local-focus-flags.md#null-route-and-the-stores-it-visits).
 
 ## Plain Button gates
 
@@ -205,10 +213,10 @@ STATIC for each branch of `0x0092EA10`:
 2. The leaf is enabled and Focusable with IsTabStop false. The arm asks for the
    first focusable descendant (mode 9), else an ancestor tab stop, else nothing
    (`0x0092EAF8` returns). This branch has no owner Window fallback. Focus stays
-   where it was.
+   where it was. A failed request has no fallback either.
 3. The leaf is not Focusable (or not enabled). The arm asks for an ancestor tab
-   stop. Else it tries the owner Window, if the Window is Focusable and its mode
-   `0x0F` candidate is nonnull and not the desktop. Focus is then requested on
+   stop, with no descendant search. Else it tries the owner Window, if the
+   Window is Focusable and its mode `0x0F` candidate is nonnull and not the desktop. Focus is then requested on
    the Window, which can redirect to its remembered element or an eligible
    descendant. A Window with Focusable false gets no request and focus is
    unchanged. A disabled target under the pointer is
@@ -254,7 +262,9 @@ selection rule. It is not always the Button.
    its own arm.
 
 The 125 untargeted Buttons with a local attribute follow the same branches with
-their local values. Their templates were not resolved.
+their local values. They have no single route start.
+[Local focus flags](sqwt-button-local-focus-flags.md#classes-over-all-125)
+classes each one.
 
 ## What a client can implement
 
@@ -264,8 +274,10 @@ it to the Button. When the recipient is inside the Button, bubbling still
 reaches the Button and its ancestors. The difference is the original source and
 any subscription or handler on the elements below the Button. When focus stays
 on another element of the same window, the command starts there and need not
-pass the Button at all. That ClickMode Press with a child original source would
-Click during the tunnel step of the Button, before the arm of the child moves
+pass the Button at all. For locally flagged Buttons, see the
+[per class guidance](sqwt-button-local-focus-flags.md#what-a-client-can-implement),
+which includes runtime Focusable writes. That ClickMode Press with a child
+original source would Click during the tunnel step of the Button, before the arm of the child moves
 focus, is INFERRED from root first order. Press is not the default ClickMode.
 
 ## Open items
@@ -279,7 +291,7 @@ focus, is INFERRED from root first order. Press is not the default ClickMode.
 - Focus changes between press and release, and native handlers that set
   handled.
 - The meaning of the `0x013615B0` set.
-- The remaining gates and later pair behaviour in `0x0091EE90`.
+- The remaining gates in `0x0091EE90`.
 - No live client behaviour was observed.
 
 ## Reproduction
