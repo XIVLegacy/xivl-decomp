@@ -152,8 +152,8 @@ A flag is set at `0x0056E6B0..0x0056E6D9` when the provider's language field,
 read through slot `+0x18`, is 4 or 5 and the key is `0x67`, the `/tell` row of
 the installed sheet. These are the codes of `chs` and `cht`. With the flag set
 the loop pushes the literal `!!!` (`0x00FA5D90`) as an extra string after each
-token that does not begin with `<` (`0x0056E835..0x0056E864`). STATIC for the push. The meaning of the extra
-string is untraced.
+token that does not begin with `<` (`0x0056E835..0x0056E864`). STATIC for the
+push. The meaning of the extra string is untraced.
 
 The splitter `0x0044F840` is called with the separator literal `" ` (a quote
 and a space, `0x00FA5D8C`) and fills a vector of 84-byte `Utf8String` tokens
@@ -227,9 +227,11 @@ first match. STATIC:
   (`0x0056D576..0x0056D57F`).
 - It applies the three key ranges at reader `+0x54..+0x68`, each a begin and
   end pair with an inclusive match (`0x0056D58B..0x0056D5C3`). A zero end in
-  the first or second pair admits the row when the test reaches that pair. A
-  zero end in the third pair rejects it. All of the `xtx/_subCommand` ends are
-  zero, so its first pair admits every row.
+  the first pair admits the row. A zero end in the second pair skips to the
+  third pair. A zero end in the third pair, when reached, rejects the row. A
+  nonzero pair that does not contain the key falls through to the next pair,
+  and a miss on the third rejects the row. All of the `xtx/_subCommand` ends
+  are zero, so its first pair admits every row.
 - It requires a ready row entry (`0x0056D5DF..0x0056D5E6`).
 - It reads one cell, the column in the byte at reader `+0x6C`. Each row has
   one `0x00C9A480` call and one compare on either branch. It has no retry on
