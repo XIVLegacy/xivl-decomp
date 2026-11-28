@@ -319,10 +319,15 @@ layer write that clears bit 0. Code outside that range was not searched. Slot
 
 ### Layer walks to Calculate
 
-`0x00dfc4a0` runs one of two walks over its layers. When its receiver byte
-`+0x30` is nonzero it calls `0x00e00ed0` (`0x00dfc5a3`), otherwise `0x00e01530`
+`0x00dfc4a0` runs one of two walks over its layers. It sets its receiver byte
+`+0x30` (`0x00dfc4e6..0x00dfc575`) when there are two or more layers, or when a
+single layer has a unit with a weight below 0.99 (double `0x00fc1048`) or a unit
+that fails virtual `+0x44`. When the byte is nonzero it calls the blend walk
+`0x00e00ed0` (`0x00dfc5a3`), otherwise the single walk `0x00e01530`
 (`0x00dfc5de`). These are the only direct callers of the walks. Both test layer
-`+0x90` bit 0 (`0x00e00ef2`, `0x00e01535`).
+`+0x90` bit 0 (`0x00e00ef2`, `0x00e01535`). A layer with the bit set is a mode 1
+layer on this page, and a layer with it clear is a mode 0 layer, after the mode
+byte in the table below.
 
 With the bit set, each walk visits the units at `+0x24..+0x28`. For a unit
 with byte `+0x39` nonzero and a weight above 0.0 (float at `0x01086650`) it
@@ -332,6 +337,14 @@ that entry. The frame is the layer float at `+0x14` and the row list is layer
 `+0x6c` in `0x00e00ed0` (`0x00e00f38`) and `+0x28` in `0x00e01530`
 (`0x00e01579`). With the bit clear, `0x00e00ed0` calls `0x00e0b770` and
 `0x00e01530` calls `0x00e0b720`.
+
+The blend walk applies the same gate to a mode 0 unit: byte `+0x39` set and a
+weight above 0 from layer virtual `+0x6c` for the unit index. While the flag of
+that unit index is set (all flags are set on each pass by `0x00a3b5a0`), it
+forces the weight to 1.0 and clears the flag, so the first such layer lands at
+full weight. Later layers use their own weight and interpolate from the current
+row. Mode 1 layers do not touch the flag. The single walk samples mode 0 units
+at weight 1.0.
 
 | Entry | Call to `0x00e09720` | Weight | Mode byte |
 |---|---|---|---:|
@@ -376,18 +389,9 @@ STATIC. Layer entries are sorted in ascending order of an unsigned key
 `0x00dfe030`). The budget pass copies the entries in that order into the list
 that the walk reads.
 
-STATIC. `0x00dfc4a0` takes the blend walk `0x00e00ed0` when there are two or
-more layers, or when a single layer has a unit with a weight below 0.99 (double
-`0x00fc1048`) or a unit that fails virtual `+0x44`. Otherwise it takes
-`0x00e01530`.
-
-- Blend walk. Each unit with byte `+0x39` set and a raw weight (`+0x6c`) above 0
-  is sampled. For a mode 0 layer, while the flag of the unit index is set (all
-  flags are set on each pass by `0x00a3b5a0`), the weight is forced to 1.0 and
-  the flag is cleared, so the first such layer lands at full weight. Later
-  layers use their own weight and interpolate from the current row. Mode 1
-  layers go through `0x00e0b7d0` and do not touch the flag.
-- Single walk. Mode 0 units are sampled at weight 1.0 (`0x00e0b720`).
+STATIC. [Layer walks to Calculate](#layer-walks-to-calculate) owns the walk
+selection, the layer modes, the sample weights and the first write of each unit
+index in the blend walk.
 
 STATIC. The calculator writes only rows with channels, per path. A quaternion
 channel writes the rotation. Any scalar channel rewrites the whole translation
@@ -399,9 +403,10 @@ no other joint rows): a layer leaves unkeyed rows alone.
 
 UNKNOWN. Budget pass `0x00dfe0c0` hands out up to 1.0 per unit from the lowest
 key, sets a multiplier through virtual `+0x24` and passes a Boolean to layer
-virtual `+0x54`. The blend walk weighs with the raw `+0x6c` value and writes 1.0
-back to the multiplier. What layer virtual `+0x54` does is not known. The unit
-index to MTB pair map in every layer is also not known.
+virtual `+0x54`. The blend walk weighs with the weight that layer virtual `+0x6c`
+returns for the unit index and writes 1.0 back to the multiplier. What layer
+virtual `+0x54` does is not known. The unit index to MTB pair map in every layer
+is also not known.
 
 [Gesture layering](../actor/chara-scheduler-release.md#joints-a-gesture-clip-does-not-key)
 owns the INFERRED application to actor gestures.

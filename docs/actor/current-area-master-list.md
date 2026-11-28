@@ -566,7 +566,8 @@ ahead of a `PrivateAreaMasterBranch` area in the list, the class test at PCs
 - The three other callers of the slot 3 helper `0x00CE2440`.
 - A caller of the second creator wrapper `0x00CC8070`, and what follows a
   creation through it.
-- The effect of `0x00CC7370` on the removed control's instance.
+- The effect of `0x00CC7370` on the removed control's instance beyond the
+  CharaBase thread kill.
 - A retail record sequence that creates a zone area and a private area for one
   location, and the order in which the queue binds them.
 

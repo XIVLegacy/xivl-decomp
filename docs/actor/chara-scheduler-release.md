@@ -41,9 +41,11 @@ frames, scheduler state or the main ring at `+0xA80`. No timeout was found in
 the checker. A wait for a selector with no record in its ring finishes at the
 first poll.
 
-STATIC. The poll chain ends at `0x00589F60`, which writes only the waiting cell
-`0x0130CECC` (record present) or the done cell `0x01377ECC` to the checker
-output. It never writes the terminate cell `0x0130CED0`, and it reads no clock.
+STATIC. In the poll chain, `0x00589F60` returns a Boolean (record present).
+`0x006DC150` then stores to the checker output the dword of the waiting cell
+`0x0130CECC` when it is true, or of the done cell `0x01377ECC` otherwise
+(`0x006DC158..0x006DC16C`). It never selects the terminate cell `0x0130CED0`.
+No clock read was found in the chain.
 In resume loop `0x00CF1B50` the time test on the loop word at `+0x3C`
 (`0x00CF1D22..0x00CF1D47`) only leaves the walk early, as a slice budget. It
 ends no wait.

@@ -227,7 +227,8 @@ STATIC. ClipSyncClip update `0x00a10120` reads the count word `u16(D+0x10)`
 (bit 15 selects all, and a clear bit selects any) and the `s16` indexes from
 `D+0x14`. A listed clip is done when its virtual `+0x2c`, the state, is 3 or 4.
 When the test passes, the clip sets its phase to 0. A failed lookup returns at
-once without completing. A clip that has not begun is not done.
+once without completing. A clip still in state 0 is not done. A clip that
+[begin step 3](#begin) moves to state 4 without a begin counts as done.
 CDevSchedulerManager slot 3 does not replace the ClipSyncClip key.
 
 ## Played block
