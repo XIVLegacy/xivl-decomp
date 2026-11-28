@@ -467,8 +467,9 @@ the exact command name occurs only in the shared item-detail emitter
 above. That census covers declarations and literal script references.
 The native handler store can still deliver both events to registered
 handlers. Form handlers require the exact sender template, sender control
-and command keys at `0x005365D3..0x005365DC`. The generic per-frame
-debounce at `0x00536601..0x00536659` covers six other command identities.
+and command keys at `0x005365D3..0x005365DC`. The
+[generic command debounce](../resource/sqwt-command-parameter-consumer.md#generic-command-debounce)
+at `0x00536601..0x00536659` covers six other command identities.
 
 LLVM objdump 21.0.0 and PE table reads of the identified 1.23b
 `ffxivgame.exe` show that an admitted named target takes

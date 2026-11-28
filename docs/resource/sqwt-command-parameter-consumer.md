@@ -145,6 +145,8 @@ in that callee stack order. The target comes from
 A nonzero result is adjusted by `+0xB4`. On a zero result the recipient uses
 I only when primary slot 44 returns a nonzero pointer whose byte `+0x15D`
 has mask `0x20` clear. Otherwise it passes null. STATIC for this target logic.
+[Button focus and untargeted Command start](../input/sqwt-button-focus-recipient.md#selection-rule)
+records where the null route starts.
 The [standard ActionMenu arrows](#actionmenu-arrow-target-fallback)
 qualify the slot and flag on their checked Window ancestry.
 
@@ -1099,11 +1101,13 @@ inactive gate continues to the lookup. STATIC.
 For the six pad UI commands `UICommands.Operate`, `Cancel`, `Close`,
 `Selection`, `SelectionChanged` and `SelectionChangedOnce` (objects from the
 `0x9C` stride table at `0x013442E8`, entries 1 to 6) an active gate also gets a
-one-shot flag at `+0x1F4` that resets when the frame counter at
-`[0x0091A1B0 result + 0x46C]` differs from the stored frame at `+0x1F0`
-(`0x0053632A..0x005363C9`). The first such command in a frame sets the flag and
-goes on to gate slot 42. A second one in the same frame sets the handled flag
-and returns (`0x005363C2..0x005363FB`). The one-shot block runs only when the
+one-shot flag at `+0x1F4` that resets when the desktop stamp at
+`[0x0091A1B0 result + 0x46C]` differs from the stored stamp at `+0x1F0`
+(`0x0053632A..0x005363C9`). The first such command under a stamp sets the flag
+and goes on to gate slot 42. A second one under the same stamp sets the handled
+flag and returns (`0x005363C2..0x005363FB`). The stamp read is the one that the
+[generic command debounce](#generic-command-debounce) uses, so it has the same
+meaning here (STATIC for the read). The one-shot block runs only when the
 command object has a nonzero word at `+0x78` (`0x0053632D`).
 
 The gate exists only for some forms. The function `0x005387F0`, which the
@@ -1301,17 +1305,86 @@ is in the [Main Menu route](../script/main-menu-command-route.md#input-and-metho
 | `sqwt/widget/PopupHelpWidget.tpl` | 1895 / `c914db575a00f9f37ae7a1156f58e48ad6bf394ba90e6f23592f45acc236c2ce` | 1887 / `00569baa91ca2299ec5ddb22e41dcbae820562e9f8d832bf317383395774a248` |
 | `script/n1635q/uvupu25yun1635q.le.lpb` | 2490 / `a9171b9d4c89afa4f8c735fbe267788be68ae0f67e81f8bac4235d80ad2168c2` | 2477 / `c67b53003aee9cd5c94efb6a7138491e7a0eff8ec01b1c30bd1ae581a7dafd72` |
 
-### Per-frame debounce
+### Generic command debounce
 
 `UILuaCommands.Operate`, `Cancel`, `WidgetClose`, `Selection`,
 `SelectionChanged` and `SelectionChangedOnce` (static objects `0x0133B798`,
 `0x0133B838`, `0x0133B8D8`, `0x0133B978`, `0x0133BA18`, `0x0133BAB8`) share one
-flag at form element `+0x1EC`. The handler compares the frame counter at
-`[0x0091A1B0 result + 0x46C]` with the stored frame at `+0x1E8`, clears the flag
-when the frame changed, and returns for any of the six when the flag is already
-set. Otherwise it sets the flag and continues
-(`0x00536601..0x00536659`). So at most one of the six reaches Lua per frame for
-one form element. Other command names have no such limit. STATIC.
+flag at form element `+0x1EC`, paired with a stored stamp at `+0x1E8`. The
+constructor zeroes both (`0x0053B0D8`, `0x0053B0DE`). STATIC.
+
+STATIC. The block runs only after a successful subscription lookup
+(`0x005365D3`, failure exits at `0x005365DC`), after the entry and form gates.
+It reads desktop(`0x01356E10`)+`0x46C` at `0x00536601`. When that stamp differs
+from `+0x1E8`, it stores the stamp and clears the flag (`0x0053660F`,
+`0x00536615`). Then, for one of the six, a set flag exits
+(`0x0053664C..0x00536653`) and otherwise the flag is set at `0x00536659`. The
+flag is set before the record kind switch, so a kind with no Lua call still
+consumes it. In `0x00530000..0x00540000` a displacement scan found that only
+`0x0053B0D8`, `0x0053B0DE`, `0x0053660F`, `0x00536615` and `0x00536659` write
+the form `+0x1E8` or `+0x1EC`. No tick or event clears the flag. The clear is
+lazy, inside this handler, on the next qualifying event that sees a new stamp.
+Other command names have no such limit.
+
+#### Desktop stamp
+
+- STATIC. Desktop+`0x46C` does not increment itself. The constructor zeroes it
+  (`0x0091B115`). DesktopWindow interface slot 13 `0x0091AC80` (input table
+  `0x01069224`) copies event args `+0x20` to I+`0x3B8` (E+`0x46C`, where E is
+  the complete element and I = E+`0xB4`) before it processes raw ids `0x56`
+  (`0x0091AD05`), `0x55` (`0x0091AD31`) and `0x54` (`0x0091AD96`). Ids `0x57`
+  (text) and `0x58` do not. A disp32 scan for `0x46C`, and for inc and add
+  forms of `0x46C`, `0x3B8` and `0x2D8`, showed no other writer attributable to
+  the desktop. This is bounded because the receivers of all hits were not
+  exhaustively typed. In `0x00900000..0x00A00000` the only other `+0x46C`
+  stores are `0x00963B9C`, `0x00965348` and `0x009653A0`, in another class
+  range. A forward sweep after every `0x0091A1B0` call and `0x01356E10`
+  reference found no `+0x46C`, `+0x3B8` or `+0x2D8` store.
+- STATIC. The `+0x20` value in those reports is F, the dword at MainModule+`8`.
+  `0x004D6570` passes F to its device work, then adds 1 (`0x004D65CE`). Its one
+  xref caller is Rapture update `0x004B3C50` (call `0x004B3DCC`).
+- STATIC. Producers were found by xrefs to descriptors `0x01356E1C`,
+  `0x01356E28` and `0x01356E34`. Mouse producer `0x00547E10` (id `0x54`)
+  reports only when mouse device byte `+0x60` is 1. State feed `0x00547ED0`
+  sets that byte on changed input, and `0x00547E10` also sets it when byte
+  `+0x61` is 1 and predicate `0x0091B7B0` is false. Keyboard producer
+  `0x00552DF0` (id `0x55`) reports once per drained key record. Pad producer
+  `0x00548160` (id `0x56`) reports only when pad device byte `+0x5D` is 1,
+  which feed `0x00548210` sets only on changed pad state.
+- STATIC. Within one service call the order is the mouse feed (which can route
+  wheel events immediately, without updating the stamp), the pad feed, the
+  `0x00552DF0` key reports, mouse slot 1, pad slot 1, then the F increment. All
+  raw reports of one call carry the same F.
+
+#### Blocking window
+
+The debounce does not block merely within one engine update. The flag has no
+timed or per tick clear. It blocks until this handler next sees a different
+desktop stamp, and the stamp advances only with delivered raw mouse, key or pad
+reports. The mechanism is STATIC. That only raw reports advance the stamp is
+INFERRED. The unproved link is that desktop+`0x46C` has no other writer (sole
+writer from a bounded scan). On that link, the window lasts until a raw mouse,
+key or pad report with a different F reaches the desktop, and then another
+subscribed command is evaluated by this form. It follows that:
+
+- of two of the six during one service call with one stamp, the second is
+  blocked, even across the key, pad and mouse reports of that call
+- in later service calls with no delivered raw report (idle input), a second one
+  stays blocked however many frames pass, including one raised by script, timer,
+  animation or data change
+- a later service call with a delivered report allows it, so a user press or
+  release, which is itself a delivered report, is not blocked by a command from
+  an earlier call
+- work before the first report of a new call (for example wheel routing) still
+  sees the old stamp
+- a synchronous nested second command under the same stamp is blocked
+- another form element has its own flag
+
+UNKNOWN: the Rapture update cadence against rendered or engine frames, and who
+calls force setter `0x005480C0` (device slot `+0x20`, table cell
+`0x00FA2B14`). If a caller forced a mouse report on every service call, the
+window would be one service call. The live input rate and any live double
+command result are also UNKNOWN.
 
 ## Subscription gate
 
@@ -1821,9 +1894,10 @@ What a client implementation can build from this page, in order of the path.
    `_onUICommandRequest` when it was made without one. Pass the three names
    (first as nil when empty) and then the integer, the two integers, the string,
    or nothing.
-7. Limit the six generic `UILuaCommands` to one delivery per frame per form
-   element. Reject an event whose priority is not above a stored one, and a
-   request nested eight deep.
+7. Limit the six generic `UILuaCommands` with one flag and one stored stamp
+   per form element, as in
+   [generic command debounce](#generic-command-debounce). Reject an event whose
+   priority is not above a stored one, and a request nested eight deep.
 8. No text identifier is resolved on this path. The integer converter of the
    grammar page skips a leading `@` and the record carries raw integers and
    strings. Any lookup is script work.
@@ -1834,8 +1908,9 @@ join is conditional on that command implementation.
 
 Items 1 to 3 and 5 to 6 are STATIC. Item 4 is STATIC except for the template
 map expansion and the lookup of the template name for controls outside a
-template, which are INFERRED. Item 7 is STATIC for the debounce and the depth
-limit. Matching listener callbacks clear the active slot as described in
+template, which are INFERRED. Item 7 is STATIC for the debounce mechanism and
+the depth limit. That only delivered raw reports advance the stamp is
+INFERRED. Matching listener callbacks clear the active slot as described in
 [event release and pending replay](#event-release-and-pending-replay).
 The upstream pump cadence and complete cleanup coverage remain UNKNOWN.
 
@@ -1866,7 +1941,10 @@ Implement as written, all STATIC:
 5. Registration of the form handler on the named control, on the root for
    `_widget`, and on the popup help window, and the form handler body as the
    earlier sections state, including the subscription key, the kind switch, the
-   per-frame debounce and the script entry.
+   generic command debounce and the script entry. For the debounce, compare
+   the stored stamp and clear lazily when a subscribed event is evaluated, and
+   set the flag for any of the six after the subscription lookup succeeds. No
+   tick clears the flag.
 6. Elements that list the command in their own binding list set the handled
    byte after their store runs, which ends form handler delivery higher up the
    route.
@@ -1879,6 +1957,11 @@ Implement as an approximation and label it:
   those widgets need their own pad UI controller to reach retail behavior.
   Without it the handler skips straight to the lookup.
 - The entry flag as never set.
+- The debounce stamp source. A client may define the stamp as the sequence
+  number of the service pass of the last delivered mouse, key or pad report,
+  and not clear the flag from its render or update tick. That only delivered
+  raw reports advance the stamp is INFERRED, as in
+  [blocking window](#blocking-window).
 
 Do not assume:
 
@@ -1908,6 +1991,8 @@ Do not assume:
   `+0x162`, and first-entry byte `+0xBA`, individual main-key removal and the
   full ordinary widget construction-to-close ordering remain UNKNOWN.
 - The purpose of the flag byte at `0x01356E14`, beyond its stores and reads.
+- The [debounce stamp](#blocking-window) cadence, the callers of `0x005480C0`
+  and any live double command result.
 - Scheduling above the Rapture secondary vtable, fixed control slot-4 cadence,
   actual record registration and enabling, reentry and exhaustive order relative
   to Sqwt input, numeric phases and presentation. Matching callbacks clear the active slot,
@@ -1936,7 +2021,9 @@ Do not assume:
 3. Disassemble `0x00536280..0x00536777` with Capstone in x86 32-bit mode and
    confirm the gates, the lookup call at `0x005365D3`, the debounce chain at
    `0x00536622` and the switch at `0x00536663`. The table at `0x005367A0` lists
-   the nine targets.
+   the nine targets. For the desktop stamp, disassemble `0x0091AC80` (byte table
+   `0x0091ADDC`, jump table `0x0091ADC0`), `0x004D6570`, `0x00547E10`,
+   `0x00547ED0`, `0x00548160`, `0x00548210`, `0x00552DF0` and `0x004B3C50`.
 4. Disassemble the thunks `0x00574BA0..0x00574C17` (note the double load of
    the first pointer), the slot functions of `0x0075D4E0..0x0075D690`, the
    chain `0x008A3F70` and `0x006F56E0`, the push slots of the four vtables at

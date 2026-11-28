@@ -3843,7 +3843,7 @@ def verify(document: dict | None = None) -> list[str]:
         or debounce.get("storedFrameOffset") != "+0x1e8"
         or debounce.get("frameCounterOffset") != "+0x46c"
     ):
-        errors.append("per-frame debounce set changed")
+        errors.append("generic command debounce set changed")
 
     gate = document.get("subscriptionGate", {})
     literal = gate.get("rootNameLiteral", {})
