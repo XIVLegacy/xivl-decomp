@@ -847,10 +847,11 @@ keyboard-focus interface. Absence of focus, or focus known to be in another
 Window, does not alone refuse this direct branch.
 A press on this unfocusable Button can itself
 [request focus on its Window](../input/sqwt-button-local-focus-flags.md#title-close-button-of-winbasiswithtitle).
-Given an admitted commit, the bit is then set during the press. With the
-INFERRED links on that page, Click takes the set-bit branch, which reaches
-the Window `_widget` store, subject to stop and handled, and not a
-Button_Close store.
+Given an admitted commit whose GotKeyboardFocus bubble reaches the Window
+unstopped, the bit is then set during the press. With links L, P and N on
+that page (INFERRED), Click takes the set-bit branch, which reaches the
+Window `_widget` store, subject to stop and handled, and not a Button_Close
+store.
 
 For the set-bit branch, the Button supplies null. Router `0x0091EE90`
 requires global focus `0x01357020` to be nonnull at `0x0091EEBD..0x0091EEC3`.

@@ -45,7 +45,8 @@ complete element and I = E+`0xB4` is its input interface.
   write it from input slot `+0x14`. The focus commit raises both events inside
   `0x0091E3E0`.
 - STATIC. Every branch of Window input slot 58 `0x00930D20` reaches
-  `0x00930DED`, which calls `0x0093D370`. Given an admitted commit, the bit is
+  `0x00930DED`, which calls `0x0093D370`. Given an admitted commit whose
+  GotKeyboardFocus bubble reaches the Window unstopped, the bit is
   [set during the press](sqwt-button-local-focus-flags.md#selection-at-click-and-focus-within).
   That it is still set at Click is INFERRED. The unproved link is that nothing
   moves focus out of that Window between press and release.
@@ -214,13 +215,14 @@ STATIC for each branch of `0x0092EA10`:
    first focusable descendant (mode 9), else an ancestor tab stop, else nothing
    (`0x0092EAF8` returns). This branch has no owner Window fallback. Focus stays
    where it was. A failed request has no fallback either.
-3. The leaf is not Focusable (or not enabled). The arm asks for an ancestor tab
-   stop, with no descendant search. Else it tries the owner Window, if the
-   Window is Focusable and its mode `0x0F` candidate is nonnull and not the desktop. Focus is then requested on
-   the Window, which can redirect to its remembered element or an eligible
-   descendant. A Window with Focusable false gets no request and focus is
-   unchanged. A disabled target under the pointer is
-   [pre handled](sqwt-pointer-route.md#disabled-rule) and reaches none of this.
+3. The leaf is not Focusable (or not enabled). The arm asks for an ancestor
+   tab stop, with no descendant search. Else it tries the owner Window, if the
+   Window is Focusable and its mode `0x0F` candidate is nonnull and not the
+   desktop. Focus is then requested on the Window, which can redirect to its
+   remembered element or an eligible descendant. A Window with Focusable false
+   gets no request and focus is unchanged. A disabled target under the pointer
+   is [pre handled](sqwt-pointer-route.md#disabled-rule) and reaches none of
+   this.
 4. On a modal refusal, the blocker window is focused instead.
 
 For branches 2 and 3 with unchanged focus, the selection rule decides. Focus
@@ -269,16 +271,17 @@ classes each one.
 ## What a client can implement
 
 A client may take the untargeted route start from the focus that the press
-algorithm actually produced, after applying template setters, instead of fixing
-it to the Button. When the recipient is inside the Button, bubbling still
-reaches the Button and its ancestors. The difference is the original source and
-any subscription or handler on the elements below the Button. When focus stays
-on another element of the same window, the command starts there and need not
-pass the Button at all. For locally flagged Buttons, see the
-[per class guidance](sqwt-button-local-focus-flags.md#what-a-client-can-implement),
+algorithm actually produced, after applying template setters, instead of
+fixing it to the Button. When the recipient is inside the Button, bubbling
+still reaches the Button and its ancestors. The difference is the original
+source and any subscription or handler on the elements below the Button. When
+focus stays on another element of the same window, the command starts there
+and need not pass the Button at all. For locally flagged Buttons, see the [per
+class guidance](sqwt-button-local-focus-flags.md#what-a-client-can-implement),
 which includes runtime Focusable writes. That ClickMode Press with a child
-original source would Click during the tunnel step of the Button, before the arm of the child moves
-focus, is INFERRED from root first order. Press is not the default ClickMode.
+original source would Click during the tunnel step of the Button, before the
+arm of the child moves focus, is INFERRED from root first order. Press is not
+the default ClickMode.
 
 ## Open items
 

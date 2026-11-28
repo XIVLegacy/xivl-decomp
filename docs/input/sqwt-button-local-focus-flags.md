@@ -174,7 +174,7 @@ STATIC. These are the results of `0x0091E3E0` with the Window as requester.
 | --- | --- |
 | R is the Window | Success, unchanged (`0x0091E442`) |
 | The Window pair holds X (not the Window), visible and enabled, and X mode `0x0F` returns X | Request on X, and return its result. X stays or becomes R |
-| As above, but mode `0x0F` returns another element Y | The pair is set to Y and focus is requested on Y. If that fails, the pair is restored and the next row applies |
+| As above, but mode `0x0F` returns another element Y | The pair is set to Y and focus is requested on Y. If that fails, the pair is set to the Window (the requester) and the next row applies. A null mode `0x0F` result on X also sets the pair to the Window before the next row (`0x0091E5FF..0x0091E608`) |
 | No usable remembered recipient | Mode `0x0F` on the Window gives the first eligible descendant. With none, it gives the Window itself |
 
 - STATIC. A GotKeyboardFocus forward (`0x00930E10..0x00930E47`) can move focus
@@ -190,11 +190,15 @@ STATIC. These are the results of `0x0091E3E0` with the Window as requester.
 
 ### Focus within at Click
 
-- STATIC, given an admitted commit: the Window bit is set during the press.
+- STATIC, given an admitted commit whose GotKeyboardFocus bubble reaches the
+  Window unstopped: the Window bit is set during the press.
 - **Link N**, INFERRED: nothing moves focus out of this Window between press
   and release. The Activated script path above exists, and other scripts call
   `setWindowFocus` and `setKeyboardFocusedControl`. With the link held, the
   Button passes null and the route starts at R.
+- The result for this Button rests on L, P and N (INFERRED).
+  [L](#element-attachment) is attachment and
+  [P](#classes-over-all-125) is admission of the press focus request.
 - If focus did leave, or the request was refused with focus outside the Window,
   the bit is clear. The route then starts at `Button_Close` and reaches its
   store.
@@ -444,4 +448,4 @@ Window and its Focusable value are unknown.
 | `65rzqvun1635q_7vww57qvs.le.lpb` | Desktop connector | 213487 | `0f8ca1585bb97c40d36cbf120dd3f6fa6351927c4530e3fad76a71582af95425` |
 | `7vwrvy517vwqs9ln1635q.le.lpb` | ConsoleIconTray | 18579 | `892ac23eb20269dc847572c7a9877f31fb7766137d76b32f1a7e6ca671bd2af5` |
 | `7pqr75w5rz1un1635q.le.lpb` | CutSceneSkip | 1257 | `8450da4ae1cd2b095407a27848f63fdf4b43744da177b2c1a848863e12c950a8` |
-| `rq9qprn1635q.le.lpb` | StatusWidget | 36435 | Not recorded |
+| `rq9qprn1635q.le.lpb` | StatusWidget | 36435 | `2809eaf420ced30da99c28786a2fe5ab798050b9d654103cba7b3059926016d4` |
