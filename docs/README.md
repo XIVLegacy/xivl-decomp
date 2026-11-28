@@ -12,7 +12,8 @@ Each finding records its evidence and the limits of what it establishes.
 
 - [Actor action queue](actor/action-queue.md)
 - [Chara scheduler release and wait completion](actor/chara-scheduler-release.md) -
-  Record release, queue limits and tick order, scheduler end and gesture banks.
+  Record release, queue limits and tick order, load callbacks and refusal gates,
+  scheduler end, gesture banks and layering, thread removal and KO runs.
 - [Cast selectors and cast schedulers](actor/cast-selector-schedulers.md)
 - [Integer-to-float setter candidate](actor/integer-float-setter.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md) -

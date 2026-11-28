@@ -2,9 +2,11 @@
 
 This page records what ends `_waitForCharaSchedulerFinished`: who releases the
 scheduler record the wait polls, how the action queue replaces a running
-entry, when a scheduler ends, and the directory the character bank loader uses
-for the `liu`, `lin`, `lif` and `lil` categories. The native Lua contract is in
-the
+entry, how a resource load reports back, when a scheduler ends, what actor
+removal does to a waiting thread, what the run route reads of a knocked out
+actor, how gesture motions layer, and the directory the character bank loader
+uses for the `liu`, `lin`, `lif` and `lil` categories. The native Lua contract
+is in the
 [client structs scheduler contract](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/scheduler-item-native-contract.md).
 No client ran.
 
@@ -38,6 +40,13 @@ the id. It holds no time field and does not read motion state, animation
 frames, scheduler state or the main ring at `+0xA80`. No timeout was found in
 the checker. A wait for a selector with no record in its ring finishes at the
 first poll.
+
+STATIC. The poll chain ends at `0x00589F60`, which writes only the waiting cell
+`0x0130CECC` (record present) or the done cell `0x01377ECC` to the checker
+output. It never writes the terminate cell `0x0130CED0`, and it reads no clock.
+In resume loop `0x00CF1B50` the time test on the loop word at `+0x3C`
+(`0x00CF1D22..0x00CF1D47`) only leaves the walk early, as a slice budget. It
+ends no wait.
 
 The ring is fed from the `+0xA80` queue by the element drain, one record per
 drain pass. The drain takes that record after the container update delivers
@@ -88,9 +97,10 @@ The other remover is the element destructor `0x0058E860`, which calls
 `0x0058DBE0` (`0x0058E80E`) for their records. Destroying the CharaActor action
 controller deletes every entry (`0x008453C0 -> 0x008450B0`), so each posts
 `0x58`, and delivery needs the element still registered. The checker keeps a raw
-element pointer. What happens to the waiting thread, and any poll after actor
-or element destruction, is UNKNOWN. The runtime result of a receiver that is
-absent at call time was not observed.
+element pointer.
+[Actor removal and waiting threads](#actor-removal-and-waiting-threads) records
+what the element destructor does to waiting threads. The runtime result of a
+receiver that is absent at call time was not observed.
 
 ## Entry lifetime
 
@@ -102,8 +112,9 @@ STATIC unless marked.
 3. `CharaActor` scene handler `0x00662D30` first calls virtual `+0x268`
    (`0x00669650`, bit 6 of actor `+0x2B70`). A nonzero result drops the whole
    message (`0x00662D52..0x00662D58`) and sends no release. That the wait then
-   stays pending until the element dies is INFERRED. The meaning and writers of
-   the bit are UNKNOWN. Command 4 reaches `0x00846080` and `0x00845E80`.
+   stays pending until the element dies is INFERRED. [Refused
+   insert](#refused-insert) records a setter route of the bit. Command 4
+   reaches `0x00846080` and `0x00845E80`.
 4. A queue entry holds a state dword at `+0x04`: 0 pending, 1 started, 2 ending
    and 3 ended. The names are INFERRED.
 5. Start (slot 2, `0x00843DB0`) calls visual `+0x40` (`0x00798470`). A false
@@ -114,9 +125,12 @@ STATIC unless marked.
    listener and starts the wrapper (virtual `+0x2C`) or defers it. A name not
    found, an actor refusal (`0x0065DF20`) or a failed build writes state 2
    (`0x0084461E`).
-7. Update (slot 3, `0x00844150`): with the deferred bit clear the entry stays
-   while actor controller `+0x12F0` virtual `+0x18` (`0x0080B6C0`) lists the
-   wrapper. Otherwise, when flag bit 0 is set, it writes state 2.
+7. Update (slot 3, `0x00844150`): with the deferred bit (flag bit 1) clear, it
+   writes state 2 only when flag bit 0 of `+0x0C` is set
+   (`0x00844197..0x0084419D`) and either there is no effect controller or the
+   controller does not list the wrapper (`0x0084417B..0x00844195`). The list
+   test is actor controller `+0x12F0` virtual `+0x18` (`0x0080B6C0`). A pending
+   load leaves flag bit 0 clear.
 8. Effect controller update `0x0080CA30` drops a record whose wrapper virtual
    `+0x44`, the current scheduler state at S+`0x8C`, is 4
    (`0x0080CADD..0x0080CAE8`). A requested state compare at
@@ -136,12 +150,11 @@ When start submits nothing (no candidate passes `0x00D39290` on the character
 side and the effect loader submits nothing), or a delivered load callback finds
 neither searched name, the entry goes to state 2 and releases after some
 controller ticks. This is not in the same frame. A submitted load whose
-callback never arrives leaves the entry in state 1 with flag bit 0 clear, and
-the record is not released. Whether that happens in retail, how an asynchronous
-load failure is reported (queue slot 6 `0x00843DD0` writes state 2 and its
-caller is UNKNOWN), and whether an effect only submission delivers a load
-callback are UNKNOWN. A resolver miss means a miss of the retail resolver,
-which is not traced.
+callback never arrives leaves the entry in state 1 with flag bit 0 clear. No
+completion then releases the record. [Loads that do not call
+back](#loads-that-do-not-call-back) records the releasers and the failure
+route. A resolver miss means a miss of the retail resolver, which is not
+traced.
 
 ### Second scheduler name
 
@@ -151,7 +164,8 @@ that string through setter `0x00843790` from the insert bundle string at
 `H+0x1D0` (`0x00843C1C..0x00843C3A`), the `bid` directory string of
 [idle bank selection](idle-bank-selection.md). These instructions do not show an
 empty name. Its runtime
-value and effect are UNKNOWN. `main` is established.
+value and effect are UNKNOWN. `main` is established. With a load count of 0,
+slot 8 skips both name passes (`0x00844396`).
 
 ### Deferred start
 
@@ -160,7 +174,12 @@ Insert sets entry flag bit 2 for types 5, 8 and 9
 the bit set, slot 8 sets bit 1 instead of starting the wrapper. Slot 3 starts
 it only when `0x007A3A10` on actor `+0x590` is false, that is, when actor byte
 `+0xB3D` is not in 1 to 13. While it is in that range the wait cannot finish.
-The meaning and writers of the byte are UNKNOWN.
+With `S` equal to actor `+0x590`, that byte is the posture transition phase byte
+`S+0x5AD` of
+[locomotion selection](locomotion-selection.md#posture-inputs-and-selected-machine).
+It is not the death phase byte `S+0x5AC`. The type here is the class, so classes
+12 to 17 are not deferred. A search for all writers of the byte is not recorded
+here.
 
 ### Refused insert
 
@@ -173,8 +192,135 @@ or when allocation or construction fails. On the scene route the handler tests
 release a scene routed run. Filter `0x008440A0` splits the selector through
 `0x00798370` and accepts only `0x7F`, 0 and 100 to 199, which a gesture
 selector fails. `0x00844FF0` needs selector high byte `0x19` and type 6 or 7, so
-it never applies to class 5 or classes 12 to 17. The meaning of the
-`0x0065DF30` gate, and so when retail refuses a gesture, is UNKNOWN.
+it never applies to class 5 or classes 12 to 17.
+
+Actor virtual `+0x268` is tested by the scene drop (`0x00662D4E`), by insert
+(`0x00845EE1`) and by load completion (`0x00844369`). All but the first reach it
+through `0x0065DF20`.
+
+- STATIC. In CharaActor vtable `0x00FC0D34` the slot is `0x00669650`, which
+  returns bit 6 of actor `+0x2B70`. Its setter is slot `+0x264`
+  (`0x00669630`). `0x007CEF20` sets the bit (`0x007CEF25..0x007CEF2D`) and calls
+  `0x007C9740`, which removes the actor from lists in the container at actor
+  `+0x118` and clears the container `+0xD0` cell when it matches.
+- INFERRED (link: that routine is actor removal): the bit is not a knocked out
+  bit. Raw writes of bit 6 were not searched exhaustively.
+
+STATIC. Actor virtual `+0x2DC` is `0x00669620`, bit 17 of the same word, with
+setter slot `+0x2D8` (`0x00669600`). The CharaActor range setter calls found
+(`0x0065DA2F`, `0x00666196`, `0x0066652F`) pass 0. A scan of `mov` and call
+sequences, which is not exhaustive, found no call that passes 1. The meaning of
+the bit is UNKNOWN.
+
+STATIC. The rest of `0x0065DF30(1)` is a cut gate
+(`0x0065DF4E..0x0065DF76`). It returns true when all of these hold:
+
+- the actor equals `[[A+0x118]+0xD0]`, where `A` is the actor
+- `[[A+0x118]+0x68]` is nonnull
+- byte `+0x180` of that object is set
+- `A+0xE0` is not `0x7FFFFFFF`.
+
+Insert then refuses every selector that fails `0x008440A0`, and so every
+gesture. `A+0x118` is the RaptureActorContainer and its `+0x68` is the cached
+CutManagerActor (the type `0x0D` slot of the
+[character factory provider](../resource/attribute-resource-and-scene-binding.md#character-factory-and-world-provider),
+store `0x007A0354`). `+0x180` is the cut begun byte that
+[cut begin](../resource/cut-begin-viewport-and-clock.md) tests and sets
+(`0x00611C37`, `0x00611C66`). So retail refuses a gesture on the container
+`+0xD0` actor while that byte is set, unless the actor carries the value
+`0x7FFFFFFF`. UNKNOWN: which actor `+0xD0` holds (one writer is at
+`0x007C9676`), and every clear of byte `+0x180`.
+
+## Loads that do not call back
+
+### No time guard in the layers read
+
+- STATIC. The poll and the resume loop end no wait by time
+  ([wait condition](#wait-condition)).
+- STATIC. The one watchdog found in controller tick `0x00845430` is for classes
+  8 and 9 ([other force ends](#other-force-ends)). Indirect writers of the entry
+  state dword were not searched exhaustively.
+- STATIC. With the deferred bit clear, entry update writes state 2 only with
+  flag bit 0 set ([entry lifetime](#entry-lifetime)), and a pending load leaves
+  that bit clear.
+- STATIC. Listener slots 1, 3, 6 and 12 below, arm `0x006323D0` and
+  `0x00631320` read no clock.
+- UNKNOWN. The resource request and its manager, the objects under
+  `0x006320C0`, were not searched for a request timeout. A timeout that reported
+  through listener slot 1 would release through the failure route.
+
+So, STATIC for the bodies read, no clock in the wait, queue or listener layer
+ends a class 5 or class 12 to 17 record whose load is silent. Whether a lower
+layer has a timeout is UNKNOWN.
+
+### What releases a loading entry
+
+The releasers found are a later insert of the same class, controller teardown
+and element destruction.
+
+- STATIC. A later insert of the same class. The limit pass (limit 1) marks the
+  oldest entry when its state is 1. Stop `0x008441B0` does nothing with a null
+  wrapper (`0x008441B3..0x008441B8`). Delete test `0x00844200` returns true with
+  a null wrapper and countdown bits 3 and 4 zero. The destructor posts `0x58`
+  unconditionally (`0x00843D74`), then calls `0x0065DBF0` on the visual
+  (`0x00843D80`), which calls `0x00632740` on it. `0x00632740` was not
+  followed. The limit pass is skipped while `0x007A4100` is true
+  ([limits and tick order](#limits-and-tick-order)).
+- STATIC. Action controller teardown, where delivery needs the element still
+  registered, and element destruction
+  ([who releases a record](#who-releases-a-record)).
+
+### How a load failure is reported
+
+The listener is the CharaActionVisual primary vtable `0x00FE4544`: slot 1
+`0x00631C70`, slot 3 `0x00631370`, slot 6 `0x00632440` and slot 12
+`0x00798900`. Load records are `0x6C` bytes, with the request handle at `+0x58`
+and the result at `+0x5C`.
+
+- STATIC. Slot 1 takes a success byte, the request and the record index. With a
+  false byte it calls slot 3, which zeroes handle `+0x58` (`0x0063137A`), then
+  slot 6 with a null resource (`0x00631CB0..0x00631CBE`), then request virtual
+  `+0x14`.
+- STATIC. Slot 6 stores the null at `+0x5C`. When the listener is armed (byte
+  `+0x20`) and every handle is zero, it calls `0x00631320`. That routine
+  compacts the non-null results and passes them to slot 12 with the dword at
+  `+0x1C`, the non-null count (incremented at `0x00632497`). Arm `0x006323D0`
+  does the same at once when no handle is outstanding. In start `0x00798470`,
+  arm is called when either loader (visual virtual `+0x54` or `+0x58`) has
+  returned true (`0x007984F2..0x007984FF`, `0x00798536..0x0079853D`), and also
+  at `0x007985E0`.
+- STATIC. With a back pointer at visual `+0x1CC`, slot 12 reads the category row
+  dword (`0x00FE32E0` plus 12 times the selector high byte). The gesture
+  categories 1, 4 to 9 and 21 to 24 hold 9, 1, 7, 6, 6, 6, 6, 2, 3, 4 and 5.
+  None is `0x0A`, `0x0B` or `0x12`, so they reach queue slot 8 (`0x00844330`)
+  with the array and the count. With a null `+0x1CC` nothing is called.
+- STATIC. With count 0, slot 8 skips both name passes (`0x00844396`), writes
+  state 2 at `0x0084461E` and returns. So a submission whose loads all report
+  failure releases through the normal completion. With a partial failure the
+  names are searched in the loads that succeeded.
+- STATIC. Slot 12 calls queue slot 6 (`0x00843DD0`, which writes state 2) when
+  the selector high byte is above `0x22` or the row dword is `0x12`. Row dwords
+  `0x0A` and `0x0B` call queue slot 7. These are category arms and not failure
+  routes.
+- STATIC. Effect loader `0x00799C90` submits through the same `0x006320C0`
+  (`0x00799F76`). INFERRED (link: the loader returns true when it submitted): an
+  effect only submission is armed and completes through slot 12.
+
+### Two success paths that complete nothing
+
+STATIC. These are arms of slot 1 with a true success byte, with dword
+`0x01376038` zero. Neither calls slot 3 or slot 6.
+
+1. Request virtual `+0x18` returns 0 (`0x00631D6E..0x00631D74`).
+2. It returns data, slot 5 (handle equality) passes, and manager virtual `+0x58`
+   returns 0 (`0x00631DEB..0x00631DEF`).
+
+Both then call request virtual `+0x14` (`0x00631E09..0x00631E16`). INFERRED
+(link: `+0x14` does not call back into the listener, and its body was not read):
+the handle stays nonzero and the aggregate never completes. Whether either arm
+is taken on installed data is UNKNOWN. Also UNKNOWN: whether the resource
+system always calls slot 1, and the route with a nonzero dword `0x01376038`
+(`0x00631850`).
 
 ## Classes and replacement
 
@@ -247,7 +393,14 @@ lane 5 or 12 to 17. The many callers of `0x0065C470` and `0x00665140` were not
 read, `0x00844EF0` signals a lane through `0x0080BCD0`, and indirect writers of
 the state dword were not searched exhaustively. Whether movement or combat
 cancels a gesture is UNKNOWN. No timeout was found for class 5 or classes 12 to
-17.
+17 in the layers that [loads that do not call
+back](#loads-that-do-not-call-back) covers.
+
+STATIC. [Locomotion selection](locomotion-selection.md#initial-ko-pose-and-publication)
+covers the KO posture and death routes. Their calls reach `0x0065C470` (lane 6)
+and the `0x0065C360` and `0x00665140` helpers (lanes 6, 8 and 9 under the list
+above). No caller read ends lane 5 or lanes 12 to 17. Other KO side callers were
+not read.
 
 ## When a scheduler ends
 
@@ -262,7 +415,8 @@ STATIC.
   returns 0 (`0x00A27C8B..0x00A27C90`), which selects instance 0 again.
 - Starting selects block instance 0: the requested state 2 arm `0x00A1D228` of
   dispatcher `0x00A1D1F0` (table `0x00A1D308`) passes index 0 to
-  `0x00A28090`.
+  `0x00A28090`. [Played block](../resource/cut-scheduler-clip-timing.md#played-block)
+  records how the instance names its block.
 - A block instance record holds a u8 block index at data `+0x00`, a u8
   transition count at `+0x01` and the first transition at `+0x10`
   (`0x00A27BD0..0x00A27BF6`). A transition holds a u8 target instance index at
@@ -313,6 +467,13 @@ reading.
 
 OBSERVED over c001 banks.
 
+- In the `act/cmn/{lib,em1,em2,em3,liu,lil}/base` banks, all 428 schedulers have
+  block index 1 on block instance 0. Instance 0 holds 0 transitions in 187 `lib`
+  schedulers, 1 in 3 and 2 in 3. It holds 0 in every scheduler of the other
+  kinds. INFERRED (the link of
+  [played block](../resource/cut-scheduler-clip-timing.md#played-block)): the
+  block that `main` plays first is the block that its instance 0 names, counted
+  from 0.
 - Over the banks of the script selectors, 130 of 131 MotionClips have flags
   `0x20` and selector byte 1. One has `0xA0` and `0xFF` (phase 2, in
   `inn_out01`, ended by a KillClip).
@@ -334,11 +495,25 @@ OBSERVED over c001 banks.
   waiting on it. `action_main` blocks run from 800000 to 4990000.
   RaptureCasterManagedSchClip sets phase 2 at begin (`0x0082095C`) and returns
   to 0 when its dword `+0x4C` is 0 (`0x00820250`, `0x00820270`, STATIC). That
-  the dword counts live child schedulers is INFERRED, so emote duration does not
-  follow from the STATIC facts alone.
+  the dword counts live child schedulers is INFERRED. A direct `+0x4C` scan of
+  `0x0081FD00..0x00820E00` did not find its writers. Under that link the clip is
+  done when the child has ended. Emote duration does not follow from the STATIC
+  facts alone.
 - `lil` mains (9 script selectors) hold a 20000 tick block with a ClipSyncClip
-  on the BindActorClip and a RaptureFacialLipSyncClip at 10000. That a wait on
-  one ends almost at once and says nothing about the lip motion is INFERRED.
+  on the BindActorClip and a RaptureFacialLipSyncClip at 10000. In each of the
+  13 c001 `lil` mains, block 1 holds BindActorClip at 0, ClipSyncClip at 0 and
+  RaptureFacialLipSyncClip at 10000. The bind record has actor ordinal 0
+  (ProxyActor), `D+0x10` = 0 and `D+0x11` = 1.
+- INFERRED (the registry link of
+  [RaptureActorBindClip](../resource/cut-scheduler-clip-timing.md#raptureactorbindclip-phases)):
+  that bind clip is a RaptureActorBindClip. It is not done at its begin call.
+  Given a begin that sets phase 2, the earliest end is its third slot 2 call,
+  and each of its gates can hold longer. The ClipSyncClip holds phase 1, so the
+  lip sync clip starts only after the sync releases. `D+0x10` = 0 skips the
+  final `+0x164` call. UNKNOWN: how soon the gates pass
+  for a live field actor and which begin branch a queue run `lil` takes. No
+  duration of a wait on a `lil` main, in time or frames, follows, and nothing
+  follows about the lip motion.
 - Script waits in 273 script files: 142 literal ids (category 4: 37, category
   21: 62, category 5: 43) and 17 dynamic. Runs are 5209 literal and 20 dynamic.
   A literal id does not prove that a site runs.
@@ -424,19 +599,196 @@ have the same 93 joint set. INFERRED: full body `m` clips replace the body pose
 while weighted in, `cbfp_` clips layer over pairs 1, 7 and 9, and `cbfa_` clips
 are additive on a few joints.
 
-UNKNOWN: the quaternion product operand order, layer composition order against
-locomotion, layer priority, the default blend length, motion handling when a
-gesture is replaced, root motion and behaviour while the actor walks.
+UNKNOWN: the quaternion product operand order, the default blend length, motion
+handling when a gesture is replaced, root motion and behaviour while the actor
+walks.
+
+### Joints a gesture clip does not key
+
+[Motion controller reset and walk
+order](../resource/mtb-fixed-motion-calculator.md#motion-controller-reset-and-walk-order)
+records the generic mechanism. STATIC: on its ordinary arm the MotionController
+restores the saved pose and then applies the layers in ascending key order. A
+unit writes only the rows and paths that its channels cover. Isolation of the
+other rows in the unread sample helpers is INFERRED.
+
+Which bank lies underneath:
+
+- STATIC. Named submit `0x007B8720` appends an item, and no retire of older
+  items was seen in it
+  ([named motion blend path](../resource/motion-resource-request.md#named-motion-blend-path)).
+  Other calls were not traced.
+- STATIC. Idle and gait use a separate motion stack (update `0x007B34B0`), whose
+  push and update retire the older items of that stack
+  ([blend state and weight](locomotion-selection.md#blend-state-and-weight)).
+- INFERRED (links: actor motion items are layers of this MotionController, and
+  the motion object is still unbound on the
+  [motion request page](../resource/motion-resource-request.md). Nothing on the
+  gesture route stops the back item of the idle stack. The idle has the lower
+  key. Reset dword bit 2 is clear on actors): under a gesture lies whatever
+  idle, gait, pack or seat item the posture owner holds at that time, still
+  advancing. It is not a bank that the gesture chooses. For the unarmed field
+  stand on c001 that item is `cbnm_id0` of `act/emp_emp/bid/base/0000`. For an
+  armed actor see [idle bank selection](idle-bank-selection.md) and
+  [weapon set directories](weapon-set-directories-and-battle-banks.md).
+
+Under those links, an unkeyed joint shows the current sample of the lower layer,
+or else the saved pose, and does not freeze. Applying the generic mechanism to
+actor gestures is INFERRED. No evidence here supports holding the first frame of
+a pack or seat bank.
+
+UNKNOWN: the unit index to MTB pair map in every layer, and how the item layer
+value (virtual `+0x7C`) becomes the layer key byte. That a later gesture gets a
+higher key than the idle is INFERRED.
+
+## Actor removal and waiting threads
+
+### Order inside the element destructor
+
+STATIC. Element destructor `0x0058E860` calls `0x00574A60` (`0x0058E8DC`) before
+record release `0x0058E720` (`0x0058E8FE`).
+[Single area removal](current-area-master-list.md#single-area-removal) records
+that wrapper. It returns at once for keys `0x5FF80001` and `0x5FF80002`.
+Otherwise it takes the dword that element `+0x80` points to and, when nonzero,
+calls its virtual `+0x14`.
+
+INFERRED (link, on that page: the object is a LuaActorImpl whose `+0x08` is the
+control): the virtual is `0x00763480`. STATIC from there: it calls control
+virtual `+0x74` (`0x007634A0` through `0x006DBE10`). In CharaBase vtable
+`0x00FD5CAC`, `+0x74` is `0x006DBEA0`, which leads through `0x00CC7370` to
+`0x00CDAEB0`, and that routine calls `0x00CF0B90` at `0x00CDAF8C`.
+`0x00CDAEB0` skips the call when `0x00CE16F0` passes and `0x00CE1710` fails
+(`0x00CDAEF2`). That an actor instance is not that record kind is INFERRED.
+
+The same wrapper has a second caller, the `0x00CD` case (`0x004D8921`). It is
+outside the element destructor. No record release or element destruction was
+read there, so this page does not equate the two routes.
+
+### Owned threads are marked killed
+
+- STATIC. `0x00CF0B90` has two arms. The single thread arm calls only
+  `0x00CCDBC0` (`0x00CF0C2B`). The table arm, per thread, calls `0x00CCD560` to
+  install a CancelResumeChecker when `0x00CCD340` is true (a nonempty vector at
+  thread `+0xDC`), and then always calls `0x00CCDBC0`
+  (`0x00CF0C99..0x00CF0CAF`).
+- STATIC. `0x00CCDBC0` sets thread byte `+0x13C`. With a nonempty `+0xDC` vector
+  it first calls `0x00D00770`, and before that it calls `0x00CCD910(2)` only
+  when byte `[[thread+0x0C]+0x224]` is zero.
+- STATIC. In loop `0x00CF1B50`, for a thread with an owner at `+0x10`: if
+  `0x00CE1BB0` reports the owner gone, a thread with both bytes `+0x13A` and
+  `+0x13C` set goes through `0x00CF0D20` and `0x00CF22A0` (removal, with no
+  poll), and any other such thread is skipped. With a live owner, a set byte
+  `+0x13C` means the thread is skipped (`0x00CF1C98`). Either way the loop does
+  not poll or resume a killed thread that has an owner. A thread with a null
+  `+0x10` is polled without the `+0x13C` test (`0x00CF1C21`).
+
+So the threads that the removed control owns are not polled or resumed by this
+loop. This is STATIC after the INFERRED `0x00763480` link. UNKNOWN: what the
+`0x00CCD910(2)` listeners do to a parent that awaits the thread, and the writers
+and meaning of byte `+0x13A`.
+
+### Waiters that another control owns
+
+- INFERRED (link: the thread owner is the control whose function runs, not the
+  receiver of the native): a quest, director or other NPC script that waits on
+  actor X is not in the table of X. Nothing read here looks for waiters by
+  checker receiver. Not every teardown callee was read, for example
+  `0x00CF5450` at `0x00CDAF6A`.
+- STATIC. The destructor releases every ring record (`0x0058E720`). The 26 rings
+  at element `+0x878` are then destroyed (`0x0058E9B1..0x0058E9C1`,
+  `0x00CC3BF0` to `0x00CC3B80`: size and head are zeroed, storage is freed, and
+  `+4` and `+8` are zeroed). Element slot 0 `0x00590360` frees the element block
+  when bit 0 of its argument is set.
+- UNKNOWN: what the next poll of a surviving waiter sees. The checker then reads
+  freed memory. If the block were untouched, it would read size 0 and resume as
+  done, but nothing guarantees that. The `0x0007` arm is in dispatcher
+  `0x004DC690`, called at `0x004E221D` under `0x004E30A0` (call `0x004B3CCC`).
+  `0x004DAA10` runs later in the same `0x004B3C50` update (`0x004B3DD4`),
+  conditionally
+  ([airship scene sequence](../event/airship-scene-sequence.md)). Queue
+  delivery, element drains and other calls lie between the free and the Lua
+  walk, and the walk is gated.
+
+### Zone change
+
+STATIC for the loops
+([elements deleted before the trim](current-area-master-list.md#elements-deleted-before-the-trim)).
+The `0x0007` arm deletes general map elements through element slot 0 with
+argument 1. It keeps:
+
+- keys that guard `0x00575750` accepts: listed area keys, `0x5FF80001`,
+  `0x5FF80002`, the dword at `+0x1783C` of the `[[P+4]]` object, and the dword
+  at `+0x12C` of the control at `[P+4]+0x0C` under the condition on that page
+- keys with a staged pair
+- keys whose top three bits are those of `0xC0000000`.
+
+That the `+0x12C` key is the self player key is INFERRED, so survival of the
+self player through this arm is INFERRED. What else ends the record lanes of the
+self player is UNKNOWN. Whether `0x0007` is sent on every zone change is a
+server and capture question.
+
+## Script runs on a knocked out actor
+
+### No KO test on the walked route
+
+STATIC. The bodies `0x006E48A0`, `0x0058C690`, `0x0058DA10`, `0x00662D30` (head
+and the command 4 arm at `0x00663339`), `0x00846080`, `0x00845E80`,
+`0x00843B50`, `0x00845430`, `0x00844150`, `0x00798470`, `0x007982D0`,
+`0x00798BF0`, `0x00799C90`, `0x00844330`, `0x0065DF30`, `0x00844FF0`,
+`0x008440A0`, `0x006320C0` and their direct callees (one level) were walked for
+calls to `0x007A3EA0` and `0x007A3EE0` and for the state offsets `+0x5A9`,
+`+0x5AA`, `+0x5AC`, `+0xB39` and `+0xB3C`. The only KO predicate call reached is
+under `0x007BA190`, called from the command 67 arm (`0x006639B4`), which is not
+command 4. The state reads on the route are copies of actor byte `+0xB39` into
+the visual bundle (insert `0x00845F2B`, and `0x00845DA5` on the class 0 command
+3 route). Virtual, indirect and deeper callees are not covered.
+
+STATIC. With `S` equal to actor `+0x590`, `0x007A3EA0` is true for a desired byte
+`S+0x5AA` or a committed byte `S+0x5A9` equal to 1 or 3, or a nonzero death
+phase byte `S+0x5AC`. By contrast, the
+[native reaction helper](hit-damage-schedulers.md) `0x007BA0E0` refuses while
+actor byte `+0xB3C` is nonzero.
+
+So retail does not refuse a script chara scheduler for being knocked out on the
+read route (STATIC for the walked bodies). The [refusal gates](#refused-insert)
+test other state.
+
+### Bank directory on a knocked out actor
+
+An accepted run is not necessarily visible, because the main state still selects
+the bank directory.
+
+- STATIC. Under [route kinds 2 to 5](#route-kinds-2-to-5), with the table bytes
+  of `0x006B71D0`, the copied main state picks the bank directory for route
+  kinds 1 to 7. State 1 (group 0) gives `cmn`. State 3 (group 1) gives the
+  `bid` directory. State 2 also gives the `bid` directory.
+- OBSERVED: c001 has `liu`, `lil`, `lib`, `em2` and `em3` only under
+  `act/cmn`.
+- INFERRED (links: the resolver under `0x00D39290` substitutes nothing, and no
+  weapon set `bid` path supplies the file): for those categories on c001, a
+  knocked out actor in main state 3 probes a directory with no such file. The
+  run plays nothing and releases through the no submission route.
+
+Other models and `em1` were not checked. Which of states 1 and 3 a given KO
+commits is not derived here. The picture of a gesture over the death motion or
+pose is UNKNOWN.
 
 ## Open items
 
-- When retail refuses a gesture insert, and the meaning of the gates named
-  above.
+- The meaning of actor virtual `+0x2DC`, which actor the container `+0xD0`
+  cell holds, and every clear of the cut begun byte.
+- A request timeout below the load listener, whether the resource system always
+  calls slot 1, and whether the arms that complete nothing run on installed
+  data.
 - The runtime value of the second scheduler name.
-- Queue run scheduler mode, other block listeners, conditional transitions and
-  the duration of ClipSync holds.
+- Queue run scheduler mode, other block listeners, conditional transitions, the
+  gates of the bind clip and the duration of ClipSync holds.
 - Playback rate, frame rate source and release latency.
-- Actor or element loss behaviour of a waiting thread.
+- The poll of a waiter that another control owns after element destruction, the
+  effect of a killed thread on a parent that awaits it, and thread byte
+  `+0x13A`.
+- The picture of a gesture on a knocked out actor and the main state that a
+  given KO commits.
 - Movement or combat cancel.
 - The retail resolver and the weapon set posture fallback.
 
@@ -454,4 +806,11 @@ dwords at `0x00A1D308` and `[0x00798BF0,0x00799724)`. List the references to
 `0x007CE7B0`. For the install counts, walk each bank `SEDBRES` directory as in
 the [locomotion bank census](locomotion-bank-census.md), parse every `SEDBSCB`
 and read `@CBKT` block bodies (length `+0x14`, clip count `+0x18`), including
-nested `SEDBRES` entries.
+nested `SEDBRES` entries. For the block instance counts, read the first
+`@CBIS` chunk of each `SEDBSCB` (block index at chunk `+0x10`, transition count
+at `+0x11`).
+
+For the load listener, disassemble `[0x00631C70,0x00631E1C)`, `0x00631370`,
+`0x00632440`, `0x006323D0`, `0x00631320`, `0x00798900` and `0x00844396`. For
+thread removal, disassemble `0x00CDAEB0`, `0x00CF0B90`, `0x00CCDBC0` and
+`[0x00CF1B50,0x00CF1D48)`.

@@ -213,8 +213,11 @@ node `+0x08` with the control (`0x007645AE`) and passes the matching node to
 (`0x007645CF`), so one call removes at most the first node that holds the
 control. That routine links the neighbours to
 each other (`0x0077B7AF..0x0077B7C0`), releases the node through `0x0044D350`
-(`0x0077B7C3`) and adds -1 to M `+0x08` (`0x0077B7CB`). STATIC. What
-`0x00CC7370` does to the instance is NOT TRACED here.
+(`0x0077B7C3`) and adds -1 to M `+0x08` (`0x0077B7CB`). STATIC. For a
+CharaBase control,
+[actor removal and waiting threads](chara-scheduler-release.md#actor-removal-and-waiting-threads)
+follows `0x00CC7370` to the thread kill. The rest of what it does to the
+instance is NOT TRACED here.
 
 The call-site scan finds four callers of `0x006DBE10`.
 

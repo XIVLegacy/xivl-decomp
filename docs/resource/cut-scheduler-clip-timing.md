@@ -221,6 +221,84 @@ ending by duration without holding the scheduler time. Phase 2 of the five newer
 classes does the same. RaptureSoundClip can also take phase 1, which holds the
 scheduler time like the RaptureMesClip phase 1.
 
+## ClipSync done states
+
+STATIC. ClipSyncClip update `0x00a10120` reads the count word `u16(D+0x10)`
+(bit 15 selects all, and a clear bit selects any) and the `s16` indexes from
+`D+0x14`. A listed clip is done when its virtual `+0x2c`, the state, is 3 or 4.
+When the test passes, the clip sets its phase to 0. A failed lookup returns at
+once without completing. A clip that has not begun is not done.
+CDevSchedulerManager slot 3 does not replace the ClipSyncClip key.
+
+## Played block
+
+STATIC, from `ghidra` CLI disassembly and Capstone decoding of the pinned image.
+`S+0x50` is the parsed scheduler object. The start arm
+`0x00a1d243..0x00a1d270`, taken when the current state is 1, takes block
+instance 0 (`0x00a28090(0)` on the container at `[S+0x50]+0x40`) and calls
+`0x00a1cb20`. That routine stores the instance at `S+0xb4` and passes its data
+byte `+0x00` (`0x00a27bd0`) to `0x00a1ba90`. The latter calls `0x00a26990` for
+that entry of the block container at `[[S+0x50]+0x3c]`
+(`0x00a1bac1..0x00a1bad8`). `S+0x34` is not the block container. It is an
+argument of the list builder `0x00a28210`. Block change `0x00a1e710` does the
+same for a later instance.
+
+INFERRED (link: both containers are filled in chunk record order. The append
+loops `0x00a2a110..0x00a2a13f` and `0x00a2a330..0x00a2a37b` append in iterator
+order, and the iterator was not read): the block that a scheduler plays first
+is the block that the first `@CBIS` record names, counted from 0.
+
+The [scheduler end rules](../actor/chara-scheduler-release.md#when-a-scheduler-ends)
+own the transitions, and the
+[installed gesture schedulers](../actor/chara-scheduler-release.md#installed-gesture-schedulers)
+hold the c001 counts. A block has its own timeline. ClipSyncClip and KillClip
+indexes address the [list of all clips](#clip-index-word) of the scheduler.
+
+## RaptureActorBindClip phases
+
+STATIC, from `ghidra` CLI disassembly and Capstone decoding of the pinned image.
+This class is census rank 9 and is not one of the twenty classes above.
+CDevSchedulerManager slot 3 erases the key `BindActorClip` of the base class
+(vtable `0x010966c4`, factory `0x00a4e360`) and inserts factory `0x0063bfd0`
+(`0x00636ba6..0x00636bf0`), as the
+[character factory provider](attribute-resource-and-scene-binding.md#character-factory-and-world-provider)
+records. That factory builds RaptureActorBindClip: vtable `0x01031e14`, slot 1
+`0x0082e160`, slot 2 `0x0082e490`, with slots 3 to 15 shared with the base.
+
+INFERRED (link: a queue built scheduler looks the key up in that same registry
+`J+0x6C` with the registration retained, under the
+[queue handoff](action-queue-scheduler-handoff.md#queue-registry-and-motionclip-implementation).
+This is the link under which its MotionClip is RaptureMotionClip): the
+BindActorClips of a gesture are RaptureActorBindClip.
+
+Slot 1, on its begin routes, calls the base begin and then sets phase 2
+(`0x0082e275..0x0082e27e` and `0x0082e46b..0x0082e474`). It has early exits
+(`0x0082e476`), including a missing CutManagerActor, that skip the phase store.
+Some of them also skip the base begin.
+
+Slot 2 runs the base update. Then, when the CutManagerActor chain resolves, it
+runs a step counter in the low 2 bits of clip `+0x44` (table `0x0082e690`) and
+advances at most one step per call.
+
+| Step | Address | Behavior |
+| ---: | --- | --- |
+| 0 | `0x0082e517` | With a bound actor, holds until actor virtual `+0x258` is true (CharaActor `0x006694e0`: bit 5 of actor `+0x2B70` set and the low nibble zero). With no bound actor, advances. |
+| 1 | `0x0082e5b4` | With flag bit 1 of clip `+0x40` and a CharaActor, holds until actor virtual `+0x2d4` (bit 16 of that word) is true. Then, with flag bit 0 clear and a CharaActor, posts through actor virtual `+0x274` scene record `0x3A` with a zero dword, or `0x3D` when actor `+0xE0` is `0x7FFFFFFF`. |
+| 2 | `0x0082e637` | With flag bit 0 clear and a CharaActor, holds until actor virtual `+0x2bc` (bit 11, `0x00669560`) is true. On advance it sets phase 0. |
+
+Steps that hold, or that advance from step 0 or 1, leave phase 2. Slot 8 of the
+base class gives a duration of 0, so the [end rule](#end) applies once the phase
+is 0 in state 2.
+
+So this class is not done at its begin call. Given a begin that sets phase 2,
+the earliest end is the third slot 2 call, and each gate can hold longer. Phase
+2 does not by itself hold the scheduler time. A ClipSyncClip on the clip, which
+takes phase 1, does. UNKNOWN: how soon the three gates pass for a live field
+actor, which begin branch a queue run `lil` scheduler takes, who sets the gate
+bits and when, and what record `0x3A` does to a field actor here (`0x0066388b`
+hands it to the desired posture component). No duration in time or frames
+follows.
+
 ## Clips that count frames or updates
 
 RaptureBlackFadeClip stores the scheduler frame number (`0x00a1b860`) at clip
@@ -281,9 +359,9 @@ under the phase-store contract above.
 
 ## Open items
 
-- The block that a selected scheduler plays, the block header fields and the
-  scheduler length are UNKNOWN on this page. The start instance, block end test
-  and next block rule are in
+- The block header fields and the scheduler length are UNKNOWN on this page.
+  [Played block](#played-block) gives the route from a block instance to its
+  block. The start instance, block end test and next block rule are in
   [when a scheduler ends](../actor/chara-scheduler-release.md#when-a-scheduler-ends). The
   [secondary-collection caller relation](scb-clip-factory-composition.md#secondary-collection-callers-and-callback-context)
   qualifies the `0x00a1cb20` and `0x00a1e710` calls to `0x00a1ba90` and

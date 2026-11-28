@@ -450,7 +450,9 @@ Zero AL skips Gate A. Otherwise `0x00845F02` calls `0x008440A0`, ECX=C,
 with `[Q]`; zero Gate-A AL branches to `0x00845FB6`, while nonzero AL
 continues. Gate B, `0x00844FF0`, receives the same `[Q]` at `0x00845F12`.
 Its nonzero AL selects `0x00845FB6`; zero continues to `0x00845F1F`.
-The initial actor predicate remains untraced and is not assigned a status name.
+The
+[refused insert finding](../actor/chara-scheduler-release.md#refused-insert)
+reads parts of the initial actor predicate. It is not assigned a status name.
 
 Gate A reads only u32(Q+`0x10`) at `0x008440B1`. At `0x008440D2`, the
 existing scalar decomposer `0x00798370` receives that copied dword and three

@@ -116,6 +116,10 @@ later resolves that ID, so visual and single-actor collision clips with the
 same actor ordinal reach the created character. Without a bind, slot 23
 returns null and those clips do nothing.
 
+The [clip timing page](cut-scheduler-clip-timing.md#raptureactorbindclip-phases)
+records the phase that slot 1 sets and the gates through which slot 2 releases
+it.
+
 ## Scan predicate
 
 A scheduler span is a candidate for admitting an Attribute's group 1 to a
