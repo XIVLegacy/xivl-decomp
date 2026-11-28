@@ -283,6 +283,32 @@ then `0x0095F724..0x0095F739` supplies its dword to the property
 constructor at holder `+0x24`. Receiver-keyed allocation therefore gives
 the selected property an initial integer zero (STATIC).
 
+The same constructor registers `IntData.Value1`, `IntData.Value2` and
+`IntData.Value3` the same way. For each one it calls base constructor
+`0x0095F5B0`, stores vftable `0x01078554` and then stores `EBX` at the
+register's `+0x40`.
+
+| Name | Descriptor | Register offset in the context | Constructor call | Vftable store | Default store |
+|---|---|---|---|---|---|
+| IntData.Value0 | `0x0135F908` | `+0x21BC` | `0x00991DEA` | `0x00991DEF` | `0x00991DF5` |
+| IntData.Value1 | `0x0135F950` | `+0x2204` | `0x00991E17` | `0x00991E1C` | `0x00991E22` |
+| IntData.Value2 | `0x0135F998` | `+0x224C` | `0x00991E44` | `0x00991E49` | `0x00991E4F` |
+| IntData.Value3 | `0x0135F9E0` | `+0x2294` | `0x00991E71` | `0x00991E76` | `0x00991E7C` |
+
+From `0x00991ACB` through `0x00991E7C`, the `XOR` at `0x00991ACB` is the
+only instruction whose first operand is `EBX`, `BX`, `BH` or `BL`. All four
+default stores therefore write zero, given that the intervening callees
+preserve `EBX`. The four registers share vftable `0x01078554`, so they share
+the lookup at `+4` and the miss constructor at `+8` described above. A
+receiver that misses in the map of any of the four gets a property whose
+initial value is integer zero (STATIC). Later writes to a register's `+0x40`
+were not searched.
+
+A script read of an `IntData.Value0` through `IntData.Value3` slot that
+nothing has set on an element therefore answers integer zero. INFERRED. The
+unproved link is that the `_getProperty` read resolves the slot through the
+matching register. The path from that native to the register is untraced.
+
 Metadata construction `0x00F26CA0/0x00F26CAA` selects getter
 `0x0095E600` and writer `0x0095EAC0`. Both require property index
 zero. The writer calls `0x009415B0` at `0x0095EAE0`. A preprocessing
@@ -607,6 +633,8 @@ ghidra x-ref to 0x0095F450 --json
 ghidra x-ref to 0x0095F5B0 --json
 ghidra x-ref to 0x00992EF0 --json
 ghidra disasm 0x00991DA5 -n 430 --json
+ghidra disasm 0x00991ACB -n 280 --json
+ghidra disasm 0x009931A0 -n 40 --json
 ghidra disasm 0x00F26C60 -n 12 --json
 ghidra disasm 0x00950930 -n 100 --json
 ghidra disasm 0x00946830 -n 45 --json
