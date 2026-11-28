@@ -319,10 +319,15 @@ layer write that clears bit 0. Code outside that range was not searched. Slot
 
 ### Layer walks to Calculate
 
-`0x00dfc4a0` runs one of two walks over its layers. When its receiver byte
-`+0x30` is nonzero it calls `0x00e00ed0` (`0x00dfc5a3`), otherwise `0x00e01530`
+`0x00dfc4a0` runs one of two walks over its layers. It sets its receiver byte
+`+0x30` (`0x00dfc4e6..0x00dfc575`) when there are two or more layers, or when a
+single layer has a unit with a weight below 0.99 (double `0x00fc1048`) or a unit
+that fails virtual `+0x44`. When the byte is nonzero it calls the blend walk
+`0x00e00ed0` (`0x00dfc5a3`), otherwise the single walk `0x00e01530`
 (`0x00dfc5de`). These are the only direct callers of the walks. Both test layer
-`+0x90` bit 0 (`0x00e00ef2`, `0x00e01535`).
+`+0x90` bit 0 (`0x00e00ef2`, `0x00e01535`). A layer with the bit set is a mode 1
+layer on this page, and a layer with it clear is a mode 0 layer, after the mode
+byte in the table below.
 
 With the bit set, each walk visits the units at `+0x24..+0x28`. For a unit
 with byte `+0x39` nonzero and a weight above 0.0 (float at `0x01086650`) it
@@ -332,6 +337,14 @@ that entry. The frame is the layer float at `+0x14` and the row list is layer
 `+0x6c` in `0x00e00ed0` (`0x00e00f38`) and `+0x28` in `0x00e01530`
 (`0x00e01579`). With the bit clear, `0x00e00ed0` calls `0x00e0b770` and
 `0x00e01530` calls `0x00e0b720`.
+
+The blend walk applies the same gate to a mode 0 unit: byte `+0x39` set and a
+weight above 0 from layer virtual `+0x6c` for the unit index. While the flag of
+that unit index is set (all flags are set on each pass by `0x00a3b5a0`), it
+forces the weight to 1.0 and clears the flag, so the first such layer lands at
+full weight. Later layers use their own weight and interpolate from the current
+row. Mode 1 layers do not touch the flag. The single walk samples mode 0 units
+at weight 1.0.
 
 | Entry | Call to `0x00e09720` | Weight | Mode byte |
 |---|---|---|---:|
@@ -350,12 +363,61 @@ identity.
 The [install census of this bit](https://github.com/XIVLegacy/xivl-client-data/blob/main/docs/mtb-header-flag-census.md)
 is in `xivl-client-data`.
 
+### Motion controller reset and walk order
+
+STATIC, from `ghidra` CLI disassembly, RTTI data and Capstone decoding of the
+pinned image. The class
+`SQEX::CDev::Engine::Fw::SceneObject::MotionController` has vtable
+`0x0109e464`. Its update `0x00a6e810`, with a nonempty layer list and a nonnull
+result of owner virtual `+0x148`, calls `0x00c39b20`
+(`0x00a6e879..0x00a6e888`). With a nonzero dword at `+0x334` of its receiver,
+that routine reaches `0x00a3f770` and then, per joint, `0x00a45f30`. The latter
+copies the saved translation, quaternion and scale (`+0x90`, `+0xb0`, `+0xd0`)
+over the current ones (`+0x80`, `+0xa0`, `+0xc0`). The mixer `0x00dfc4a0` then
+runs.
+
+STATIC. There is an exception. With bit 2 of controller dword `+0x5d4` set and
+bit 3 clear, the reset is skipped, so rows keep their values. Slot 3
+`0x00a6f640`, which starts a layer, sets bit 3, and the reset path clears it
+when bit 2 is set. Setup code writes 3 to the dword (`0x00a6fa7f`). INFERRED
+(link: that code is the initialization of this class): bit 2 starts clear. The
+direct setter of bit 2 is virtual slot 29, `0x00a705b0`, whose callers were not
+enumerated. With no layers there is no reset on this path.
+
+STATIC. Layer entries are sorted in ascending order of an unsigned key
+(`0x00dfed20`), the byte argument of slot 3 (the entry is built by
+`0x00dfe030`). The budget pass copies the entries in that order into the list
+that the walk reads.
+
+STATIC. [Layer walks to Calculate](#layer-walks-to-calculate) owns the walk
+selection, the layer modes, the sample weights and the first write of each unit
+index in the blend walk.
+
+STATIC. The calculator writes only rows with channels, per path. A quaternion
+channel writes the rotation. Any scalar channel rewrites the whole translation
+and scale of the row, and lanes without a channel come from the saved pose in
+mode 0. Whether a row is unkeyed is therefore a property of the row and the
+path. INFERRED (link: the unread helpers around the sample, `0x00e0a000`,
+`0x00e0a130`, `0x00e0a260`, `0x00e0a5e0`, `0x00e0abd0` and `0x00e0b0e0`, write
+no other joint rows): a layer leaves unkeyed rows alone.
+
+UNKNOWN. Budget pass `0x00dfe0c0` hands out up to 1.0 per unit from the lowest
+key, sets a multiplier through virtual `+0x24` and passes a Boolean to layer
+virtual `+0x54`. The blend walk weighs with the weight that layer virtual `+0x6c`
+returns for the unit index and writes 1.0 back to the multiplier. What layer
+virtual `+0x54` does is not known. The unit index to MTB pair map in every layer
+is also not known.
+
+[Gesture layering](../actor/chara-scheduler-release.md#joints-a-gesture-clip-does-not-key)
+owns the INFERRED application to actor gestures.
+
 ### Limits
 
 - Direct cross-references do not exclude indirect calls. No client execution
   was observed, including which motions reach `0x00dfca80`.
-- What the rows hold when a mode 1 layer samples them, including the order of
-  layers over one row table, was not read.
+- What the rows hold when a mode 1 layer samples them depends on the
+  [reset arm and the walk order](#motion-controller-reset-and-walk-order). The
+  effect of the budget pass on them was not read.
 - `0x00e0b7d0` calls `0x00e0b0e0` (`0x00e0b822`) when the weight is below the
   double at `0x00fc1048` (0.9900000095367432) and `0x00e0abd0` (`0x00e0b835`)
   otherwise. The mode 0 entries call other helpers around the sample. None of

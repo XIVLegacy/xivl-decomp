@@ -52,6 +52,7 @@ are identified by the six bytes at the child start, including the NUL:
 | `@CACT` | Actor records `AD[0] = child+0x10`, `AD[i+1] = AD[i] + s16(AD[i])`, `s16(child+0x0A)` records |
 | `@CBKT` | `s16(+0x0A)` blocks; block headers from `child+0x10`, each next at `+16*u16(header+6)` |
 | `@CTRK` | Track table, not used for clip selection |
+| `@CCNT` | Block instance records, under [played block](cut-scheduler-clip-timing.md#played-block) |
 
 The actor container appends every `@CACT` factory result, including null
 results, so an actor ordinal is exactly the `@CACT` record index. The class of
@@ -115,6 +116,10 @@ stored at `+0xF0` through `0x0082DF10`. ProxyActor slot 23, `0x00622C30`,
 later resolves that ID, so visual and single-actor collision clips with the
 same actor ordinal reach the created character. Without a bind, slot 23
 returns null and those clips do nothing.
+
+The [clip timing page](cut-scheduler-clip-timing.md#raptureactorbindclip-phases)
+records the phase that slot 1 sets and the gates through which slot 2 releases
+it.
 
 ## Scan predicate
 
