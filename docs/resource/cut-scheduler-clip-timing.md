@@ -244,10 +244,30 @@ that entry of the block container at `[[S+0x50]+0x3c]`
 argument of the list builder `0x00a28210`. Block change `0x00a1e710` does the
 same for a later instance.
 
-INFERRED (link: both containers are filled in chunk record order. The append
-loops `0x00a2a110..0x00a2a13f` and `0x00a2a330..0x00a2a37b` append in iterator
-order, and the iterator was not read): the block that a scheduler plays first
-is the block that the first `@CBIS` record names, counted from 0.
+STATIC. Parser `0x00a24400` (direct caller `0x00a250b3`) walks the children of
+the root chunk and compares six tag bytes. For `@CBKT` it calls builder
+`0x00a2a2c0` and stores the result at `+0x3c` of the object that it fills
+(`0x00a2452b..0x00a24533`). For `@CCNT\0` (string `0x01098224`, compare
+`0x00a24542..0x00a24554`) it passes the `s16` at chunk `+0x0a` (`0x00a272f0`) and
+chunk `+0x10` (`0x00a272b0`) to builder `0x00a2a0a0` and stores the result at
+`+0x40` (`0x00a2456a..0x00a24572`). So `@CCNT` is the chunk that holds the block
+instance records, and `s16(+0x0a)` is their count. Each builder walks that many
+chunks from chunk `+0x10` with one iterator. It reads the data of the current
+chunk at `+0x10` (`0x00a272b0`) and steps by `16 * u16(chunk+6)`
+(`0x00a27320`). The append loops `0x00a2a110..0x00a2a13f` (instances) and
+`0x00a2a330..0x00a2a37b` (blocks) append in that order (`0x00a280b0` and
+`0x00a269f0`), and lookups `0x00a28090` and `0x00a26990` index by that position.
+Parsers `0x00a24620` and `0x00a24960` also compare the `@CCNT` tag. Their
+branches were not read. Builder `0x00a2a0a0` also has direct callers
+`0x00a2234b` and `0x00a234eb`. At `0x00a2233b..0x00a2234b` the parser passes a
+count of 1 and a static `@CBIS` record at `0x01097fe8`. The other call was not
+read.
+
+INFERRED (link: the object at `S+0x50` of a queue run scheduler is filled by
+`0x00a24400`, whose `+0x3c` and `+0x40` cells match the two containers above):
+block instance 0 is the first `@CBIS` child of `@CCNT`, and the block that a
+scheduler plays first is the `@CBKT` child that this record names, counted
+from 0.
 
 The [scheduler end rules](../actor/chara-scheduler-release.md#when-a-scheduler-ends)
 own the transitions, and the

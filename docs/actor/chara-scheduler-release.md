@@ -426,9 +426,20 @@ STATIC.
   conditions from `+0x04` (`0x00A27D70..0x00A27D96`). Evaluator `0x00A27EF0`
   passes combine mode 0 when every condition passes, which includes a count of
   0, mode 1 when any condition passes, and nothing for other modes. In
-  installed data these records sit in `@CBIS` chunks, data at chunk `+0x10`.
-  The transition record stride is verified only for records with no
-  conditions.
+  installed data these records sit in `@CBIS` chunks, data at chunk `+0x10`,
+  which are the children of a `@CCNT` chunk.
+  [Played block](../resource/cut-scheduler-clip-timing.md#played-block) records
+  the parser route and the record order.
+- STATIC. The instance builder `0x00A2AB10` starts a transition iterator at
+  data `+0x10` with the transition count (`0x00A2AB7B..0x00A2AB8D`) and appends
+  in iteration order (`0x00A27CB0`). `0x00A27C50` tests the transitions in that
+  order (`0x00A27C70..0x00A27C89`), and the first that `0x00A27EF0` passes gives
+  its target byte (`0x00A27C93..0x00A27C9B`, `0x00A27D70`). The iterator step
+  `0x00A27DE0` moves 4 bytes past a transition with a condition count of 0
+  (`0x00A27E01..0x00A27E0D`, `0x00A27E77..0x00A27E7B`). With conditions it walks
+  them from `+0x04` with a second iterator that was not read, so the size of a
+  condition record is UNKNOWN. The `@CBIS` chunk size counts 16 byte units and
+  does not show the transition stride.
 - The scheduler constructor `0x00A1EBE0` writes 0 to the mode dword
   (`0x00A1ED2A`). `0x00A1B77D`, `0x00A1C5E9`, `0x00A1C613` and `0x00A1C629`
   write other values, and their callers were not traced. That a queue run
@@ -476,6 +487,19 @@ OBSERVED over c001 banks.
   [played block](../resource/cut-scheduler-clip-timing.md#played-block)): the
   block that `main` plays first is the block that its instance 0 names, counted
   from 0.
+- In the same schedulers, each root chunk has one `@CCNT` child, directly after
+  `@CBKT`. In 428 of 428, the walk over its `s16(+0x0A)` children from chunk
+  `+0x10`, each step `16 * u16(child+6)`, meets only `@CBIS` tags and ends at
+  the end of the `@CCNT` chunk. The number of `@CBIS` tags in each scheduler
+  equals that count. The schedulers hold 435 instances: 422 with no transition
+  in a chunk of 32 bytes, 9 with one in 48 bytes and 4 with two in 64 bytes.
+  In each of those 4, the first transition has a nonzero condition count.
+- In the same schedulers, ClipSyncClips list a BindActorClip 13 times, all in
+  `lil` mains, and a RaptureCasterManagedSchClip 72 times in `em1`, 5 in `em2`
+  and 5 in `em3`. They list no other class.
+- Each of the 13 c001 `act/cmn/lil/base` bank files holds two `SEDB`
+  signatures, of subtypes `RES` and `SCB`, and so no `mtb` motion resource. Each
+  of the 52 `liu` bank files holds one `mtb` signature.
 - Over the banks of the script selectors, 130 of 131 MotionClips have flags
   `0x20` and selector byte 1. One has `0xA0` and `0xFF` (phase 2, in
   `inn_out01`, ended by a KillClip).
@@ -802,7 +826,10 @@ Check the digest. Disassemble `0x0065A960`, `0x0058E720`, `0x00843AF0`,
 `0x008452CC`, `[0x00845430,0x00845D5E)` with 4 dwords at `0x00845D60`,
 `[0x00662D30,0x00662D78)`, `[0x004DA7E0,0x004DA960)`, `[0x00A1CB60,0x00A1CBC5)`,
 `[0x00A1E83A,0x00A1EA3F)`, `[0x00A27BD0,0x00A27CB0)`,
-`[0x00A27D70,0x00A27D97)`, `0x00A27EF0`, `0x00A28090`, `0x00A1D1F0` with 5
+`[0x00A27D70,0x00A27E8E)`, `0x00A27EF0`, `0x00A28090`,
+`[0x00A2AB10,0x00A2AC08)`, `[0x00A24400,0x00A245E3)`,
+`[0x00A27270,0x00A27348)`, `[0x00A2A0A0,0x00A2A150)`,
+`[0x00A2A2C0,0x00A2A37D)`, `0x00A269F0`, `0x00A26990`, `0x00A1D1F0` with 5
 dwords at `0x00A1D308` and `[0x00798BF0,0x00799724)`. List the references to
 `0x0065A960` and `0x0058DBE0`, and scan `.text` for `E8` and `E9` `rel32` to
 `0x007CE7B0`. For the install counts, walk each bank `SEDBRES` directory as in
@@ -810,7 +837,11 @@ the [locomotion bank census](locomotion-bank-census.md), parse every `SEDBSCB`
 and read `@CBKT` block bodies (length `+0x14`, clip count `+0x18`), including
 nested `SEDBRES` entries. For the block instance counts, read the first
 `@CBIS` chunk of each `SEDBSCB` (block index at chunk `+0x10`, transition count
-at `+0x11`).
+at `+0x11`). For the container counts, parse each scheduler with
+`tools/scb_clip_scheduler.py`, take the root children (count byte at root
+`+0x1C`), and walk the `@CCNT` child as stated in
+[installed gesture schedulers](#installed-gesture-schedulers). For the `lil` and
+`liu` bank contents, read the four bytes after each `SEDB` signature.
 
 For the load listener, disassemble `[0x00631C70,0x00631E1C)`, `0x00631370`,
 `0x00632440`, `0x006323D0`, `0x00631320`, `0x00798900` and `0x00844396`. For

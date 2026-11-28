@@ -52,6 +52,7 @@ are identified by the six bytes at the child start, including the NUL:
 | `@CACT` | Actor records `AD[0] = child+0x10`, `AD[i+1] = AD[i] + s16(AD[i])`, `s16(child+0x0A)` records |
 | `@CBKT` | `s16(+0x0A)` blocks; block headers from `child+0x10`, each next at `+16*u16(header+6)` |
 | `@CTRK` | Track table, not used for clip selection |
+| `@CCNT` | Block instance records, under [played block](cut-scheduler-clip-timing.md#played-block) |
 
 The actor container appends every `@CACT` factory result, including null
 results, so an actor ordinal is exactly the `@CACT` record index. The class of
