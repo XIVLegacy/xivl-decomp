@@ -527,6 +527,8 @@ Each finding records its evidence and the limits of what it establishes.
   Hit order, modal and disabled gates, enter and leave, Button and ListBox release.
 - [Sqwt Button focus and untargeted Command start](input/sqwt-button-focus-recipient.md) -
   Route start selection, Button focus gates, template setters and markup counts.
+- [Sqwt untargeted Buttons with a local focus flag](input/sqwt-button-local-focus-flags.md) -
+  Window focus redirect, null route stores and a class for each flagged Button.
 - [Escape routing and key sheet selection](input/escape-key-routing.md)
 - [Sqwt scroll and drag events](input/sqwt-scroll-and-drag-events.md)
 - [Sqwt drag and drop pipeline](input/sqwt-drag-drop-pipeline.md)

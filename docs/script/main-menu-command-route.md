@@ -845,6 +845,13 @@ bit clear, Button_Close supplies its own interface as explicit target.
 The direct parent route can therefore reach its Window without a current
 keyboard-focus interface. Absence of focus, or focus known to be in another
 Window, does not alone refuse this direct branch.
+A press on this unfocusable Button can itself
+[request focus on its Window](../input/sqwt-button-local-focus-flags.md#title-close-button-of-winbasiswithtitle).
+Given an admitted commit whose GotKeyboardFocus bubble reaches the Window
+unstopped, the bit is then set during the press. With links L, P and N on
+that page (INFERRED), Click takes the set-bit branch, which reaches the
+Window `_widget` store, subject to stop and handled, and not a Button_Close
+store.
 
 For the set-bit branch, the Button supplies null. Router `0x0091EE90`
 requires global focus `0x01357020` to be nonnull at `0x0091EEBD..0x0091EEC3`.
@@ -868,9 +875,12 @@ close handler. The event descriptor, owner, parent chain, current pair,
 form gates and absence of an earlier route stop remain premises.
 
 The null router tries other retained pairs after the matching candidate
-unless event `+0x17` becomes exactly 1 (`0x0091F199..0x0091F1A5`). Known
-focus in another root therefore does not prove that the intended root can
-never receive a later candidate. Refusing that case in an implementation
+unless event `+0x17` becomes exactly 1 (`0x0091F199..0x0091F1A5`). Those
+pairs admit only elements with
+[interface bit 1](../input/escape-key-routing.md#interface-bit-1). With the
+constructed Window value retained, an unfocused Window adds nothing through a
+later pair. Computed writes and live pair contents remain unobserved.
+Refusing the case of known focus in another root in an implementation
 limited to the proven same-root join is AUTHORED scope, not a universal
 native refusal. Null-branch absent focus is a proven early exit. Neither
 rule changes the explicit Button target branch when the holder is clear.
